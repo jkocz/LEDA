@@ -1,0 +1,46 @@
+
+body {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	/*overflow: hidden;*/
+	/*height: 100%;*/
+	/*max-height: 100%;*/
+	background-color: #fff;
+	color: #222;
+	font-family: 'Lucida Grande', helvetica, arial, verdana, sans-serif;
+}
+
+img {
+	vertical-align: top;
+}
+#title_panel{
+	width:  200px;
+	height: 200px;
+	float:  left;
+}
+#ledalogo{ 
+	width: 150px;
+}
+
+#control_panel {
+	width: 300px;
+	height: 200px;
+}
+/*#control_panel.*/
+button {
+	display: inline-block;
+	width:   85px;
+}
+
+tr.title_row {
+	font-weight: bold;
+}
+td {
+	width: 80px;
+	text-align: center;
+}
+td.message_col {
+	width: 200px;
+	text-align: left;
+}
