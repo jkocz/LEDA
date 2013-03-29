@@ -88,12 +88,12 @@ int main(int argc, char** argv) {
  
   for (outerL=0;outerL<sliceToRead/slicePerFile;outerL++)
   {
-	fprintf(stdout,"Will read %d slices\n",sliceToRead/slicePerFile);
-	sprintf(output_fileA,"Test_%d.LA",outerL);
-	sprintf(output_fileC,"Test_%d.LC",outerL);
+	//fprintf(stdout,"Will read %d slices\n",sliceToRead/slicePerFile);
+	sprintf(output_fileA,"%s_%d.LA",input_file,outerL);
+	sprintf(output_fileC,"%s_%d.LC",input_file,outerL);
   	outputFileA = fopen(output_fileA, "a");
         outputFileC = fopen(output_fileC,"a");
-        fprintf(stdout,"Output files open\n");
+        //fprintf(stdout,"Output files open\n");
 
 	//for (int zz=0;zz<100;zz++)
 	//{
@@ -104,11 +104,11 @@ int main(int argc, char** argv) {
         //for (int innerL=0;innerL=innerL+1;innerL<slicePerFile);
         for (innerL=0;innerL<slicePerFile;innerL++)
 	{
-		fprintf(stdout,"In inner loop...%d\n",innerL);
+		//fprintf(stdout,"In inner loop...%d\n",innerL);
 
 		bytes_read = fread(cuda_matrix_h,sizeof(Complex),matrix_len,inputFile);
 
-		fprintf(stdout, "Expected %d bytes, Read %d bytes\n",matrix_len,bytes_read);
+		//fprintf(stdout, "Expected %d bytes, Read %d bytes\n",matrix_len,bytes_read);
 		if (bytes_read < matrix_len)
 		{
 			fprintf(stdout, "EOF Reached\n");
@@ -116,7 +116,7 @@ int main(int argc, char** argv) {
                         offsetCount += filenameOffset;
                 	sprintf(inputFile_full,"%s_%016lu.000000.dada",input_file,offsetCount);
               	  	inputFile = fopen(inputFile_full, "rb");
-			if (inputFile < 0)
+			if (inputFile <= 0)
 			{
 				fclose(outputFileA);
 				fclose(outputFileC);
@@ -126,21 +126,21 @@ int main(int argc, char** argv) {
 			}
 			bytes_offset = bytes_read;
                		bytes_read = fread(header,sizeof(char),4096,inputFile);
-               	 	fprintf(stdout,"Header Read (%d bytes)\n",bytes_read);
+               	 	//fprintf(stdout,"Header Read (%d bytes)\n",bytes_read);
                 	fprintf(stdout,"Input File: %s\n",inputFile_full);
 			remainder = matrix_len - bytes_offset;
                         bytes_read = fread(cuda_matrix_h,sizeof(Complex),remainder,inputFile);
-		        fprintf(stdout, "Expected %d bytes, Read %d bytes\n",remainder,bytes_read);
+		        //fprintf(stdout, "Expected %d bytes, Read %d bytes\n",remainder,bytes_read);
 			// set cuda_matrix_h to zero for this one to ensure no corruption of data?
-			memset(cuda_matrix_h, '\0', matrix_len*sizeof(Complex));
+			// memset(cuda_matrix_h, '\0', matrix_len*sizeof(Complex));
 
 		}  
-		fprintf(stdout,"Reordering stage 1.... \n");	
+		//fprintf(stdout,"Reordering stage 1.... \n");	
 		xgpuReorderMatrix(cuda_matrix_h,matrix_len);
   		// convert from packed triangular to full matrix
-		fprintf(stdout,"Reordering stage 2.... \n");
+		//fprintf(stdout,"Reordering stage 2.... \n");
   		xgpuExtractMatrix(full_matrix_h, cuda_matrix_h);
-		fprintf(stdout,"Reordering complete\n");
+		//fprintf(stdout,"Reordering complete\n");
 		// write to output
 		strideLength= 2080+2016;
 		int bytes_printed = 0;
@@ -174,7 +174,7 @@ int main(int argc, char** argv) {
                                 aflip = 0;
                         }
 		}
-		fprintf (stdout, "AC writen, bytes printed: %d\n",bytes_printed);
+		//fprintf (stdout, "AC writen, bytes printed: %d\n",bytes_printed);
 		for (int ccIndex=0;ccIndex<64;ccIndex++)
 		{
                         for (int xcount=ccIndex;xcount<63;xcount++)
@@ -217,7 +217,7 @@ int main(int argc, char** argv) {
                                 }
                         }
 		}
-	        fprintf(stdout, "CC written\n");
+	        //fprintf(stdout, "CC written\n");
 	}
 	fclose(outputFileA);
 	fclose(outputFileC);
