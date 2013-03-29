@@ -196,7 +196,8 @@ time_t leda_udpdb_start (udpdb_t * ctx, char * obs_header)
   if (utc_start)
   {
     char buffer[64];
-    strftime (buffer, 64, DADA_TIMESTR, localtime(&utc_start));
+    //strftime (buffer, 64, DADA_TIMESTR, localtime(&utc_start));
+    strftime (buffer, 64, DADA_TIMESTR, gmtime(&utc_start));
     if (ascii_header_set (header, "UTC_START", "%s", buffer) < 0)
       multilog (ctx->log, LOG_WARNING, "Could not write UTC_START to header\n");
 
