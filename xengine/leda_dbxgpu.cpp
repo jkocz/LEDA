@@ -193,16 +193,17 @@ public:
 		// Extract, compute and write total power from specified inputs
 		// Note: This will run concurrently with xGPU when not dumping
 		if( m_tp_inputs.size() ) {
-			size_t ninput = m_xgpu_info.nstation * 2;
+			size_t ninput    = m_xgpu_info.nstation * 2;
+			size_t tp_ninput = m_tp_inputs.size();
 			// TODO: Could optimise this by making m_tp_inputs a static array
-			for( size_t j=0; j<m_xgpu_info.vecLength; j+=ninput ) {
+			for( size_t j=0; j<m_xgpu_info.vecLength / ninput; ++j ) {
 				//for( size_t i=0; i<m_tpinputs.size(); ++i ) {
-				for( size_t is=0; is<m_tp_inputs.size(); is+=2 ) {
+				for( size_t is=0; is<tp_ninput; is+=2 ) {
 					for( size_t ip=0; ip<2; ++ip ) {
 						size_t i = is + ip;
 						size_t inp = m_tp_inputs[i];
-						ComplexInput val = ((ComplexInput*)data_in)[j+inp];
-						m_tp_out[j+i] = total_power(val);
+						ComplexInput val = ((ComplexInput*)data_in)[j*ninput+inp];
+						m_tp_out[j*tp_ninput+i] = total_power(val);
 					}
 				}
 			}
