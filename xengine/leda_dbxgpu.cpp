@@ -195,7 +195,7 @@ public:
 		if( m_tp_inputs.size() ) {
 			size_t ninput = m_xgpu_info.nstation * 2;
 			// TODO: Could optimise this by making m_tp_inputs a static array
-			for( size_t j=0; j<in_size; j+=ninput ) {
+			for( size_t j=0; j<m_xgpu_info.vecLength; j+=ninput ) {
 				//for( size_t i=0; i<m_tpinputs.size(); ++i ) {
 				for( size_t is=0; is<m_tp_inputs.size(); is+=2 ) {
 					for( size_t ip=0; ip<2; ++ip ) {
