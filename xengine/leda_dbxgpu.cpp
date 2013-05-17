@@ -8,6 +8,9 @@
 #include <iostream>
 using std::cout;
 using std::endl;
+#include <fstream>
+#include <iterator>
+//#include <iomanip>
 #include <errno.h>       // For errno
 #include <sys/syscall.h> // For SYS_gettid
 
@@ -50,6 +53,11 @@ int dada_bind_thread_to_core(int core)
   return 0;
 }
 
+inline unsigned short total_power(const ComplexInput& c) {
+	// Note: Max power from 8+8b input = -128^2 + -128^2 = 32768
+	return c.real*c.real + c.imag*c.imag;
+}
+
 class dbgpu : public dada_db2db {
 	size_t               m_ntime_integrate;
 	size_t               m_subintegration;
@@ -57,6 +65,12 @@ class dbgpu : public dada_db2db {
 	XGPUContext*         m_xgpu;
 	XGPUInfo             m_xgpu_info;
 	bool                 m_do_register;
+	
+	// Total power variables
+	typedef unsigned short tptype;
+	std::vector<size_t>  m_tp_inputs;
+	std::vector<tptype>  m_tp_out;
+	std::ostream*        m_tp_outstream;
 public:
 	dbgpu(multilog_t* log, int verbose,
 	      size_t ntime_integrate,
@@ -99,6 +113,16 @@ public:
 		xgpuFree(m_xgpu);
 		delete m_xgpu;
 	}
+	
+	void setTotalPowerInputs(const int* tp_inputs, size_t tp_ninputs,
+	                         std::ostream& tp_outstream=std::cout) {
+		m_tp_inputs.assign(tp_inputs, tp_inputs + tp_ninputs);
+		size_t ninputs = m_xgpu_info.nstation * 2;
+		size_t tpsize  = m_xgpu_info.vecLength / ninputs * tp_ninputs;
+		m_tp_out.resize(tpsize);
+		m_tp_outstream = &tp_outstream;
+	}
+	
 	virtual void onConnect(key_t in_key, key_t out_key) {
 		if( m_do_register ) {
 			// Register buffers as pinned memory
@@ -149,7 +173,7 @@ public:
 			throw std::runtime_error("xgpuSetHostOutputBuffer failed");
 		}
 		
-		int  sync_op = SYNCOP_SYNC_COMPUTE;
+		int  sync_op = SYNCOP_NONE;//SYNCOP_SYNC_COMPUTE;
 		bool clear_integration = false;
 		
 		if( ++m_subintegration == m_ntime_integrate ) {
@@ -165,6 +189,29 @@ public:
 			cout << xgpu_error << endl;
 			throw std::runtime_error("xgpuCudaXengine failed");
 		}
+		
+		// Extract, compute and write total power from specified inputs
+		// Note: This will run concurrently with xGPU when not dumping
+		if( m_tp_inputs.size() ) {
+			size_t ninput = m_xgpu_info.nstation * 2;
+			// TODO: Could optimise this by making m_tp_inputs a static array
+			for( size_t j=0; j<in_size; j+=ninput ) {
+				//for( size_t i=0; i<m_tpinputs.size(); ++i ) {
+				for( size_t is=0; is<m_tp_inputs.size(); is+=2 ) {
+					for( size_t ip=0; ip<2; ++ip ) {
+						size_t i = is + ip;
+						size_t inp = m_tp_inputs[i];
+						ComplexInput val = ((ComplexInput*)data_in)[j+inp];
+						m_tp_out[j+i] = total_power(val);
+					}
+				}
+			}
+			m_tp_outstream->write((char*)&m_tp_out[0],
+			                      m_tp_out.size()*sizeof(tptype));
+		}
+		
+		// Manually sync xGPU
+		cudaThreadSynchronize();
 		
 		if( clear_integration ) {
 			xgpu_error = xgpuClearDeviceIntegrationBuffer(m_xgpu);
@@ -188,6 +235,7 @@ void usage() {
 		" -c core    bind process to CPU core\n"
 		" -d device  gpu device (default 0)\n"
 		" -t count   no. NTIMEs to integrate (default 1)\n"
+		" -p tpfile  filename for total power output\n"
 		" -r         disable host memory pinning\n"
 		" -h         print usage" << endl;
 }
@@ -202,9 +250,10 @@ int main(int argc, char* argv[])
 	size_t      ntime_integrate = 1;
 	int         do_register = 1;
 	int         core = -1;
+	std::string tp_filename = "";
 	
 	int arg = 0;
-	while( (arg = getopt(argc,argv,"d:t:c:rhv")) != -1 ) {
+	while( (arg = getopt(argc,argv,"d:t:c:p:rhv")) != -1 ) {
 		switch (arg){
 		case 'd':
 			if( optarg ) {
@@ -231,6 +280,15 @@ int main(int argc, char* argv[])
 			}
 			else {
 				fprintf(stderr, "ERROR: -c flag requires argument\n");
+				return EXIT_FAILURE;
+			}
+		case 'p':
+			if( optarg ) {
+				tp_filename = optarg;
+				break;
+			}
+			else {
+				fprintf(stderr, "ERROR: -p flag requires argument\n");
 				return EXIT_FAILURE;
 			}
 		case 'h':
@@ -287,6 +345,29 @@ int main(int argc, char* argv[])
 	multilog_add(log, stderr);
 	
 	dbgpu ctx(log, verbose, ntime_integrate, gpu_idx, do_register);
+	
+	std::ofstream tp_outfile;
+	if( tp_filename != "" ) {
+		
+		std::string      tp_inputs_filename = "total_power_inputs.txt";
+		std::ifstream    tp_inputs_file(tp_inputs_filename.c_str());
+		if( !tp_inputs_file ) {
+			fprintf(stderr,
+			        "dbgpu: failed to open %s\n",tp_inputs_filename.c_str());
+			return -1;
+		}
+		std::vector<int> tp_inputs;
+		tp_inputs.assign(std::istream_iterator<int>(tp_inputs_file),
+		                 std::istream_iterator<int>());
+		if( verbose ) {
+			fprintf(stderr, "dbgpu: read %lu total power inputs from %s\n",
+			        tp_inputs.size(),
+			        tp_inputs_filename.c_str());
+		}
+		tp_outfile.open(tp_filename.c_str(), std::ios::binary);
+		ctx.setTotalPowerInputs(&tp_inputs[0], tp_inputs.size(), tp_outfile);
+	}
+	
 	ctx.connect(in_key, out_key);
 	ctx.run();
 	
