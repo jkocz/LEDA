@@ -1,11 +1,10 @@
-
-DBXGPU_LIBS += -L$(CUDA_DIR)/lib64 -lcudart -lxgpu -lpsrdada
-DBXGPU_INC  += -I$(CUDA_DIR)/include
+DBXGPU_LIBS += -L$(CUDA_DIR)/lib64 -lcudart -lxgpu -L$(PSRDADA_DIR)/src/.libs -lpsrdada
+DBXGPU_INC  += -I$(CUDA_DIR)/include -I$(PSRDADA_DIR)/src
 
 CXX_FLAGS   += -Wall -pedantic -O3
 DEBUG_FLAGS += -g
 
-CXX = g++
+CXX ?= g++
 
 all: leda_dbxgpu
 
