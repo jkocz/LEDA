@@ -52,12 +52,17 @@ int dada_bind_thread_to_core(int core)
 
   return 0;
 }
-
+/*
 inline unsigned short total_power(const ComplexInput& c) {
 	// Note: Max power from 8+8b input = -128^2 + -128^2 = 32768
 	return c.real*c.real + c.imag*c.imag;
 }
-
+*/
+inline unsigned char total_power(const ComplexInput& c) {
+	// Note: Max power from 4+4b input = -8^2 + -8^2 = 128
+	//       The input values are actually only the high 4b of 8b memory
+	return (c.real*c.real + c.imag*c.imag) >> (4+4);
+}
 class dbgpu : public dada_db2db {
 	size_t               m_ntime_integrate;
 	size_t               m_subintegration;
@@ -67,7 +72,8 @@ class dbgpu : public dada_db2db {
 	bool                 m_do_register;
 	
 	// Total power variables
-	typedef unsigned short tptype;
+	//typedef unsigned short tptype;
+	typedef unsigned char tptype;
 	std::vector<size_t>  m_tp_inputs;
 	std::vector<tptype>  m_tp_out;
 	std::ostream*        m_tp_outstream;
