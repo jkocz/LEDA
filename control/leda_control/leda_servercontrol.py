@@ -409,8 +409,8 @@ def onMessage(ledaserver, message, clientsocket, address):
 	
 def reg_tile_triangular_size(Ni, Nc):
 	tile_size = 4
-        float_size = 4
-        ts = tile_size
+	float_size = 4
+	ts = tile_size
 	return Ni/ts * (Ni/ts + 1) / 2 * ts*ts * Nc * float_size
 
 if __name__ == "__main__":
@@ -425,7 +425,7 @@ if __name__ == "__main__":
 		ntime  = 8192
 		bufsize = ninput*nchan*ntime
 		upsize  = bufsize * 2
-                outsize = reg_tile_triangular_size(ninput, nchan)
+		outsize = reg_tile_triangular_size(ninput, nchan)
 		
 		dadapath = "/home/leda/software/psrdada/src"
 		bufkeys  = ["dada", "adda", "aeda", "eada",

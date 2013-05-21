@@ -5,6 +5,8 @@ numavg=$3
 
 memsize=`expr $1 \* $2 \* $3 | bc`
 upsize=`expr $memsize \* 2 | bc`
+# Note: Last '4' is for 32b; other 4's are for tile size
+outsize=`expr $1/4 \* ($1/4 \+ 1) / 2 \* 4 \* 4 \* $2 \* 4 | bc`
 
 /home/leda/software/psrdada/src/dada_db -d -k dada
 /home/leda/software/psrdada/src/dada_db -d -k eada
@@ -23,10 +25,11 @@ upsize=`expr $memsize \* 2 | bc`
 /home/leda/software/psrdada/src/dada_db -c 1 -b $memsize -k adda -l
 /home/leda/software/psrdada/src/dada_db -c 9 -b $memsize -k aeda -l
 /home/leda/software/psrdada/src/dada_db -c 9 -b $memsize -k eada -l
-/home/leda/software/psrdada/src/dada_db -c 9 -b $memsize -k fada -l
-/home/leda/software/psrdada/src/dada_db -c 1 -b $memsize -k afda -l
-/home/leda/software/psrdada/src/dada_db -c 1 -b $memsize -k cada -l
-/home/leda/software/psrdada/src/dada_db -c 9 -b $memsize -k acda -l
+
+/home/leda/software/psrdada/src/dada_db -c 9 -b $outsize -k fada -l
+/home/leda/software/psrdada/src/dada_db -c 1 -b $outsize -k afda -l
+/home/leda/software/psrdada/src/dada_db -c 1 -b $outsize -k cada -l
+/home/leda/software/psrdada/src/dada_db -c 9 -b $outsize -k acda -l
 
 /home/leda/software/psrdada/src/dada_db -c 1 -b $upsize -k abda -l
 /home/leda/software/psrdada/src/dada_db -c 1 -b $upsize -k aada -l
