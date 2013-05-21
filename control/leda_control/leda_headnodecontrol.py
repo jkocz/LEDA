@@ -63,7 +63,12 @@ class LEDARemoteServerControl(object):
 		self.log.write("Connecting to remote server %s:%i" \
 			               % (self.host,self.port))
 		#self._nstreams = None
-		self.sock = SimpleSocket(timeout=3)
+		# TODO: This timeout must be long enough to cover long
+		#         operations on the server. This is not a good
+		#         way to do things; would probably be better to
+		#         send an instant response and something like
+		#         an asynchronous "I'll get back to you in N secs".
+		self.sock = SimpleSocket(timeout=10)
 		try:
 			self.sock.connect(self.host, self.port)
 		except SimpleSocket.timeout_error:
@@ -80,7 +85,10 @@ class LEDARemoteServerControl(object):
 		if self.sock is None:
 			self.log.write("Not connected", -2)
 			return None
-		self.log.write("Sending message "+msg, 4)
+		if len(msg) <= 256:
+			self.log.write("Sending message "+msg, 4)
+		else:
+			self.log.write("Sending long message of length %i bytes"%(len(msg)), 4)
 		try:
 			self.sock.send(msg)
 			ret = self.sock.receive()
@@ -88,7 +96,10 @@ class LEDARemoteServerControl(object):
 			self.log.write("Not connected", -2)
 			self.sock = None
 			return None
-		self.log.write("Received response "+ret, 4)
+		if len(ret) < 256:
+			self.log.write("Received response "+ret, 4)
+		else:
+			self.log.write("Received long response of length %i bytes"%(len(ret)), 4)
 		return ret
 	def _sendcmd(self, cmd):
 		ret = self._sendmsg(cmd)
@@ -151,6 +162,13 @@ class LEDARemoteServerControl(object):
 	def clearLogs(self):
 		#self.log.write("Clearing all logs", 2)
 		self._sendcmd("clear_logs=1")
+	def getVisMatrixImages(self):
+		self.log.write("Requesting visibility matrix images", 2)
+		encoded = self._sendmsg("vismatrix_images=1")
+		if encoded is None:
+			return None
+		encoded_images = json.loads(encoded)
+		return encoded_images
 
 class LEDARemoteCaptureProcess(object):
 	def __init__(self, host, port, log=LEDALogger()):
@@ -223,12 +241,13 @@ class LEDARemoteServer(object):
 		self.capture = LEDARemoteCapture(host, captureports, log)
 
 class LEDARoach(object):
-	def __init__(self, host, port, src_ip_start, src_port_start, boffile,
+	def __init__(self, host, port, src_ip_start, src_port_start, fid_start, boffile,
 	             log=LEDALogger()):
 		self.host = host
 		self.port = port
 		self.src_ip_start   = src_ip_start
 		self.src_port_start = src_port_start
+		self.fid_start      = fid_start
 		self.boffile = boffile
 		self.log  = log
 		self.connect()
@@ -290,13 +309,16 @@ class LEDARoach(object):
 		self.log.write("Programming ROACH")
 		if self.fpga == None:
 			self.log.write("Not connected", -2)
+			return
 			
-		# TESTING Setting digital gain registers to 5x
+		# TESTING Setting digital gain registers to 8x
+		self.log.write("  Setting ADC digital gain to %i" % (8))
 		gain_reg     = 0x2a
-		gain_setting = 0x5555
+		gain_setting = 0x8888
 		registers = {gain_reg: gain_setting}
 		
-		programRoach(fpga, self.boffile, self.src_ip_start, self.src_port_start,
+		programRoach(self.fpga, self.boffile, self.src_ip_start, self.src_port_start,
+			     self.fid_start,
 		             registers)
 		## TODO: Manage log information
 		#ret = subprocess.call("leda_program_roach.py", shell=True)
@@ -308,7 +330,7 @@ class LEDARoach(object):
 class LEDARemoteManager(object):
 	def __init__(self, serverhosts, roachhosts,
 	             controlport, captureports, roachport,
-	             src_ip_starts, src_port_starts, boffile,
+	             src_ip_starts, src_port_starts, fid_starts, boffile,
 	             log=LEDALogger()):
 		self.log = log
 		self.debuglevel = debuglevel
@@ -317,18 +339,32 @@ class LEDARemoteManager(object):
 		                                 captureports,log) \
 			                for i,host in enumerate(serverhosts)]
 		self.roaches = [LEDARoach(host,roachport,
-		                          src_ip_start,src_port_start,boffile,log) \
-			                for host,src_ip_start,src_port_start \
-			                in zip(roachhosts,src_ip_starts,src_port_starts)]
-		
+		                          src_ip_start,src_port_start,fid_start,boffile,log) \
+			                for host,src_ip_start,src_port_start,fid_start \
+			                in zip(roachhosts,src_ip_starts,src_port_starts,fid_starts)]
+	
+	def programRoaches(self):
+		self.log.write("Programming roaches; wait 3 mins to take effect", 0)
+		for roach in self.roaches:
+			roach.program()
+		# Note: Very important, wait for ARP tables in ROACHes to update
+		#time.sleep(180)
+	def createBuffers(self):
+		self.log.write("Creating buffers", 0)
+		for server in self.servers:
+			server.control.createBuffers()
 	def configure(self):
 		self.log.write("Configuring hardware", 0)
+		self.programRoaches()
+		self.createBuffers()
+		"""
 		for roach in self.roaches:
 			roach.program()
 		for server in self.servers:
 			server.control.createBuffers()
 		# Note: Very important, wait for ARP tables in ROACHes to update
 		time.sleep(180)
+		"""
 	def startObservation(self):
 		self.log.write("Starting observation", 0)
 		self.killObservation()
@@ -422,6 +458,12 @@ def onMessage(leda, message, clientsocket, address):
 	elif "configure" in args:
 		leda.configure()
 		clientsocket.send('ok')
+	elif "program_roaches" in args:
+		leda.programRoaches()
+		clientsocket.send('ok')
+	elif "create_buffers" in args:
+		leda.createBuffers()
+		clientsocket.send('ok')
 	elif "start" in args:
 		leda.startObservation()
 		clientsocket.send('ok')
@@ -434,6 +476,12 @@ def onMessage(leda, message, clientsocket, address):
 	elif "clear_logs" in args:
 		leda.clearLogs()
 		clientsocket.send('ok')
+	elif "vismatrix_images" in args:
+		# TODO: Currently only requesting image from ledagpu4
+		encoded_images = leda.servers[1].control.getVisMatrixImages()
+		encoded = json.dumps(encoded_images)
+		print "Sending visibility matrix image data"
+		clientsocket.send(encoded)
 	else:
 		clientsocket.send('error: unknown command')
 		print "Unknown command", args
@@ -443,19 +491,20 @@ if __name__ == "__main__":
 	#from SimpleSocket import SimpleSocket
 	
 	serverhosts = ["ledagpu3", "ledagpu4"]
-	roachhosts  = ['169.254.128.13', '169.254.128.14']
+	roachhosts  = ['169.254.128.14', '169.254.128.13']
 	controlport  = 3141
 	captureports = [12340,12341,12342,12343]
 	roachport    = 7147
 	boffile      = 'l64x8_06022013.bof'
-	src_ip_starts   = [4010, 4020]
-	src_port_starts = [145, 161]
+	src_ip_starts   = [145, 161]
+	src_port_starts = [4010, 4020]
+	fid_starts      = [0, 4]
 	logstream    = sys.stderr
 	debuglevel   = 1
 	
 	leda = LEDARemoteManager(serverhosts, roachhosts,
 	                         controlport, captureports, roachport,
-	                         src_ip_starts, src_port_starts, boffile,
+	                         src_ip_starts, src_port_starts, fid_starts, boffile,
 	                         LEDALogger(logstream, debuglevel))
 	
 	port = 6282

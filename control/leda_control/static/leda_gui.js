@@ -91,18 +91,29 @@ function onImageUpdate(response) {
 function onStartObsClick(event) { send("start=1") }
 function onStopObsClick(event)  { send("stop=1") }
 function onKillObsClick(event)  { send("kill=1") }
+function onProgramRoachesClick(event) { send("program_roaches=1") }
+function onCreateBuffersClick(event) { send("create_buffers=1") }
 function onVisModeClick(event)  { vis_image = this.value; setVisImage(); }
 function requestStatus() { request("status=1", onStatusUpdate); }
-function updateImages() { request("adc_images=1", onImageUpdate); }
+function updateImages() { request("adc_images=1&vismatrix_images=1", onImageUpdate);
+						  /*request("vismatrix_images=1", onImageUpdate);*/ }
 
 function main() {
 	document.getElementById("start_obs").onclick = onStartObsClick;
 	document.getElementById("stop_obs").onclick  = onStopObsClick;
 	document.getElementById("kill_obs").onclick  = onKillObsClick;
+	document.getElementById("program_roaches").onclick  = onProgramRoachesClick;
+	document.getElementById("create_buffers").onclick  = onCreateBuffersClick;
+	document.getElementById("vis_roach1_adc1").checked = 1;
 	document.getElementById("vis_roach1_adc1").onclick = onVisModeClick;
 	document.getElementById("vis_roach1_adc2").onclick = onVisModeClick;
 	document.getElementById("vis_roach2_adc1").onclick = onVisModeClick;
 	document.getElementById("vis_roach2_adc2").onclick = onVisModeClick;
+	document.getElementById("vis_vismatrix_svr2_str1").onclick = onVisModeClick;
+	document.getElementById("vis_vismatrix_svr2_str2").onclick = onVisModeClick;
+	document.getElementById("vis_vismatrix_svr2_str3").onclick = onVisModeClick;
+	document.getElementById("vis_vismatrix_svr2_str4").onclick = onVisModeClick;
+	
 	requestStatus();
 	updateImages();
 	setInterval(requestStatus, 5000);

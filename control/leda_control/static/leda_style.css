@@ -33,6 +33,15 @@ button {
 	width:   85px;
 }
 
+#status_panel {
+	width: 500px;
+	float: left;
+}
+#vis_panel {
+	width: 850px;
+	float: left;
+}
+
 tr.title_row {
 	font-weight: bold;
 }

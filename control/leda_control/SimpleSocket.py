@@ -22,7 +22,10 @@ class SimpleSocket(object):
 		self.terminator = ';;;'
 		
 	def __del__(self):
-		#self.sock.shutdown(socket.SHUT_RDWR) # Throws when not connected
+		try:
+			self.sock.shutdown(socket.SHUT_RDWR) # Throws when not connected
+		except: #socket.error, e:
+			pass
 		self.sock.close()
 		
 	def listen(self, callback, port, host='', maxconnections=5):

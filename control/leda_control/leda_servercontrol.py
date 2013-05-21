@@ -27,6 +27,11 @@ import traceback
 import datetime
 import subprocess
 import json
+import glob
+from PIL import Image # Note: Must be like this when using 'pillow' fork
+import StringIO, base64
+
+from leda_visrenderer import generate_vismatrix_plots
 
 #import corr,numpy,struct
 
@@ -111,6 +116,31 @@ class LEDADiskProcess(LEDAProcess):
 		#args = ["-b%i"%self.core, "-s", "-W",
 		#        "-k", self.bufkey, "-D", self.outpath]
 		self._startProc(args)
+	def _getLatestFile(self, rank=0):
+		# TODO: Check that the latest file contains at least one complete
+		#         matrix, and otherwise open the 2nd latest.
+		return sorted(glob.glob(self.outpath + "/*.dada"),
+		              key=os.path.getmtime, reverse=True)[rank]
+	def getVisMatrixImages(self, stem):
+		# TODO: Seriously consider returning the actual data here instead
+		#         of image(s). Would avoid needing PIL+matplotlib on every
+		#          server, and would potentially allow client-side
+		#          customisation.
+		#stem = "vismatrix"
+		dadafile = self._getLatestFile()
+		#print "Gen'ing vismatrix image from", dadafile
+		ret = subprocess.call("/home/leda/leda_control/leda_visconverter %s %s" % (dadafile,stem),
+		                      shell=True)
+		if ret != 0:
+			#print "Failed; trying next oldest file"
+			dadafile = self._getLatestFile(rank=1)
+			#print "Gen'ing vismatrix image from", dadafile
+			ret = subprocess.call("/home/leda/leda_control/leda_visconverter %s %s" % (dadafile,stem),
+			                      shell=True)
+			if ret != 0:
+				print "Failed again! WTF!?"
+		image_filename = generate_vismatrix_plots(stem)
+		return image_filename
 
 class LEDAXEngineProcess(LEDAProcess):
 	def __init__(self, logpath, path, in_bufkey, out_bufkey, gpu, core=None):
@@ -166,7 +196,7 @@ class LEDACaptureProcess(LEDAProcess):
 		shutil.copyfile(self.headerpath, utcheaderpath)
 		utcheaderfile = open(utcheaderpath, 'a')
 		utc = datetime.datetime.utcnow().strftime("%Y-%m-%d-%H:%M:%S")
-		utcheaderfile.write("UTC_START " + utc)
+		utcheaderfile.write("UTC_START " + utc + "\n")
 		utcheaderfile.close()
 		return utcheaderpath
 	def start(self):
@@ -310,6 +340,10 @@ class LEDAServer(object):
 			unpack_proc.clearLog()
 		for xengine_proc in self.xengine:
 			xengine_proc.clearLog()
+	def getVisMatrixImages(self):
+		return [disk.getVisMatrixImages("vismatrix_str%02i"%i) \
+			        for i,disk in enumerate(self.disk)]
+		#return self.disk[1].getVisMatrixImages()
 
 def onMessage(ledaserver, message, clientsocket, address):
 	args = dict([x.split('=') for x in message.split('&')])
@@ -348,7 +382,37 @@ def onMessage(ledaserver, message, clientsocket, address):
 		logMsg(1, DL, "Clearing all logs")
 		ledaserver.clearLogs()
 		clientsocket.send('ok')
+	if 'vismatrix_images' in args:
+		logMsg(1, DL, "Generating and sending visibility matrix images")
+		
+		imagefiles = ledaserver.getVisMatrixImages()
+		encoded_images = []
+		for imagefile in imagefiles:
+			image = Image.open(imagefile)
+			data = StringIO.StringIO()
+			image.save(data, format="png")
+			data = data.getvalue()
+			encoded_image = base64.standard_b64encode(data)
+			encoded_images.append(encoded_image)
+		encoded = json.dumps(encoded_images)
+		clientsocket.send(encoded)
+		"""
+		imagefile = ledaserver.getVisMatrixImages()
+		image = Image.open(imagefile)
+		data = StringIO.StringIO()
+		image.save(data, format="png")
+		data = data.getvalue()
+		encoded_image = base64.standard_b64encode(data)
+		encoded = json.dumps(encoded_image)
+		clientsocket.send(encoded)
+		"""
 	
+def reg_tile_triangular_size(Ni, Nc):
+	tile_size = 4
+        float_size = 4
+        ts = tile_size
+	return Ni/ts * (Ni/ts + 1) / 2 * ts*ts * Nc * float_size
+
 if __name__ == "__main__":
 	import functools
 	try:
@@ -361,12 +425,13 @@ if __name__ == "__main__":
 		ntime  = 8192
 		bufsize = ninput*nchan*ntime
 		upsize  = bufsize * 2
+                outsize = reg_tile_triangular_size(ninput, nchan)
 		
 		dadapath = "/home/leda/software/psrdada/src"
 		bufkeys  = ["dada", "adda", "aeda", "eada",
 		            "fada", "afda", "cada", "acda",
 		            "abda", "aada", "bcda", "bada"]
-		bufsizes = [bufsize]*8 + [upsize]*4
+		bufsizes = [bufsize]*4 + [outsize]*4 + [upsize]*4
 		bufcores = [1, 1, 9, 9,
 		            9, 1, 1, 9,
 		            1, 1, 9, 9]

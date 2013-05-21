@@ -41,7 +41,8 @@ class LEDARemoteHeadNodeControl(object):
 	def connect(self):
 		self.log.write("Connecting to remote headnode %s:%i" \
 			               % (self.host,self.port))
-		self.sock = SimpleSocket(timeout=3)
+		# TODO: See comment in leda_headnodecontrol.py
+		self.sock = SimpleSocket(timeout=10)
 		try:
 			self.sock.connect(self.host, self.port)
 		except SimpleSocket.timeout_error:
@@ -61,7 +62,7 @@ class LEDARemoteHeadNodeControl(object):
 		if len(msg) <= 256:
 			self.log.write("Sending message "+msg, 4)
 		else:
-			self.log.write("Sending long message", 4)
+			self.log.write("Sending long message of length %i bytes"%(len(msg)), 4)
 		try:
 			self.sock.send(msg)
 			ret = self.sock.receive()
@@ -73,7 +74,7 @@ class LEDARemoteHeadNodeControl(object):
 			if len(ret) <= 256:
 				self.log.write("Received response "+ret, 4)
 			else:
-				self.log.write("Received long response", 4)
+				self.log.write("Received long response of length %i bytes"%(len(ret)), 4)
 			return ret
 	def _sendcmd(self, cmd):
 		ret = self._sendmsg(cmd)
@@ -90,7 +91,7 @@ class LEDARemoteHeadNodeControl(object):
 		encoded = self._sendmsg("status=1")
 		if encoded is None:
 			return None
-		print "json.loads('%s')" % encoded
+		#print "json.loads('%s')" % encoded
 		status = json.loads(encoded)
 		return status
 	def getADCImages(self):
@@ -110,6 +111,12 @@ class LEDARemoteHeadNodeControl(object):
 	def configure(self):
 		self.log.write("Configuring", 2)
 		self._sendcmd("configure=1")
+	def programRoaches(self):
+		self.log.write("Programming roaches", 2)
+		self._sendcmd("program_roaches=1")
+	def createBuffers(self):
+		self.log.write("Creating buffers", 2)
+		self._sendcmd("create_buffers=1")
 	def startObservation(self):
 		self.log.write("Starting observation", 2)
 		self._sendcmd("start=1")
@@ -122,10 +129,20 @@ class LEDARemoteHeadNodeControl(object):
 	def clearLogs(self):
 		self.log.write("Clearing all logs", 2)
 		self._sendcmd("clear_logs=1")
+	def getVisMatrixImages(self):
+		self.log.write("Requesting visibility matrix images", 2)
+		encoded = self._sendmsg("vismatrix_images=1")
+		if encoded is None:
+			return None
+		encoded_images = json.loads(encoded)
+		# TODO: This isn't great. We return the raw binary data as a string.
+		images = [base64.standard_b64decode(encoded_image) \
+			          for encoded_image in encoded_images]
+		return images
 
 if __name__ == "__main__":
 	if len(sys.argv) <= 1:
-		print "Usage:", sys.argv[0], "[status|configure|start|stop|kill]"
+		print "Usage:", sys.argv[0], "[status|configure|start|stop|kill|program_roaches|create_buffers]"
 		sys.exit(0)
 	cmd = sys.argv[1]
 	
@@ -176,6 +193,10 @@ if __name__ == "__main__":
 		pass
 	elif cmd == "configure":
 		leda.configure()
+	elif cmd == "program_roaches":
+		leda.programRoaches()
+	elif cmd == "create_buffers":
+		leda.createBuffers()
 	elif cmd == "start":
 		leda.startObservation()
 	elif cmd == "stop":

@@ -7,7 +7,7 @@ def ip2int(address):
 	c = [int(x) for x in address.split('.')]
 	return (c[0]<<24) | (c[1]<<16) | (c[2]<<8) | c[3]
 
-def programRoach(fpga, boffile, src_ip_start, src_port_start, registers={}):
+def programRoach(fpga, boffile, src_ip_start, src_port_start, fid_start, registers={}):
 	print "Writing program"
 	# TODO: Can't use this method on our ADCs. Must use adc16_init.rb.
 	#fpga.progdev(boffile)
@@ -32,12 +32,22 @@ def programRoach(fpga, boffile, src_ip_start, src_port_start, registers={}):
 	high_ch = 300
 	
 	dest_ip   = [ip2int("192.168.0.%i" % (17+i*16)) for i in range(8)]
+	dest_port = [4001 + i for i in range(8)]
 	# TODO: Check this! In prog_10gall.py the last two are switched!
 	#         Need to ensure the order is matched in leda_reset_header
-	dest_port = [4001 + i for i in range(8)]
+	dest_port[6], dest_port[7] = dest_port[7], dest_port[6]
 	src_ip    = [ip2int("192.168.0.%i" % (src_ip_start+i)) for i in range(8)]
 	src_port  = [src_port_start + i for i in range(8)]
-	
+	"""
+	print "dst_ip"
+	print '\n'.join([str(x&0xff) for x in dest_ip])
+	print "dst_port"
+	print '\n'.join([str(x) for x in dest_port])
+	print "src_ip"
+	print '\n'.join([str(x&0xff) for x in src_ip])
+	print "src_port"
+	print '\n'.join([str(x) for x in src_port])
+	"""
 	mac_base = (2<<40) + (2<<32)
 	
 	fpga.write_int('adc_rst',3)
@@ -56,7 +66,7 @@ def programRoach(fpga, boffile, src_ip_start, src_port_start, registers={}):
 	for i in range(8):
 		fpga.write_int('tenge_ports_port%i'%(i+1),dest_port[i])
 	for i in range(4):
-		fpga.write_int('tenge_f%i_fid'%(i+1),i)
+		fpga.write_int('tenge_f%i_fid'%(i+1),i+fid_start)
 	
 	print 'programming ROACH complete'
 	time.sleep(1)
@@ -83,21 +93,26 @@ if __name__ == "__main__":
 	
 	# TESTING Setting digital gain registers to 5x
 	gain_reg     = 0x2a
-	gain_setting = 0x5555
+	#gain_setting = 0x5555 # 5x
+	gain_setting = 0x8888 # 8x
+	#gain_setting = 0xCCCC # 12x
 	registers = {gain_reg: gain_setting}
+	#registers = {}
 	
 	print "Programming ROACH .14"
 	print "---------------------"
 	fpga  = corr.katcp_wrapper.FpgaClient(roaches[0], 7147)
 	time.sleep(2)
 	programRoach(fpga, boffile, src_ip_start=145, src_port_start=4010,
+		     fid_start=0,
 	             registers=registers)
-	
+		     
 	print "Programming ROACH .13"
 	print "---------------------"
 	fpga  = corr.katcp_wrapper.FpgaClient(roaches[1], 7147)
 	time.sleep(2)
 	programRoach(fpga, boffile, src_ip_start=161, src_port_start=4020,
+		     fid_start=4,
 	             registers=registers)
 	
 	print "Waiting 3 minutes for ARP tables to update"

@@ -8,7 +8,7 @@
 <body onload="main();">
 
 <div id="title_panel">
-<img id="ledalogo" src="{{ static_url('images/LEDALogo.png') }}" /><!--<h1>LEDA-64</h1>-->
+  <img id="ledalogo" src="{{ static_url('images/LEDALogo.png') }}" /><!--<h1>LEDA-64</h1>-->
 </div>
 
 <div id="control_panel">
@@ -16,58 +16,60 @@
   <button id="start_obs"><img src="{{ static_url('icons/control_play_blue.png') }}" /> Start</button>
   <button id="stop_obs"><img src="{{ static_url('icons/control_stop_blue.png') }}" /> Stop</button>
   <button id="kill_obs"><img src="{{ static_url('icons/delete.png') }}" /> Kill</button>
-  <!--<button id="configure_obs">Configure</button>-->
+  <br /><br />
+  <button id="program_roaches" title="Program roaches"><img src="{{ static_url('icons/drive_edit.png') }}" /></button>
+  <button id="create_buffers" title="(Re)create buffers"><img src="{{ static_url('icons/database_refresh.png') }}" /></button>
   <br />
   <input type="checkbox" disabled="disabled">Save logs</input>
 </div>
 
 <div id="status_panel">
-<h3>Pipeline status</h3>
-
-<table border="0">
-<tr class="title_row">
-  <td>Head node</td>
-  <td>Alive</td>
-  <td>Control</td>
-</tr>
-<tr>
-  <td>{{ status['headnode']['host'] }}</td>
-  <td><img id="headnode_alive_status" /></td>
-  <td><img id="headnode_control_status" /></td>
-</tr>
-</table>
-
-<table border="0">
-<tr class="title_row">
-<td>Roach</td>
-<td>Flow</td>
-</tr>
-{% for i, roach in enumerate(status['roach']) %}
-  {% block roach %}
+  <h3>Pipeline status</h3>
+  
+  <table border="0">
+	<tr class="title_row">
+	  <td>Head node</td>
+	  <td>Alive</td>
+	  <td>Control</td>
+	</tr>
+	<tr>
+	  <td>{{ status['headnode']['host'] }}</td>
+	  <td><img id="headnode_alive_status" /></td>
+	  <td><img id="headnode_control_status" /></td>
+	</tr>
+  </table>
+  
+  <table border="0">
+	<tr class="title_row">
+	  <td>Roach</td>
+	  <td>Flow</td>
+	</tr>
+	{% for i, roach in enumerate(status['roach']) %}
+	{% block roach %}
     <tr>
-    <td>{{i+1}}</td>
-	<td><img id="roach_status{{i}}" /></td>
+      <td>{{i+1}}</td>
+	  <td><img id="roach_status{{i}}" /></td>
     </tr>
-  {% end %}
-{% end %}
-</table>
-
-<table border="0">
-<tr class="title_row">
-<td>Server</td>
-<td>Stream</td>
-<td>Capture</td>
-<td>Unpack</td>
-<td>X-engine</td>
-<td>Disk</td>
-<td>Disk use</td>
-<!--<td class="message_col">Messages</td>-->
-</tr>
-{% for i,(name,server) in enumerate(status['control']) %}
-  {% block server %}
-  {% for j, stream in enumerate(server) %}
+	{% end %}
+	{% end %}
+  </table>
+  
+  <table border="0">
+	<tr class="title_row">
+	  <td>Server</td>
+	  <td>Stream</td>
+	  <td>Capture</td>
+	  <td>Unpack</td>
+	  <td>X-engine</td>
+	  <td>Disk</td>
+	  <td>Disk use</td>
+	  <!--<td class="message_col">Messages</td>-->
+	</tr>
+	{% for i,(name,server) in enumerate(status['control']) %}
+	{% block server %}
+	{% for j, stream in enumerate(server) %}
     {% block stream %}
-      <tr>
+    <tr>
       <td>{{name}}</td>
 	  <td>{{j+1}}</td>
 	  <td><img id="control_capture_status{{i}}_{{j}}" /></td>
@@ -76,32 +78,39 @@
 	  <td><img id="control_disk_status{{i}}_{{j}}" /></td>
 	  <td><span id="control_disk_usage{{i}}_{{j}}" /></td>
 	  <!--<td class="message_col"></td>-->
-      </tr>
+    </tr>
     {% end %}
-  {% end %}
-  {% end %}
-{% end %}
-</table>
+	{% end %}
+	{% end %}
+	{% end %}
+  </table>
+</div>
 
 <div id="vis_panel">
-<h3>Monitoring</h3>
-<form>
-<input type="radio" id="vis_roach1_adc1" name="cur_minivis" value="roach01_adc01">ROACH 1 ADC 1</input><br />
-<input type="radio" id="vis_roach1_adc2" name="cur_minivis" value="roach01_adc02">ROACH 1 ADC 2</input><br />
-<input type="radio" id="vis_roach2_adc1" name="cur_minivis" value="roach02_adc01">ROACH 2 ADC 1</input><br />
-<input type="radio" id="vis_roach2_adc2" name="cur_minivis" value="roach02_adc02">ROACH 2 ADC 2</input><br />
-<input type="radio" id="vis_auto_cor"    name="cur_minivis" value="auto_cor" disabled="disabled">Auto-correlations</input><br />
-<input type="radio" id="vis_cross_cor"   name="cur_minivis" value="cross_cor" disabled="disabled">Cross-correlations</input><br />
-</form>
-<img id="minivis" alt="Selected data visualisation" />
+  <h3>Monitoring</h3>
+  <form>
+	<input type="radio" id="vis_roach1_adc1" name="cur_minivis" value="roach01_adc01">ROACH 1 ADC 1</input><br />
+	<input type="radio" id="vis_roach1_adc2" name="cur_minivis" value="roach01_adc02">ROACH 1 ADC 2</input><br />
+	<input type="radio" id="vis_roach2_adc1" name="cur_minivis" value="roach02_adc01">ROACH 2 ADC 1</input><br />
+	<input type="radio" id="vis_roach2_adc2" name="cur_minivis" value="roach02_adc02">ROACH 2 ADC 2</input><br />
+	
+	<input type="radio" id="vis_vismatrix_svr2_str1" name="cur_minivis" value="vismatrix_svr02_str01">VisMat server 1 stream 1</input><br />
+	<input type="radio" id="vis_vismatrix_svr2_str2" name="cur_minivis" value="vismatrix_svr02_str02">VisMat server 1 stream 2</input><br />
+	<input type="radio" id="vis_vismatrix_svr2_str3" name="cur_minivis" value="vismatrix_svr02_str03">VisMat server 1 stream 3</input><br />
+	<input type="radio" id="vis_vismatrix_svr2_str4" name="cur_minivis" value="vismatrix_svr02_str04">VisMat server 1 stream 4</input><br />
+	
+	<input type="radio" id="vis_auto_cor"    name="cur_minivis" value="auto_cor" disabled="disabled">Auto-correlations</input><br />
+	<input type="radio" id="vis_cross_cor"   name="cur_minivis" value="cross_cor" disabled="disabled">Cross-correlations</input><br />
+  </form>
+  <img id="minivis" alt="Selected data visualisation" />
 </div>
 
 <div id="observations_panel">
-<h3>Observations</h3>
+  <h3>Observations</h3>
 </div>
 
 <div id="schedule_panel">
-<h3>Schedule</h3>
+  <h3>Schedule</h3>
 </div>
 
 </body>

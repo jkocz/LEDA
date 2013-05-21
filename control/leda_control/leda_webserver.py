@@ -28,9 +28,13 @@ class Application(tornado.web.Application):
 		self.leda   = LEDARemoteHeadNodeControl(self.remote_host,
 		                                        remote_port,
 		                                        self.log)
+ #self.last_vismatimage_time >= self.min_vismat_refresh_time:
 		self.min_refresh_time   = 4
+		self.min_adcimage_refresh_time = 14
+		self.min_vismat_refresh_time = 30
 		self.last_status_time   = 0
 		self.last_adcimage_time = 0
+		self.last_vismatimage_time = 0
 		self.updateStatus()
 		handlers = [
 			(r"/", MainHandler),
@@ -70,7 +74,8 @@ class Application(tornado.web.Application):
 										   'control':'ok'}
 	def updateADCImages(self):
 		print "ADC image update request"
-		if time.time() - self.last_adcimage_time >= self.min_refresh_time:
+		if time.time() - self.last_adcimage_time >= self.min_adcimage_refresh_time:
+			self.last_adcimage_time = time.time()
 			print "Requesting updated ADC images from head node"
 			images = self.leda.getADCImages()
 			if images is None:
@@ -86,6 +91,21 @@ class Application(tornado.web.Application):
 				#for i,image in enumerate(images):
 					#image.save("adc_plot_%02i.png"%(i+1), format="png")
 					#open("static/images/adc_plot_%02i.png"%(i+1), 'wb').write(image)
+	
+	# ***************
+	# TODO: Use above func as a base to implement updateVisMatrixImages!
+	def updateVisMatrixImages(self):
+		print "Visibility matrix update request"
+		if time.time() - self.last_vismatimage_time >= self.min_vismat_refresh_time:
+			self.last_vismatimage_time = time.time()
+			print "Requesting updated visibility matrix images from head node"
+			images = self.leda.getVisMatrixImages()
+			if images is None:
+				print "Request FAILED"
+			else:
+				for stream, stream_image in enumerate(images):
+					filename = "static/images/vismatrix_svr02_str%02i.png"%(stream+1)
+					open(filename, 'wb').write(stream_image)
 
 class MainHandler(tornado.web.RequestHandler):
 	def get(self):
@@ -99,15 +119,27 @@ class AJAXHandler(tornado.web.RequestHandler):
 		if self.get_argument("status", default=None) is not None:
 			self.application.updateStatus()
 			self.write(self.application.status)
+		
+		image_updated = False
 		if self.get_argument("adc_images", default=None) is not None:
 			self.application.updateADCImages()
+			image_updated = True
+		if self.get_argument("vismatrix_images", default=None) is not None:
+			self.application.updateVisMatrixImages()
+			image_updated = True
+		if image_updated:
 			self.write("ok")
+		
 		if self.get_argument("start", default=None) is not None:
 			self.application.leda.startObservation()
 		elif self.get_argument("stop", default=None) is not None:
 			self.application.leda.stopObservation()
 		elif self.get_argument("kill", default=None) is not None:
 			self.application.leda.killObservation()
+		elif self.get_argument("program_roaches", default=None) is not None:
+			self.application.leda.programRoaches()
+		elif self.get_argument("create_buffers", default=None) is not None:
+			self.application.leda.createBuffers()
 
 if __name__ == "__main__":
 	tornado.options.parse_command_line()
