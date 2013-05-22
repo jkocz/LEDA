@@ -14,6 +14,9 @@ using std::endl;
 #include <errno.h>       // For errno
 #include <sys/syscall.h> // For SYS_gettid
 
+//// Note: PSRDADA has some nasty #defines that interfere with sew (e.g., LOG_INFO)
+//#include "sew.hpp"
+
 #include <dada_def.h>
 #include <ascii_header.h>
 #include <dada_cuda.h>
@@ -71,12 +74,19 @@ class dbgpu : public dada_db2db {
 	XGPUInfo             m_xgpu_info;
 	bool                 m_do_register;
 	
+	size_t m_cycle;
+	
 	// Total power variables
 	//typedef unsigned short tptype;
 	typedef unsigned char tptype;
 	std::vector<size_t>  m_tp_inputs;
 	std::vector<tptype>  m_tp_out;
 	std::ostream*        m_tp_outstream;
+	//size_t           m_tp_size;
+	//sew::ringbuffer  m_tp_buf;
+	//sew::stream_sink m_tp_disktask;
+	//tptype*          m_tp_ptr;
+	size_t           m_tp_ncycles;
 public:
 	dbgpu(multilog_t* log, int verbose,
 	      size_t ntime_integrate,
@@ -86,7 +96,8 @@ public:
 		  m_ntime_integrate(ntime_integrate),
 		  m_subintegration(0),
 		  m_gpu_device(gpu_device),
-		  m_do_register(do_register) {
+		  m_do_register(do_register),
+		  m_cycle(0) {
 		
 		// Give the CPU a rest while the GPU kernel is running
 		cudaSetDeviceFlags(cudaDeviceScheduleYield);
@@ -121,12 +132,28 @@ public:
 	}
 	
 	void setTotalPowerInputs(const int* tp_inputs, size_t tp_ninputs,
+	                         size_t tp_ncycles,
 	                         std::ostream& tp_outstream=std::cout) {
+		if( tp_ninputs % 2 != 0 ) {
+			throw std::runtime_error("Number of total power inputs must be a multiple of 2");
+		}
 		m_tp_inputs.assign(tp_inputs, tp_inputs + tp_ninputs);
 		size_t ninputs = m_xgpu_info.nstation * 2;
-		size_t tpsize  = m_xgpu_info.vecLength / ninputs * tp_ninputs;
+		m_tp_ncycles = tp_ncycles;
+		//size_t tpsize  = m_xgpu_info.vecLength / ninputs * tp_ninputs;
+		size_t tpsize  = m_xgpu_info.vecLength / ninputs * 2;
 		m_tp_out.resize(tpsize);
 		m_tp_outstream = &tp_outstream;
+		/*
+		m_tp_size = m_xgpu_info.vecLength / ninputs * tp_ninputs;
+		size_t nbufs = 4;
+		m_tp_buf.allocate(m_tp_size, nbufs);
+		m_tp_ptr  = (tptype*)m_tp_buf.openWrite();
+		m_tp_disktask.setStream(tp_outstream);
+		m_tp_disktask.setSyncMode(sew::stream_sink::SYNC_HARD);
+		m_tp_disktask.connect(m_tp_buf);
+		m_tp_disktask.run();
+		*/
 	}
 	
 	virtual void onConnect(key_t in_key, key_t out_key) {
@@ -138,6 +165,18 @@ public:
 			logInfo("dbgpu: Registering output buffer");
 			dada_cuda_dbregister(this->hdu_out());
 		}
+	}
+	virtual void onDisconnect() {
+		/*
+		if( m_tp_buf.nbufs() ) {
+			bool eod = true;
+			logInfo("CLOSING LAST WRITE");
+			m_tp_buf.closeWrite(eod, 0);
+			logInfo("WAITING FOR DISKTASK TO FINISH");
+			m_tp_disktask.sync();
+			logInfo("DONE");
+		}
+		*/
 	}
 	
 	// Return desired no. bytes per data read
@@ -201,20 +240,31 @@ public:
 		if( m_tp_inputs.size() ) {
 			size_t ninput    = m_xgpu_info.nstation * 2;
 			size_t tp_ninput = m_tp_inputs.size();
+			
+			size_t is = m_cycle / m_tp_ncycles % (tp_ninput/2) * 2;
+			cout << "Recording total power from antenna " << is << endl;
+			
 			// TODO: Could optimise this by making m_tp_inputs a static array
 			for( size_t j=0; j<m_xgpu_info.vecLength / ninput; ++j ) {
 				//for( size_t i=0; i<m_tpinputs.size(); ++i ) {
-				for( size_t is=0; is<tp_ninput; is+=2 ) {
+				//for( size_t is=0; is<tp_ninput; is+=2 ) {
 					for( size_t ip=0; ip<2; ++ip ) {
 						size_t i = is + ip;
 						size_t inp = m_tp_inputs[i];
 						ComplexInput val = ((ComplexInput*)data_in)[j*ninput+inp];
-						m_tp_out[j*tp_ninput+i] = total_power(val);
+						//m_tp_out[j*tp_ninput+i] = total_power(val);
+						m_tp_out[j*2+ip] = total_power(val);
+						//m_tp_ptr[j*tp_ninput+i] = total_power(val);
 					}
-				}
+					//}
 			}
+			//cout << "Calling advanceWrite" << endl;
 			m_tp_outstream->write((char*)&m_tp_out[0],
 			                      m_tp_out.size()*sizeof(tptype));
+			// Hard system IO sync
+			//sync();
+			//m_tp_ptr = (tptype*)m_tp_buf.advanceWrite(m_tp_size);
+			//cout << "  done" << endl;
 		}
 		
 		// Manually sync xGPU
@@ -226,10 +276,16 @@ public:
 				logError("dbgpu: xgpuClearDeviceIntegrationBuffer failed");
 				throw std::runtime_error("xgpuClearDeviceIntegrationBuffer failed");
 			}
+			
+			// Note: This being done here is somewhat arbitrary
+			// Hard system IO sync
+			sync();
 		}
 		
 		//timer.stop();
 		//cout << "xGPU speed: " << in_size / timer.getTime() / 1e6 << " MB/s" << endl;
+		
+		++m_cycle;
 		
 		return bytes_written;
 	}
@@ -243,6 +299,7 @@ void usage() {
 		" -d device  gpu device (default 0)\n"
 		" -t count   no. NTIMEs to integrate (default 1)\n"
 		" -p tpfile  filename for total power output\n"
+		" -n cycles  no. NTIMEs to record each total power antenna for (100)\n"
 		" -r         disable host memory pinning\n"
 		" -h         print usage" << endl;
 }
@@ -258,9 +315,10 @@ int main(int argc, char* argv[])
 	int         do_register = 1;
 	int         core = -1;
 	std::string tp_filename = "";
+	int         tp_ncycles = 100;
 	
 	int arg = 0;
-	while( (arg = getopt(argc,argv,"d:t:c:p:rhv")) != -1 ) {
+	while( (arg = getopt(argc,argv,"d:t:c:p:n:rhv")) != -1 ) {
 		switch (arg){
 		case 'd':
 			if( optarg ) {
@@ -296,6 +354,15 @@ int main(int argc, char* argv[])
 			}
 			else {
 				fprintf(stderr, "ERROR: -p flag requires argument\n");
+				return EXIT_FAILURE;
+			}
+		case 'n':
+			if( optarg ) {
+				tp_ncycles = atoi(optarg);
+				break;
+			}
+			else {
+				fprintf(stderr, "ERROR: -n flag requires argument\n");
 				return EXIT_FAILURE;
 			}
 		case 'h':
@@ -372,11 +439,13 @@ int main(int argc, char* argv[])
 			        tp_inputs_filename.c_str());
 		}
 		tp_outfile.open(tp_filename.c_str(), std::ios::binary);
-		ctx.setTotalPowerInputs(&tp_inputs[0], tp_inputs.size(), tp_outfile);
+		ctx.setTotalPowerInputs(&tp_inputs[0], tp_inputs.size(),
+		                        tp_ncycles, tp_outfile);
 	}
 	
 	ctx.connect(in_key, out_key);
 	ctx.run();
+	ctx.disconnect();
 	
 	return 0;
 }
