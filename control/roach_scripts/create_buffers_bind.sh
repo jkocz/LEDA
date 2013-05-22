@@ -6,7 +6,11 @@ numavg=$3
 memsize=`expr $1 \* $2 \* $3 | bc`
 upsize=`expr $memsize \* 2 | bc`
 # Note: Last '4' is for 32b; other 4's are for tile size
-outsize=`expr $1/4 \* ($1/4 \+ 1) / 2 \* 4 \* 4 \* $2 \* 4 | bc`
+outsize=`echo "$1/4 * ($1/4 + 1) / 2 * 4 * 4 * $2 * 4*2" | bc`
+
+echo $memsize
+echo $upsize
+echo $outsize
 
 /home/leda/software/psrdada/src/dada_db -d -k dada
 /home/leda/software/psrdada/src/dada_db -d -k eada

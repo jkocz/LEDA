@@ -411,7 +411,7 @@ def reg_tile_triangular_size(Ni, Nc):
 	tile_size = 4
 	float_size = 4
 	ts = tile_size
-	return Ni/ts * (Ni/ts + 1) / 2 * ts*ts * Nc * float_size
+	return Ni/ts * (Ni/ts + 1) / 2 * ts*ts * Nc * float_size * 2
 
 if __name__ == "__main__":
 	import functools
