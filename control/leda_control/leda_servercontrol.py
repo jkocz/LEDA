@@ -143,21 +143,32 @@ class LEDADiskProcess(LEDAProcess):
 		return image_filename
 
 class LEDAXEngineProcess(LEDAProcess):
-	def __init__(self, logpath, path, in_bufkey, out_bufkey, gpu, navg, core=None):
+	def __init__(self, logpath, path, in_bufkey, out_bufkey,
+	             gpu, navg, core=None,
+	             totalpower_outpath="", totalpower_ncycles=100):
 		LEDAProcess.__init__(self, logpath, path)
 		self.in_bufkey  = in_bufkey
 		self.out_bufkey = out_bufkey
 		self.gpu        = gpu
 		self.navg       = navg
 		self.core       = core
+		self.tp_outpath = totalpower_outpath
+		self.tp_ncycles = totalpower_ncycles
 	def start(self):
 		args = ""
 		if self.core is not None:
 			args += " -c %i" % self.core
 		# TODO: This is for the older leda_dbgpu code
 		#args += " -g %i %s %s" % (self.gpu, self.in_bufkey, self.out_bufkey)
-		args += " -d %i -t %i %s %s" % (self.gpu, self.navg,
-		                                self.in_bufkey, self.out_bufkey)
+		
+		if self.tp_ncycles != 0:
+			total_power_outfile = os.path.join(self.tp_outpath,
+			                                   "total_power." + self.out_bufkey)
+			args += " -p %s -n %i" % (total_power_outfile, self.tp_ncycles)
+		
+		args += " -d %i -t %i %s %s" \
+		    % (self.gpu, self.navg,
+		       self.in_bufkey, self.out_bufkey)
 		#args = []
 		#if self.core is not None:
 		#	args += ["-c%i"%self.core]
@@ -251,6 +262,7 @@ class LEDAServer(object):
 	             unpack_logfiles, unpack_path, unpack_bufkeys,
 	             xengine_logfiles, xengine_path, xengine_bufkeys,
 	             xengine_gpus, xengine_navg, xengine_cores,
+	             xengine_tp_ncycles,
 	             disk_logfiles, disk_path, disk_outpaths, disk_cores,
 	             debuglevel=1):
 		self.name = name
@@ -272,10 +284,12 @@ class LEDAServer(object):
 			               in zip(unpack_logfiles,capture_bufkeys,
 			                      unpack_bufkeys,unpack_cores)]
 		self.xengine = [LEDAXEngineProcess(logfile,xengine_path,in_bufkey,
-		                                   out_bufkey,gpu,xengine_navg,core) \
-			                for logfile,in_bufkey,out_bufkey,gpu,core \
+		                                   out_bufkey,gpu,xengine_navg,core,outpath,
+		                                   xengine_tp_ncycles) \
+			                for logfile,in_bufkey,out_bufkey,gpu,core,outpath \
 			                in zip(xengine_logfiles,unpack_bufkeys,
-			                       xengine_bufkeys,xengine_gpus,xengine_cores)]
+			                       xengine_bufkeys,xengine_gpus,xengine_cores,
+			                       disk_outpaths)]
 		self.disk = [LEDADiskProcess(logfile,disk_path,bufkey,outpath,core) \
 			             for logfile,bufkey,outpath,core \
 			             in zip(disk_logfiles,xengine_bufkeys,disk_outpaths,
@@ -474,10 +488,11 @@ if __name__ == "__main__":
 		xengine_gpus        = [0, 1, 2, 3]
 		xengine_navg        = 25
 		xengine_cores       = [5, 6, 12, 13]
+		xengine_tp_ncycles  = 100
 		
 		disk_logfiles       = [os.path.join(logpath,"dbdisk."+bufkey) for bufkey in xengine_bufkeys]
 		disk_path           = "/home/leda/software/psrdada/src/dada_dbdisk"
-		disk_outpaths       = ["/data1/one/", "/data2/two", "/data2/one/", "/data1/two"]
+		disk_outpaths       = ["/data1/one", "/data2/two", "/data2/one", "/data1/two"]
 		disk_cores          = [7, 7, 14, 14]
 		
 		ledaserver = LEDAServer(servername,
@@ -507,6 +522,7 @@ if __name__ == "__main__":
 		                        xengine_gpus,
 		                        xengine_navg,
 		                        xengine_cores,
+		                        xengine_tp_ncycles,
 		                        
 		                        disk_logfiles,
 		                        disk_path,
