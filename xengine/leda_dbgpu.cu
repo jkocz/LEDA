@@ -65,7 +65,7 @@ typedef std::complex<char> ComplexInput;
 
 //#define NFREQUENCY 814ll // num freq channels
 //#define NFREQUENCY 40ll // num freq channels
-#define NFREQUENCY 300ll // num freq channels
+#define NFREQUENCY 600ll // num freq channels
 //#define NFREQUENCY 814ll // num freq channels
 //#define NFREQUENCY 52ll // num freq channels
 #define NPOL 2
@@ -441,8 +441,8 @@ int main (int argc, char **argv)
 #if FROM_DADA
            //if (verbose)
              multilog(log, LOG_INFO, "main: writing to datablock [output] %d bytes\n", bytes_to_write);
-           written = ipcio_write (hdu_out->data_block, (char *) cuda_matrix_h, bytes_to_write);
-           //written = ipcio_write (hdu_out->data_block, (char *) cuda_matrix_h_avg, bytes_to_write);
+           //written = ipcio_write (hdu_out->data_block, (char *) cuda_matrix_h, bytes_to_write);
+           written = ipcio_write (hdu_out->data_block, (char *) cuda_matrix_h_avg, bytes_to_write);
            if (written < bytes_to_write)
            {
              multilog(log, LOG_ERR, "main: failed to write all data to datablock [output]\n");
