@@ -470,7 +470,7 @@ if __name__ == "__main__":
 		xengine_logfiles    = [os.path.join(logpath,"dbgpu."+bufkey) for bufkey in xengine_bufkeys]
 		# TODO: This is the older leda_dbgpu code
 		#xengine_path        = "/home/leda/software/leda_ipp/leda_dbgpu"
-		xengine_path        = "/home/LEDA/xengine/leda_dbxgpu"
+		xengine_path        = "/home/leda/LEDA/xengine/leda_dbxgpu"
 		xengine_gpus        = [0, 1, 2, 3]
 		xengine_navg        = 25
 		xengine_cores       = [5, 6, 12, 13]
