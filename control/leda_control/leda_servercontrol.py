@@ -143,17 +143,21 @@ class LEDADiskProcess(LEDAProcess):
 		return image_filename
 
 class LEDAXEngineProcess(LEDAProcess):
-	def __init__(self, logpath, path, in_bufkey, out_bufkey, gpu, core=None):
+	def __init__(self, logpath, path, in_bufkey, out_bufkey, gpu, navg, core=None):
 		LEDAProcess.__init__(self, logpath, path)
 		self.in_bufkey  = in_bufkey
 		self.out_bufkey = out_bufkey
 		self.gpu        = gpu
+		self.navg       = navg
 		self.core       = core
 	def start(self):
 		args = ""
 		if self.core is not None:
-			args += " -c%i" % self.core
-		args += " -g %i %s %s" % (self.gpu, self.in_bufkey, self.out_bufkey)
+			args += " -c %i" % self.core
+		# TODO: This is for the older leda_dbgpu code
+		#args += " -g %i %s %s" % (self.gpu, self.in_bufkey, self.out_bufkey)
+		args += " -d %i -t %i %s %s" % (self.gpu, self.navg,
+		                                self.in_bufkey, self.out_bufkey)
 		#args = []
 		#if self.core is not None:
 		#	args += ["-c%i"%self.core]
@@ -246,7 +250,7 @@ class LEDAServer(object):
 	             capture_ninputs, capture_controlports, capture_cores,
 	             unpack_logfiles, unpack_path, unpack_bufkeys,
 	             xengine_logfiles, xengine_path, xengine_bufkeys,
-	             xengine_gpus, xengine_cores,
+	             xengine_gpus, xengine_navg, xengine_cores,
 	             disk_logfiles, disk_path, disk_outpaths, disk_cores,
 	             debuglevel=1):
 		self.name = name
@@ -268,7 +272,7 @@ class LEDAServer(object):
 			               in zip(unpack_logfiles,capture_bufkeys,
 			                      unpack_bufkeys,unpack_cores)]
 		self.xengine = [LEDAXEngineProcess(logfile,xengine_path,in_bufkey,
-		                                   out_bufkey,gpu,core) \
+		                                   out_bufkey,gpu,xengine_navg,core) \
 			                for logfile,in_bufkey,out_bufkey,gpu,core \
 			                in zip(xengine_logfiles,unpack_bufkeys,
 			                       xengine_bufkeys,xengine_gpus,xengine_cores)]
@@ -464,8 +468,11 @@ if __name__ == "__main__":
 		
 		xengine_bufkeys     = ["cada", "afda", "fada", "acda"]
 		xengine_logfiles    = [os.path.join(logpath,"dbgpu."+bufkey) for bufkey in xengine_bufkeys]
-		xengine_path        = "/home/leda/software/leda_ipp/leda_dbgpu"
+		# TODO: This is the older leda_dbgpu code
+		#xengine_path        = "/home/leda/software/leda_ipp/leda_dbgpu"
+		xengine_path        = "/home/LEDA/xengine/leda_dbxgpu"
 		xengine_gpus        = [0, 1, 2, 3]
+		xengine_navg        = 25
 		xengine_cores       = [5, 6, 12, 13]
 		
 		disk_logfiles       = [os.path.join(logpath,"dbdisk."+bufkey) for bufkey in xengine_bufkeys]
@@ -498,6 +505,7 @@ if __name__ == "__main__":
 		                        xengine_path,
 		                        xengine_bufkeys,
 		                        xengine_gpus,
+		                        xengine_navg,
 		                        xengine_cores,
 		                        
 		                        disk_logfiles,
