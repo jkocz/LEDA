@@ -1,4 +1,166 @@
 
+/*
+  out_mat = {0}
+  in_pipe --> xGPU kernel --> out_mat
+  if( cycle % min_dump_cycles == 0 ) {
+    big_cycle = cycle / min_dump_cycles //% (max_dump_cycles/min_dump_cycles)
+    if( big_cycle is a power of 2 ) {
+      dump_cycle = log2(big_cycle) % (max_dump_cycle+1)
+      dump_map = dump_maps[dump_cycle]
+      out_dump = out_mat[dump_map]
+      out_mat[dump_map] = 0
+      h_out = d2h(out_dump)
+    }
+  }
+  
+  Logarithmic spacing in integration time => log spacing in baseline length?
+                                          => log spacing in frequency?
+  
+ */
+/*
+inline unsigned int round_up_pow2(unsigned int v) {
+	v -= 1;
+	v |= v >> 1;
+	v |= v >> 2;
+	v |= v >> 4;
+	v |= v >> 8;
+	v |= v >> 16;
+	v += 1;
+	return v;
+}
+inline unsigned int round_down_pow2(unsigned int v) {
+	return round_up_pow2(v) >> ((i&(i-1)!=0));
+}
+inline unsigned int intlog2(unsigned int v) {
+	register unsigned int r; // result of log2(v) will go here
+	register unsigned int shift;
+	r =     (v > 0xFFFF) << 4; v >>= r;
+	shift = (v > 0xFF  ) << 3; v >>= shift; r |= shift;
+	shift = (v > 0xF   ) << 2; v >>= shift; r |= shift;
+	shift = (v > 0x3   ) << 1; v >>= shift; r |= shift;
+	r |= (v >> 1);
+	return r;
+}
+
+// Note: Input is no. NTIME_PIPE sums for each baseline in
+//         lower triangular visibility matrix. Values must
+//         be >= 1.
+void setBaselineDumpTimes(const float* times) {
+	typedef unsigned int uint;
+	size_t nbaseline = nstation*(nstation+1)/2;
+	float  mintime   = *std::min_element(times, times + nbaseline);
+	float  maxtime   = *std::max_element(times, times + nbaseline);
+	uint   mindump   = intlog2((uint)mintime);
+	uint   maxdump   = intlog2((uint)maxtime);
+	uint   ndumps    = maxdump+1 - mindump;
+	std::vector<std::vector<uint> > dump_maps;
+	dump_maps.resize(ndumps);
+	for( size_t b=0; b<nbaseline; ++b ) {
+		float time = times[b];
+		// Note: We round down to guarantee required integration times
+		uint dump = intlog2((uint)t) - mindump;
+		// Add this baseline to all dumps with times >= required
+		for( size_t d=dump; d<ndumps; ++d ) {
+			dump_maps[d].push_back(b);
+		}
+	}
+	
+	for( size_t i=0; i<dump_maps[d].size(); ++i ) {
+		size_t b = dump_maps[d][i];
+		out[i]    = matrix[b];
+		matrix[b] = 0;
+	}
+	
+}
+*/
+/*
+virtual void onData(char* data_in, char* data_out, size_t size,
+                    size_t& bytes_read, size_t& bytes_written) {
+	// cudaXengine_deviceonly(data_in, m_outbuf);
+	// bytes_read = size;
+	//if( cycle != 0 && cycle % 
+	
+	  //if need to dump {
+	  //  dump_kernel(m_outbuf, data_out, m_dump_maps[dump_cycle]);
+	  //  bytes_written = m_dump_maps[dump_cycle].size() * nchans * sizeof(Complex)
+	  //}
+	
+	this->syncStream();
+}
+*/
+/*
+  
+  NTIME --> NTIME_PIPE --> NTIME_MIN_INT --> BDI
+  
+  d2h_task  = sew::create_copy_source(d_in);
+  //h2d_task  = sew::create_siphon(d_out, h_out);
+  h2d_task  = sew::create_sink(d_out, h_out);
+  dump_task = sew::create_copy_source(dada_outkey);
+  dada_sink
+    onRead(h_data, size):
+      d2h_task->write(h_data, size);
+      h2d_task->read(h_out, size);
+  sew::cuda::pipe
+    onData(d_in, d_out):
+      xgpu_kernel(d_in, d_out)
+      if integrated NTIME_MIN_INT:
+        bytes_written = size;
+        d_out[:] = 0;
+  sew::sink
+    onRead(h_data, size):
+      dump = out_int_buf[p][dumpable]
+      out_int_buf[p][dumpable] = 0
+      dump_buf[p].write(dump)
+  
+  p, h_in = get next full buffer
+  d2h_task->write(h_in, buf_size); // d_in = h_in
+  Compute d_in --> d_out and integrate to NTIME_MIN_INT
+  if integrated NTIME_MIN_INT:
+    h_out = d_out
+    out_int_buf[p] += h_out
+    dump = out_int_buf[p][dumpable]
+    out_int_buf[p][dumpable] = 0
+    dump_buf[p].write(dump)
+  
+*/
+/*
+int xgpuCudaXengine_device(XGPUContext *context, int syncOp,
+                           const ComplexInput* in_d,
+                           Complex*            out_d)
+{
+	XGPUInternalContext *internal = (XGPUInternalContext *)context->internal;
+	if(!internal) {
+		return XGPU_NOT_INITIALIZED;
+	}
+	//assign the device
+	cudaSetDevice(internal->device);
+	
+	int Nblock = compiletime_info.nstation/min(TILE_HEIGHT,TILE_WIDTH);
+	dim3 dimBlock(TILE_WIDTH,TILE_HEIGHT,1);
+	//allocated exactly as many thread blocks as are needed
+	dim3 dimGrid(((Nblock/2+1)*(Nblock/2))/2, compiletime_info.nfrequency);
+	
+	const ComplexInput* array_compute = in_d;
+	// set pointers to the real and imaginary components of the device matrix
+	float4* matrix_real_d = (float4*)(out_d);
+	float4* matrix_imag_d = (float4*)(out_d + compiletime_info.matLength/2);
+	
+	// Kernel Calculation
+#if TEXTURE_DIM == 2
+	cudaBindTexture2D(0, tex2dfloat2, array_compute, channelDesc,
+	                  NFREQUENCY*NSTATION*NPOL, NTIME_PIPE, 
+	                  NFREQUENCY*NSTATION*NPOL*sizeof(ComplexInput));
+#else
+	cudaBindTexture(0, tex1dfloat2, array_compute, channelDesc,
+	                NFREQUENCY*NSTATION*NPOL*NTIME_PIPE*sizeof(ComplexInput));
+#endif
+	CUBE_ASYNC_KERNEL_CALL(shared2x2float2, dimGrid, dimBlock, 0, streams[1], 
+	                       matrix_real_d, matrix_imag_d, NSTATION, writeMatrix);
+	checkCudaError();
+	
+	return XGPU_OK;
+}
+*/
 #include <cstdio>
 #include <cstdlib>
 #include <cstring> // For memcpy

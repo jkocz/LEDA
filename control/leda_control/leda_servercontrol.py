@@ -91,19 +91,23 @@ class LEDAProcess(object):
 		self.process = subprocess.Popen(args, shell=True,
 		                                stdout=logfile, stderr=logfile)
 	def kill(self):
-		# TODO: Could use self.process.terminate, but this method
-		#         will interoperate with manual process execution.
-		basename = os.path.basename(self.path)
-		ret = subprocess.call("killall " + basename, shell=True)
-		return ret
+		if self.process is not None:
+			self.process.terminate()
+			return self.process.wait()
+		else:
+			# This allows interoperation with manual process execution
+			basename = os.path.basename(self.path)
+			return subprocess.call("killall " + basename, shell=True)
 	def clearLog(self):
 		if os.path.exists(self.logpath):
 			os.remove(self.logpath)
 	def isRunning(self):
-		# TODO: Could use self.poll, but this method
-		#         will interoperate with manual process execution.
-		basename = os.path.basename(self.path)
-		return process_running(basename)
+		if self.process is not None:
+			return self.process.poll() is None
+		else:
+			# This allows interoperation with manual process execution
+			basename = os.path.basename(self.path)
+			return process_running(basename)
 
 class LEDADiskProcess(LEDAProcess):
 	def __init__(self, logpath, path, bufkey, outpath, core=None):
@@ -158,22 +162,19 @@ class LEDAXEngineProcess(LEDAProcess):
 		args = ""
 		if self.core is not None:
 			args += " -c %i" % self.core
-		# TODO: This is for the older leda_dbgpu code
-		args += " -g %i %s %s" % (self.gpu, self.in_bufkey, self.out_bufkey)
-		"""
-		if self.tp_ncycles != 0:
-			total_power_outfile = os.path.join(self.tp_outpath,
-			                                   "total_power." + self.out_bufkey)
-			args += " -p %s -n %i" % (total_power_outfile, self.tp_ncycles)
+		## TODO: This is for the older leda_dbgpu code
+		#args += " -g %i %s %s" % (self.gpu, self.in_bufkey, self.out_bufkey)
 		
+		if self.tp_ncycles != 0:
+			# TODO: Ideally this would be set to match the proper start time
+			utc = datetime.datetime.utcnow().strftime("%Y-%m-%d-%H:%M:%S")
+			total_power_outfile = os.path.join(self.tp_outpath,
+			                                   "total_power_" + utc + "." + self.out_bufkey)
+			args += " -p %s -n %i" % (total_power_outfile, self.tp_ncycles)
 		args += " -d %i -t %i %s %s" \
 		    % (self.gpu, self.navg,
 		       self.in_bufkey, self.out_bufkey)
-		"""
-		#args = []
-		#if self.core is not None:
-		#	args += ["-c%i"%self.core]
-		#args += ["-g", str(self.gpu), self.in_bufkey, self.out_bufkey]
+		    
 		self._startProc(args)
 
 class LEDAUnpackProcess(LEDAProcess):
@@ -327,6 +328,9 @@ class LEDAServer(object):
 	def destroyBuffers(self):
 		for buf in self.buffers:
 			buf.destroy()
+	def setTotalPowerRecording(self, ncycles):
+		for xengine_proc in self.xengine:
+			xengine_proc.tp_ncycles = ncycles
 	def armPipeline(self):
 		for disk_proc in self.disk:
 			disk_proc.start()
@@ -389,6 +393,10 @@ def onMessage(ledaserver, message, clientsocket, address):
 		logMsg(1, DL, "Arming pipeline")
 		ledaserver.armPipeline()
 		clientsocket.send('ok')
+	if 'totalpower' in args:
+		tp_ncycles = args['totalpower']
+		logMsg(1, DL, "Setting total power recording ncycles to " % tp_ncycles)
+		ledaserver.setTotalPowerRecording(tp_ncycles)
 	if 'start' in args:
 		logMsg(1, DL, "Starting pipeline")
 		ledaserver.startPipeline()
@@ -435,6 +443,9 @@ def reg_tile_triangular_size(Ni, Nc):
 if __name__ == "__main__":
 	import functools
 	try:
+		# Dynamically execute config script
+		execfile("config_leda64nm.py", globals())
+		"""
 		servername = sys.argv[1]
 		
 		logpath = "/home/leda/logs"
@@ -483,9 +494,9 @@ if __name__ == "__main__":
 		
 		xengine_bufkeys     = ["cada", "afda", "fada", "acda"]
 		xengine_logfiles    = [os.path.join(logpath,"dbgpu."+bufkey) for bufkey in xengine_bufkeys]
-		# TODO: This is the older leda_dbgpu code
-		xengine_path        = "/home/leda/software/leda_ipp/leda_dbgpu"
-		#xengine_path        = "/home/leda/LEDA/xengine/leda_dbxgpu"
+		## TODO: This is the older leda_dbgpu code
+		#xengine_path        = "/home/leda/software/leda_ipp/leda_dbgpu"
+		xengine_path        = "/home/leda/LEDA/xengine/leda_dbxgpu"
 		xengine_gpus        = [0, 1, 2, 3]
 		xengine_navg        = 25
 		xengine_cores       = [5, 6, 12, 13]
@@ -495,7 +506,7 @@ if __name__ == "__main__":
 		disk_path           = "/home/leda/software/psrdada/src/dada_dbdisk"
 		disk_outpaths       = ["/data1/one", "/data2/two", "/data2/one", "/data1/two"]
 		disk_cores          = [7, 7, 14, 14]
-		
+		"""
 		ledaserver = LEDAServer(servername,
 		                        
 		                        dadapath,
