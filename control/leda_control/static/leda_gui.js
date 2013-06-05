@@ -71,6 +71,15 @@ function onStatusUpdate(response) {
 			document.getElementById("control_disk_usage"+i+"_"+j).innerHTML = disk_usage;
 		}
 	}
+	
+	if( leda.roach.length && leda.roach[0].flow ) {
+		document.getElementById("total_power_enabled").disabled = "disabled";
+		document.getElementById("total_power").disabled = "disabled";
+	}
+	else {
+		document.getElementById("total_power_enabled").disabled = "";
+		document.getElementById("total_power").disabled = "";
+	}
 }
 function setVisImage() {
 	img_src = "static/images/" + vis_image + ".png";
@@ -88,11 +97,20 @@ function onImageUpdate(response) {
 		
 	}
 }
-function onStartObsClick(event) { send("start=1") }
-function onStopObsClick(event)  { send("stop=1") }
-function onKillObsClick(event)  { send("kill=1") }
-function onProgramRoachesClick(event) { send("program_roaches=1") }
-function onCreateBuffersClick(event) { send("create_buffers=1") }
+function onStartObsClick(event) {
+	if( document.getElementById("total_power_enabled").checked == true ) {
+		ncycles = document.getElementById("total_power").value;
+		send("total_power="+ncycles);
+	}
+	else {
+		send("total_power=0");
+	}
+	send("start=1");
+}
+function onStopObsClick(event)  { send("stop=1"); }
+function onKillObsClick(event)  { send("kill=1"); }
+function onProgramRoachesClick(event) { send("program_roaches=1"); }
+function onCreateBuffersClick(event) { send("create_buffers=1"); }
 function onVisModeClick(event)  { vis_image = this.value; setVisImage(); }
 function requestStatus() { request("status=1", onStatusUpdate); }
 function updateImages() { request("adc_images=1&vismatrix_images=1", onImageUpdate);

@@ -50,6 +50,11 @@ class Application(tornado.web.Application):
 	    
 	def updateStatus(self):
 		print "Status request"
+		"""
+		if not self.leda.isConnected():
+			print "ERROR: Not connected"
+			return
+		"""
 		if time.time() - self.last_status_time >= self.min_refresh_time:
 			print "Requesting updated status from head node"
 			self.last_status_time = time.time()
@@ -60,7 +65,11 @@ class Application(tornado.web.Application):
 			# Handle failed control
 			if new_status is None:
 				print "Control connection down"
-				# TODO: Set all other status entries to 'error'
+				self.status = {}
+				# TODO: Set all status entries to 'error'
+				self.status['roach'] = []
+				#self.status['roach'] = [{'flow': 'ok'}]
+				self.status['control'] = []
 				self.status['headnode'] = {'host':self.remote_host,
 										   'alive':'ok',
 										   'control':'down'}
@@ -74,6 +83,9 @@ class Application(tornado.web.Application):
 										   'control':'ok'}
 	def updateADCImages(self):
 		print "ADC image update request"
+		if not self.leda.isConnected():
+			print "ERROR: Not connected"
+			return
 		if time.time() - self.last_adcimage_time >= self.min_adcimage_refresh_time:
 			self.last_adcimage_time = time.time()
 			print "Requesting updated ADC images from head node"
@@ -96,6 +108,9 @@ class Application(tornado.web.Application):
 	# TODO: Use above func as a base to implement updateVisMatrixImages!
 	def updateVisMatrixImages(self):
 		print "Visibility matrix update request"
+		if not self.leda.isConnected():
+			print "ERROR: Not connected"
+			return
 		if time.time() - self.last_vismatimage_time >= self.min_vismat_refresh_time:
 			self.last_vismatimage_time = time.time()
 			print "Requesting updated visibility matrix images from head node"
@@ -140,6 +155,9 @@ class AJAXHandler(tornado.web.RequestHandler):
 			self.application.leda.programRoaches()
 		elif self.get_argument("create_buffers", default=None) is not None:
 			self.application.leda.createBuffers()
+		elif self.get_argument("total_power", default=None) is not None:
+			ncycles = int(self.get_argument("total_power"))
+			self.application.leda.setTotalPowerRecording(ncycles)
 
 if __name__ == "__main__":
 	tornado.options.parse_command_line()

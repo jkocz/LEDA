@@ -117,6 +117,9 @@ class LEDARemoteHeadNodeControl(object):
 	def createBuffers(self):
 		self.log.write("Creating buffers", 2)
 		self._sendcmd("create_buffers=1")
+	def setTotalPowerRecording(self, ncycles):
+		self.log.write("Setting total power recording param", 2)
+		self._sendcmd("total_power=%i" % ncycles)
 	def startObservation(self):
 		self.log.write("Starting observation", 2)
 		self._sendcmd("start=1")
@@ -142,7 +145,7 @@ class LEDARemoteHeadNodeControl(object):
 
 if __name__ == "__main__":
 	if len(sys.argv) <= 1:
-		print "Usage:", sys.argv[0], "[status|configure|start|stop|kill|program_roaches|create_buffers]"
+		print "Usage:", sys.argv[0], "[status|configure|start|stop|kill|program_roaches|create_buffers|total_power <ncycles>]"
 		sys.exit(0)
 	cmd = sys.argv[1]
 	
@@ -197,6 +200,9 @@ if __name__ == "__main__":
 		leda.programRoaches()
 	elif cmd == "create_buffers":
 		leda.createBuffers()
+	elif cmd == "total_power":
+		ncycles = int(sys.argv[2])
+		leda.setTotalPowerRecording(ncycles)
 	elif cmd == "start":
 		leda.startObservation()
 	elif cmd == "stop":

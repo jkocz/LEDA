@@ -150,6 +150,9 @@ class LEDARemoteServerControl(object):
 	def destroyBuffers(self):
 		self.log.write("Destroying buffers", 2)
 		self._sendcmd("destroy_buffers=1")
+	def setTotalPowerRecording(self, ncycles):
+		self.log.write("Setting total power recording param", 2)
+		self._sendcmd(("total_power=%i" % ncycles)
 	def armPipeline(self):
 		self.log.write("Arming pipeline", 2)
 		self._sendcmd("arm=1")
@@ -353,6 +356,10 @@ class LEDARemoteManager(object):
 		self.log.write("Creating buffers", 0)
 		for server in self.servers:
 			server.control.createBuffers()
+	def setTotalPowerRecording(self, ncycles):
+		self.log.write("Setting total power recording param", 0)
+		for server in self.servers:
+			server.control.setTotalPowerRecording(ncycles)
 	def configure(self):
 		self.log.write("Configuring hardware", 0)
 		self.programRoaches()
@@ -464,6 +471,10 @@ def onMessage(leda, message, clientsocket, address):
 	elif "create_buffers" in args:
 		leda.createBuffers()
 		clientsocket.send('ok')
+	elif "total_power" in args:
+		tp_ncycles = args["total_power"]
+		leda.setTotalPowerRecording(tp_ncycles)
+		clientsocket.send('ok')
 	elif "start" in args:
 		leda.startObservation()
 		clientsocket.send('ok')
@@ -490,6 +501,8 @@ if __name__ == "__main__":
 	import functools
 	#from SimpleSocket import SimpleSocket
 	
+	# TODO: Pull these params out into the separate config script
+	#         Be careful of the control ports
 	serverhosts = ["ledagpu3", "ledagpu4"]
 	roachhosts  = ['169.254.128.14', '169.254.128.13']
 	controlport  = 3141
