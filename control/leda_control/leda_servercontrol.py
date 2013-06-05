@@ -159,8 +159,8 @@ class LEDAXEngineProcess(LEDAProcess):
 		if self.core is not None:
 			args += " -c %i" % self.core
 		# TODO: This is for the older leda_dbgpu code
-		#args += " -g %i %s %s" % (self.gpu, self.in_bufkey, self.out_bufkey)
-		
+		args += " -g %i %s %s" % (self.gpu, self.in_bufkey, self.out_bufkey)
+		"""
 		if self.tp_ncycles != 0:
 			total_power_outfile = os.path.join(self.tp_outpath,
 			                                   "total_power." + self.out_bufkey)
@@ -169,6 +169,7 @@ class LEDAXEngineProcess(LEDAProcess):
 		args += " -d %i -t %i %s %s" \
 		    % (self.gpu, self.navg,
 		       self.in_bufkey, self.out_bufkey)
+		"""
 		#args = []
 		#if self.core is not None:
 		#	args += ["-c%i"%self.core]
@@ -483,8 +484,8 @@ if __name__ == "__main__":
 		xengine_bufkeys     = ["cada", "afda", "fada", "acda"]
 		xengine_logfiles    = [os.path.join(logpath,"dbgpu."+bufkey) for bufkey in xengine_bufkeys]
 		# TODO: This is the older leda_dbgpu code
-		#xengine_path        = "/home/leda/software/leda_ipp/leda_dbgpu"
-		xengine_path        = "/home/leda/LEDA/xengine/leda_dbxgpu"
+		xengine_path        = "/home/leda/software/leda_ipp/leda_dbgpu"
+		#xengine_path        = "/home/leda/LEDA/xengine/leda_dbxgpu"
 		xengine_gpus        = [0, 1, 2, 3]
 		xengine_navg        = 25
 		xengine_cores       = [5, 6, 12, 13]

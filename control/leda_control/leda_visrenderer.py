@@ -14,7 +14,7 @@ def generate_vismatrix_plots(stem):
 	figure(figsize=(8,6), dpi=96)
 	
 	subplot(2,2,1)
-	pcolor(data_xx_amp, norm=LogNorm(vmin=1e0, vmax=1e6), cmap=cm.Blues)
+	pcolor(data_xx_amp, norm=LogNorm(vmin=1e0, vmax=1e8), cmap=cm.Blues)
 	title("Amplitude XX")
 	colorbar()
 	axis([0,32,0,32])
@@ -26,7 +26,7 @@ def generate_vismatrix_plots(stem):
 	axis([0,32,0,32])
 	
 	subplot(2,2,3)
-	pcolor(data_yy_amp, norm=LogNorm(vmin=1e0, vmax=1e6), cmap=cm.Blues)
+	pcolor(data_yy_amp, norm=LogNorm(vmin=1e0, vmax=1e8), cmap=cm.Blues)
 	title("Amplitude YY")
 	colorbar()
 	axis([0,32,0,32])

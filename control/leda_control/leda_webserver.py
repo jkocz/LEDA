@@ -31,7 +31,7 @@ class Application(tornado.web.Application):
  #self.last_vismatimage_time >= self.min_vismat_refresh_time:
 		self.min_refresh_time   = 4
 		self.min_adcimage_refresh_time = 14
-		self.min_vismat_refresh_time = 30
+		self.min_vismat_refresh_time = 10000#30
 		self.last_status_time   = 0
 		self.last_adcimage_time = 0
 		self.last_vismatimage_time = 0
