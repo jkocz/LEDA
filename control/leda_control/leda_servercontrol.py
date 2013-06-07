@@ -394,8 +394,8 @@ def onMessage(ledaserver, message, clientsocket, address):
 		ledaserver.armPipeline()
 		clientsocket.send('ok')
 	if 'totalpower' in args:
-		tp_ncycles = args['totalpower']
-		logMsg(1, DL, "Setting total power recording ncycles to " % tp_ncycles)
+		tp_ncycles = int(args['totalpower'])
+		logMsg(1, DL, "Setting total power recording ncycles to %i" % tp_ncycles)
 		ledaserver.setTotalPowerRecording(tp_ncycles)
 	if 'start' in args:
 		logMsg(1, DL, "Starting pipeline")

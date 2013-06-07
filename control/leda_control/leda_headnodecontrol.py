@@ -472,7 +472,7 @@ def onMessage(leda, message, clientsocket, address):
 		leda.createBuffers()
 		clientsocket.send('ok')
 	elif "total_power" in args:
-		tp_ncycles = args["total_power"]
+		tp_ncycles = int(args["total_power"])
 		leda.setTotalPowerRecording(tp_ncycles)
 		clientsocket.send('ok')
 	elif "start" in args:

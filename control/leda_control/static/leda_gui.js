@@ -72,7 +72,7 @@ function onStatusUpdate(response) {
 		}
 	}
 	
-	if( leda.roach.length && leda.roach[0].flow=="ok" ) {
+	if( leda.roach.length && leda.roach[0].flow=='ok' ) {
 		/*document.getElementById("total_power_enabled").disabled = "disabled";*/
 		/*document.getElementById("total_power").disabled = "disabled";*/
 		document.getElementById("total_power_enabled").disabled = true;
