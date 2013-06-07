@@ -104,7 +104,7 @@ if __name__ == "__main__":
 	fpga  = corr.katcp_wrapper.FpgaClient(roaches[0], 7147)
 	time.sleep(2)
 	programRoach(fpga, boffile, src_ip_start=145, src_port_start=4010,
-		     fid_start=0,
+	             fid_start=0,
 	             registers=registers)
 		     
 	print "Programming ROACH .13"
@@ -112,10 +112,12 @@ if __name__ == "__main__":
 	fpga  = corr.katcp_wrapper.FpgaClient(roaches[1], 7147)
 	time.sleep(2)
 	programRoach(fpga, boffile, src_ip_start=161, src_port_start=4020,
-		     fid_start=4,
+	             fid_start=4,
 	             registers=registers)
 	
-	print "Waiting 3 minutes for ARP tables to update"
-	time.sleep(180)
+	#print "Waiting 3 minutes for ARP tables to update"
+	#time.sleep(180)
 	
 	print "Done"
+	
+	print "Please wait 3 minutes for settings to take effect"
