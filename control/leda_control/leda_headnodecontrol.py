@@ -152,7 +152,7 @@ class LEDARemoteServerControl(object):
 		self._sendcmd("destroy_buffers=1")
 	def setTotalPowerRecording(self, ncycles):
 		self.log.write("Setting total power recording param", 2)
-		self._sendcmd(("total_power=%i" % ncycles)
+		self._sendcmd("total_power=%i" % ncycles)
 	def armPipeline(self):
 		self.log.write("Arming pipeline", 2)
 		self._sendcmd("arm=1")
