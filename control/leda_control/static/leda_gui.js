@@ -39,8 +39,8 @@ status_img = function(status) {
 	}
 }
 
-vis_image = "roach01_adc01"
-vis_image_number = 0
+vis_image = "roach01_adc01";
+vis_image_number = 0;
 
 function onStatusUpdate(response) {
 	leda = JSON.parse(response);
