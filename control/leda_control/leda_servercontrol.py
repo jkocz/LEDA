@@ -94,11 +94,13 @@ class LEDAProcess(object):
 		if self.process is not None:
 			if self.process.poll() is None:
 				self.process.terminate()
-			return self.process.wait()
-		else:
-			# This allows interoperation with manual process execution
-			basename = os.path.basename(self.path)
-			return subprocess.call("killall " + basename, shell=True)
+			#return self.process.wait()
+			# TODO: This doesn't seem to be working properly!
+			self.process.wait()
+		#else:
+		# This allows interoperation with manual process execution
+		basename = os.path.basename(self.path)
+		return subprocess.call("killall " + basename, shell=True)
 	def clearLog(self):
 		if os.path.exists(self.logpath):
 			os.remove(self.logpath)
@@ -170,7 +172,7 @@ class LEDAXEngineProcess(LEDAProcess):
 			# TODO: Ideally this would be set to match the proper start time
 			utc = datetime.datetime.utcnow().strftime("%Y-%m-%d-%H:%M:%S")
 			total_power_outfile = os.path.join(self.tp_outpath,
-			                                   "total_power_" + utc + "." + self.out_bufkey)
+			                                   "total_power_" + utc + "." + self.in_bufkey)
 			args += " -p %s -n %i" % (total_power_outfile, self.tp_ncycles)
 		args += " -d %i -t %i %s %s" \
 		    % (self.gpu, self.navg,
