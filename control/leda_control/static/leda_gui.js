@@ -73,12 +73,14 @@ function onStatusUpdate(response) {
 	}
 	
 	if( leda.roach.length && leda.roach[0].flow ) {
-		document.getElementById("total_power_enabled").disabled = "disabled";
-		document.getElementById("total_power").disabled = "disabled";
+		/*document.getElementById("total_power_enabled").disabled = "disabled";*/
+		/*document.getElementById("total_power").disabled = "disabled";*/
+		document.getElementById("total_power_enabled").disabled = true;
+		document.getElementById("total_power").disabled = true;
 	}
 	else {
-		document.getElementById("total_power_enabled").disabled = "";
-		document.getElementById("total_power").disabled = "";
+		document.getElementById("total_power_enabled").disabled = false;
+		document.getElementById("total_power").disabled = false;
 	}
 }
 function setVisImage() {
