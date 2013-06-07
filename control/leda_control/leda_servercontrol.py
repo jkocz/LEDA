@@ -92,7 +92,8 @@ class LEDAProcess(object):
 		                                stdout=logfile, stderr=logfile)
 	def kill(self):
 		if self.process is not None:
-			self.process.terminate()
+			if self.process.poll() is not None:
+				self.process.terminate()
 			return self.process.wait()
 		else:
 			# This allows interoperation with manual process execution
