@@ -4,16 +4,17 @@ import socket
 servername = socket.gethostname()
 
 serverhosts = ["ledagpu5", "ledagpu6"]
-roachhosts  = ['169.254.128.14', '169.254.128.13']
+roachhosts  = ['169.254.128.64', '169.254.128.65']
 roachport   = 7147
 boffile     = 'l64x8_06022013.bof'
 src_ip_starts   = [145, 161]
 src_port_starts = [4010, 4020]
 fid_starts      = [0, 4]
 # Digital gain registers set to 8x
-gain_reg     = 0x2a
-gain_setting = 0x8888
-roach_registers = {gain_reg: gain_setting}
+#gain_reg     = 0x2a
+#gain_setting = 0x8888
+#roach_registers = {gain_reg: gain_setting}
+roach_registers = {}
 
 logpath = getenv_warn('LEDA_LOG_DIR', "/home/leda/logs")
 
