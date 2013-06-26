@@ -1,9 +1,10 @@
 #!/usr/bin/env python
-
+"""
 from matplotlib.colors import LogNorm
 #from pylab import *
 from pylab import figure, subplot, pcolor, title, colorbar, axis, savefig, cm
 from numpy import loadtxt
+"""
 import os
 import glob
 import subprocess
@@ -24,6 +25,7 @@ class LEDAVisMatrixProcess(object):
 		self.path = path
 		self.outpath = outpath
 	def getLatestFile(self, rank=0):
+		# TODO: Check that at least one data file exists
 		# TODO: Check that the latest file contains at least one complete
 		#         matrix, and otherwise open the 2nd latest.
 		return sorted(glob.glob(self.outpath + "/*.dada"),
