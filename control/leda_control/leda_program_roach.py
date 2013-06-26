@@ -88,6 +88,11 @@ def programRoach(fpga, boffile, src_ip_start, src_port_start, fid_start, registe
 		fpga.write('fft_f%i_coeffs1'%(i+1),cstr)
 
 if __name__ == "__main__":
+	from configtools import *
+	configfile = getenv_warn('LEDA_CONFIG', "config_leda64nm.py")
+	# Dynamically execute config script
+	execfile(configfile, globals())
+	"""
 	roaches = ['169.254.128.14', '169.254.128.13']
 	boffile = 'l64x8_06022013.bof'
 	
@@ -98,26 +103,19 @@ if __name__ == "__main__":
 	#gain_setting = 0xCCCC # 12x
 	registers = {gain_reg: gain_setting}
 	#registers = {}
-	
-	print "Programming ROACH .14"
-	print "---------------------"
-	fpga  = corr.katcp_wrapper.FpgaClient(roaches[0], 7147)
-	time.sleep(2)
-	programRoach(fpga, boffile, src_ip_start=145, src_port_start=4010,
-	             fid_start=0,
-	             registers=registers)
-		     
-	print "Programming ROACH .13"
-	print "---------------------"
-	fpga  = corr.katcp_wrapper.FpgaClient(roaches[1], 7147)
-	time.sleep(2)
-	programRoach(fpga, boffile, src_ip_start=161, src_port_start=4020,
-	             fid_start=4,
-	             registers=registers)
+	"""
+	for i in range(len(roachhosts)):
+		print "Programming ROACH %i @ %s" % (i, roachhosts[i])
+		print "---------------------"
+		fpga  = corr.katcp_wrapper.FpgaClient(roachhosts[i], roachport)
+		time.sleep(2)
+		programRoach(fpga, boffile, src_ip_starts[i], src_port_starts[i],
+		             fid_starts[i],
+		             roach_registers)
 	
 	#print "Waiting 3 minutes for ARP tables to update"
 	#time.sleep(180)
 	
-	print "Done"
+	print "All done"
 	
 	print "Please wait 3 minutes for settings to take effect"

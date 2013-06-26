@@ -4,45 +4,64 @@ from matplotlib.colors import LogNorm
 #from pylab import *
 from pylab import figure, subplot, pcolor, title, colorbar, axis, savefig, cm
 from numpy import loadtxt
+import os
+import glob
+import subprocess
 
-def generate_vismatrix_plots(stem):
-	data_xx_amp   = loadtxt(stem + "_xx.amp")
-	data_xx_phase = loadtxt(stem + "_xx.phase")
-	data_yy_amp   = loadtxt(stem + "_yy.amp")
-	data_yy_phase = loadtxt(stem + "_yy.phase")
-	
-	figure(figsize=(8,6), dpi=96)
-	
-	subplot(2,2,1)
-	pcolor(data_xx_amp, norm=LogNorm(vmin=1e0, vmax=1e8), cmap=cm.Blues)
-	title("Amplitude XX")
-	colorbar()
-	axis([0,32,0,32])
-	
-	subplot(2,2,2)
-	pcolor(data_xx_phase, vmin=-3.14159, vmax=3.14159, cmap=cm.RdBu)
-	title("Phase XX")
-	colorbar()
-	axis([0,32,0,32])
-	
-	subplot(2,2,3)
-	pcolor(data_yy_amp, norm=LogNorm(vmin=1e0, vmax=1e8), cmap=cm.Blues)
-	title("Amplitude YY")
-	colorbar()
-	axis([0,32,0,32])
-	
-	subplot(2,2,4)
-	pcolor(data_yy_phase, vmin=-3.14159, vmax=3.14159, cmap=cm.RdBu)
-	title("Phase YY")
-	colorbar()
-	axis([0,32,0,32])
-	
-	outfilename = stem + '.png'
-	savefig(outfilename, bbox_inches='tight', pad_inches=0.1)
-	
-	return outfilename
+from generate_vismatrix_plots import generate_vismatrix_plots
 
+"""
+
+visrenderer.py
+  Wait for new data
+  Generate image files
+
+"""
+
+class LEDAVisMatrixProcess(object):
+	def __init__(self, path, outpath):
+		# Path to leda_visconverter executable
+		self.path = path
+		self.outpath = outpath
+	def getLatestFile(self, rank=0):
+		# TODO: Check that the latest file contains at least one complete
+		#         matrix, and otherwise open the 2nd latest.
+		return sorted(glob.glob(self.outpath + "/*.dada"),
+		              key=os.path.getmtime, reverse=True)[rank]
+	def dumpVisMatrixImages(self, stem):
+		dadafile = self.getLatestFile()
+		print "Gen'ing vismatrix image from", dadafile
+		ret = subprocess.call(self.path + " %s %s" % (dadafile,stem),
+		                      shell=True)
+		if ret != 0:
+			print "Failed; trying next oldest file"
+			dadafile = self.getLatestFile(rank=1)
+			print "Gen'ing vismatrix image from", dadafile
+			ret = subprocess.call(self.path + " %s %s" % (dadafile,stem),
+			                      shell=True)
+			if ret != 0:
+				print "Failed again!"
+		image_filename = generate_vismatrix_plots(stem)
+		return image_filename
+
+# This will continuously regenerate the image every interval
 if __name__ == "__main__":
+	import sys
 	from sys import argv
-	stem = "vismatrix" if len(argv) <= 1 else argv[1]
-	generate_vismatrix_plots(stem)
+	import time
+	if len(argv) <= 1:
+		print "Usage: leda_visrenderer.py datapath filestem interval"
+		sys.exit(0)
+	datapath = "/data1/one" if len(argv) <= 1 else argv[1]
+	stem = "vismatrix" if len(argv) <= 2 else argv[2]
+	interval = 30 if len(argv) <= 3 else float(argv[3])
+	exepath  = "/home/leda/leda_control/leda_visconverter"
+	
+	ctx = LEDAVisMatrixProcess(exepath, datapath)
+	
+	running = True
+	while running:
+		print "Dumping new images"
+		ctx.dumpVisMatrixImages(stem)
+		time.sleep(interval)
+	print "Exiting"

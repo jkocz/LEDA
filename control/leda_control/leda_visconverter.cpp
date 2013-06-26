@@ -88,10 +88,11 @@ int main(int argc, char* argv[])
 {
 	enum { HEADER_SIZE = 4096 };
 	
-	size_t nfrequency  = 300;
+	// TODO: Probably need to read these from argv, passed from host Python app
+	size_t nfrequency  = 600;
 	size_t nstation    = 32;
 	size_t npol        = 2;
-	size_t sum_nfreq   = 300;
+	size_t sum_nfreq   = 600;
 	size_t sum_freq0   = 0;
 	size_t freqlen     = ((nstation/2+1)*(nstation/4)*npol*npol*4);
 	//size_t symlen      = npol*nstation*(nstation+1)/2;//(nstation*npol)*(nstation*npol+1)/2;

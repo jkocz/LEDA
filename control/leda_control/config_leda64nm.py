@@ -1,7 +1,7 @@
 
-import sys
-
-servername = sys.argv[1]
+from configtools import *
+import socket
+servername = socket.gethostname()
 
 logpath = "/home/leda/logs"
 
@@ -10,6 +10,7 @@ nchan  = 300
 ntime  = 8192
 bufsize = ninput*nchan*ntime
 upsize  = bufsize * 2
+# TODO: CHECK THIS
 outsize = reg_tile_triangular_size(ninput, nchan)
 
 dadapath = "/home/leda/software/psrdada/src"
