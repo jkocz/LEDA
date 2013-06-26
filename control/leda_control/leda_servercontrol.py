@@ -447,7 +447,8 @@ if __name__ == "__main__":
 	import functools
 	from configtools import *
 	try:
-		configfile = getenv_warn('LEDA_CONFIG', "config_leda64nm.py")
+		#configfile = getenv_warn('LEDA_CONFIG', "config_leda64nm.py")
+		configfile = getenv('LEDA_CONFIG')
 		# Dynamically execute config script
 		execfile(configfile, globals())
 		

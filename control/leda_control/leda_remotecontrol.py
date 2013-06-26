@@ -144,6 +144,8 @@ class LEDARemoteHeadNodeControl(object):
 		return images
 
 if __name__ == "__main__":
+	from configtools import *
+	
 	if len(sys.argv) <= 1:
 		print "Usage:", sys.argv[0], "[status|configure|start|stop|kill|program_roaches|create_buffers|total_power <ncycles>]"
 		sys.exit(0)
