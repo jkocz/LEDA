@@ -1,5 +1,47 @@
 
 /*
+  
+  TODO
+  ----
+  xGPU optimisation
+    Add hexhack code to repo and integrate into build operations
+    Benchmark K20X power, temp and perf for 512 as function of overclock
+  
+  Total power (hires) recording
+    Limit file sizes to 1 GB like dbdisk
+      Alternatively, write to a new dada buffer and use dbdisk
+    Option to automatically name files with timestamp
+    Confirm that this isn't cause of zero-bin real/imag non-gaussianity problem
+    
+  BDI
+    Add functionality on top of standard xgpu model; don't bother with
+      other improvements until basic functionality is sorted.
+    Add to xGPU itself?
+    Implement support in fringe plotter
+    
+  Stream splitting
+    Nut out how it will integrate with dbxgpu and the rest of the pipeline
+      Find original attempt to modify dbgpu to poll for available stream
+        buffers and output to the corresponding out buffer.
+    Nut out discrepant on/off-bin time span issue for pulsars
+    Check cost of GPU-based unpacking vs. xGPU kernel time (for 64 & 512)
+      Packed data would halve RAM and PCI-E requirements, as well as
+        freeing up some CPU time.
+    Study unpacker code and add stream splitting functionality
+    
+  Weights
+    How many?
+    Where?
+    Work out how to pass through pipeline
+    
+  Data recorder
+    UDP output?
+    Storage hardware?
+    Packet/header format?
+  
+ */
+
+/*
   out_mat = {0}
   in_pipe --> xGPU kernel --> out_mat
   if( cycle % min_dump_cycles == 0 ) {
@@ -71,6 +113,12 @@ void setBaselineDumpTimes(const float* times) {
 		matrix[b] = 0;
 	}
 	
+}
+*/
+/*
+__global__
+void dump_kernel( ) {
+	uint i0 = 
 }
 */
 /*
@@ -228,6 +276,25 @@ inline unsigned char total_power(const ComplexInput& c) {
 	//       The input values are actually only the high 4b of 8b memory
 	return (c.real*c.real + c.imag*c.imag) >> (4+4);
 }
+inline ComplexInput conj_mult(const ComplexInput& a, const ComplexInput& b) {
+	int real, imag;
+	real  = a.real*b.real;
+	real -= a.imag*b.imag;
+	real >>= (4+4);
+	imag  = a.imag*b.real;
+	imag += a.real*b.imag;
+	imag >>= (4+4);
+	ComplexInput x;
+	x.real = real;
+	x.imag = imag;
+	return x;
+}
+inline unsigned char pack44(const ComplexInput& a) {
+	unsigned char x = 0;
+	x |= (a.real >> 4) & 0xF;
+	x |= (a.imag >> 0) & 0xF0;
+	return x;
+}
 class dbgpu : public dada_db2db {
 	size_t               m_ntime_integrate;
 	size_t               m_subintegration;
@@ -241,6 +308,7 @@ class dbgpu : public dada_db2db {
 	// Total power variables
 	//typedef unsigned short tptype;
 	typedef unsigned char tptype;
+	//typedef ComplexInput tptype;
 	std::vector<size_t>  m_tp_inputs;
 	std::vector<tptype>  m_tp_out;
 	std::ostream*        m_tp_outstream;
@@ -249,6 +317,7 @@ class dbgpu : public dada_db2db {
 	//sew::stream_sink m_tp_disktask;
 	//tptype*          m_tp_ptr;
 	size_t           m_tp_ncycles;
+	size_t           m_tp_nrecord;
 public:
 	dbgpu(multilog_t* log, int verbose,
 	      size_t ntime_integrate,
@@ -294,16 +363,18 @@ public:
 	}
 	
 	void setTotalPowerInputs(const int* tp_inputs, size_t tp_ninputs,
-	                         size_t tp_ncycles,
+	                         size_t tp_ncycles, size_t nrecord,
 	                         std::ostream& tp_outstream=std::cout) {
-		if( tp_ninputs % 2 != 0 ) {
-			throw std::runtime_error("Number of total power inputs must be a multiple of 2");
+		//size_t nrecord = 2;
+		m_tp_nrecord = nrecord;
+		if( tp_ninputs % m_tp_nrecord != 0 ) {
+			throw std::runtime_error("Number of total power inputs must be a multiple of nrecord");
 		}
 		m_tp_inputs.assign(tp_inputs, tp_inputs + tp_ninputs);
 		size_t ninputs = m_xgpu_info.nstation * 2;
 		m_tp_ncycles = tp_ncycles;
 		//size_t tpsize  = m_xgpu_info.vecLength / ninputs * tp_ninputs;
-		size_t tpsize  = m_xgpu_info.vecLength / ninputs * 2;
+		size_t tpsize  = m_xgpu_info.vecLength / ninputs * m_tp_nrecord;
 		m_tp_out.resize(tpsize);
 		m_tp_outstream = &tp_outstream;
 		/*
@@ -403,13 +474,23 @@ public:
 			size_t ninput    = m_xgpu_info.nstation * 2;
 			size_t tp_ninput = m_tp_inputs.size();
 			
-			size_t is = m_cycle / m_tp_ncycles % (tp_ninput/2) * 2;
-			cout << "Recording total power from antenna " << is << endl;
+			//size_t nrecord = 2;
+			size_t is = m_cycle / m_tp_ncycles % (tp_ninput/m_tp_nrecord) * m_tp_nrecord;
+			//cout << "Recording total power from antenna " << is << endl;
+			cout << "Recording hires cross corr for input group " << is << endl;
 			
 			// TODO: Could optimise this by making m_tp_inputs a static array
 			for( size_t j=0; j<m_xgpu_info.vecLength / ninput; ++j ) {
 				//for( size_t i=0; i<m_tpinputs.size(); ++i ) {
 				//for( size_t is=0; is<tp_ninput; is+=2 ) {
+				for( size_t ip=0; ip<m_tp_nrecord; ++ip ) {
+					//ComplexInput a = ((ComplexInput*)data_in)[j*ninput+m_tp_inputs[is+ip*2+0]];
+					//ComplexInput b = ((ComplexInput*)data_in)[j*ninput+m_tp_inputs[is+ip*2+1]];
+					//((ComplexInput*)m_tp_out)[j*2+ip] = conj_mult(a, b);
+					ComplexInput a = ((ComplexInput*)data_in)[j*ninput+m_tp_inputs[is+ip]];
+					m_tp_out[j*m_tp_nrecord+ip] = pack44(a);
+				}
+				/*
 					for( size_t ip=0; ip<2; ++ip ) {
 						size_t i = is + ip;
 						size_t inp = m_tp_inputs[i];
@@ -419,6 +500,7 @@ public:
 						//m_tp_ptr[j*tp_ninput+i] = total_power(val);
 					}
 					//}
+				*/
 			}
 			//cout << "Calling advanceWrite" << endl;
 			m_tp_outstream->write((char*)&m_tp_out[0],
@@ -462,6 +544,7 @@ void usage() {
 		" -t count   no. NTIMEs to integrate (default 1)\n"
 		" -p tpfile  filename for total power output\n"
 		" -n cycles  no. NTIMEs to record each total power antenna for (100)\n"
+		" -N ninputs no. inputs to record simultaneously (2)\n"
 		" -r         disable host memory pinning\n"
 		" -h         print usage" << endl;
 }
@@ -478,6 +561,7 @@ int main(int argc, char* argv[])
 	int         core = -1;
 	std::string tp_filename = "";
 	int         tp_ncycles = 100;
+	int         tp_nrecord = 2; // no. inputs
 	
 	int arg = 0;
 	while( (arg = getopt(argc,argv,"d:t:c:p:n:rhv")) != -1 ) {
@@ -525,6 +609,15 @@ int main(int argc, char* argv[])
 			}
 			else {
 				fprintf(stderr, "ERROR: -n flag requires argument\n");
+				return EXIT_FAILURE;
+			}
+		case 'N':
+			if( optarg ) {
+				tp_nrecord = atoi(optarg);
+				break;
+			}
+			else {
+				fprintf(stderr, "ERROR: -N flag requires argument\n");
 				return EXIT_FAILURE;
 			}
 		case 'h':
@@ -601,8 +694,13 @@ int main(int argc, char* argv[])
 			        tp_inputs_filename.c_str());
 		}
 		tp_outfile.open(tp_filename.c_str(), std::ios::binary);
+		if( !tp_outfile ) {
+			fprintf(stderr,
+			        "dbgpu: failed to open output file %s\n",tp_filename.c_str());
+			return -1;
+		}
 		ctx.setTotalPowerInputs(&tp_inputs[0], tp_inputs.size(),
-		                        tp_ncycles, tp_outfile);
+		                        tp_ncycles, tp_nrecord, tp_outfile);
 	}
 	
 	ctx.connect(in_key, out_key);
