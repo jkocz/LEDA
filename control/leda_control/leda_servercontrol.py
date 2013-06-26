@@ -31,7 +31,7 @@ import glob
 from PIL import Image # Note: Must be like this when using 'pillow' fork
 import StringIO, base64
 
-from leda_visrenderer import generate_vismatrix_plots
+#from leda_visrenderer import generate_vismatrix_plots
 
 #import corr,numpy,struct
 
@@ -424,6 +424,8 @@ def onMessage(ledaserver, message, clientsocket, address):
 		imagefiles = ledaserver.getVisMatrixImages()
 		encoded_images = []
 		for imagefile in imagefiles:
+			if not os.path.exists(imagefile):
+				logMsg(1, DL, "Error: VisMatrix image %s not found" % imagefile)
 			image = Image.open(imagefile)
 			data = StringIO.StringIO()
 			image.save(data, format="png")

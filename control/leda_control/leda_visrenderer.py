@@ -55,7 +55,8 @@ if __name__ == "__main__":
 	datapath = "/data1/one" if len(argv) <= 1 else argv[1]
 	stem = "vismatrix" if len(argv) <= 2 else argv[2]
 	interval = 30 if len(argv) <= 3 else float(argv[3])
-	exepath  = "/home/leda/leda_control/leda_visconverter"
+	#exepath  = "/home/leda/leda_control/leda_visconverter"
+	exepath  = "leda_visconverter"
 	
 	ctx = LEDAVisMatrixProcess(exepath, datapath)
 	

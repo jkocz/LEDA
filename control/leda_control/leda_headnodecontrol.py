@@ -207,10 +207,10 @@ class LEDARemoteCaptureProcess(object):
 		self.log.write("Scheduling capture start")
 		self._sendmsg("START")
 	def getStatus(self):
-		self.log.write("Requesting capture process status", 2)
 		if self.sock is None:
-			self.log.write("Not connected", -2)
+			#self.log.write("Not connected", -2)
 			return None
+		self.log.write("Requesting capture process status", 2)
 		sock = self.sock
 		# Note: result is either 'ok' or 'fail'
 		result, response = sendTelnetCommand(sock, "STATS")
