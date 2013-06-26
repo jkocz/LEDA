@@ -426,6 +426,7 @@ def onMessage(ledaserver, message, clientsocket, address):
 		for imagefile in imagefiles:
 			if not os.path.exists(imagefile):
 				logMsg(1, DL, "Error: VisMatrix image %s not found" % imagefile)
+				continue
 			image = Image.open(imagefile)
 			data = StringIO.StringIO()
 			image.save(data, format="png")
