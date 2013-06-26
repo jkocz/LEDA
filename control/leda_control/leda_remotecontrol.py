@@ -149,8 +149,13 @@ if __name__ == "__main__":
 		sys.exit(0)
 	cmd = sys.argv[1]
 	
+	configfile = getenv('LEDA_CONFIG')
+	# Dynamically execute config script
+	config = {}
+	execfile(configfile, config)
+	
 	port       = 6282
-	host       = "ledagpu4"
+	host       = config['headnodehost']
 	logstream  = sys.stderr
 	debuglevel = 1
 	

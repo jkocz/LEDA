@@ -19,9 +19,8 @@ from leda_remotecontrol import LEDARemoteHeadNodeControl, LEDALogger
 define("port", default=8888, help="Run on the given port", type=int)
 
 class Application(tornado.web.Application):
-	def __init__(self):
-		remote_port = 6282
-		self.remote_host = "ledagpu4"
+	def __init__(self, remote_host, remote_port):
+		self.remote_host = remote_host
 		logstream   = sys.stderr
 		debuglevel  = 1
 		self.log    = LEDALogger(logstream, debuglevel)
@@ -161,7 +160,13 @@ class AJAXHandler(tornado.web.RequestHandler):
 
 if __name__ == "__main__":
 	tornado.options.parse_command_line()
-	app = Application()
+	
+	configfile = getenv('LEDA_CONFIG')
+	# Dynamically execute config script
+	config = {}
+	execfile(configfile, config)
+	
+	app = Application(remote_host=config['headnodehost'], remote_port=6282)
 	app.listen(options.port)
 	print "Listening for connections..."
 	tornado.ioloop.IOLoop.instance().start()

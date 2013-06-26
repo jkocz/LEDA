@@ -1,6 +1,13 @@
 
 import os
 
+def getenv(key):
+	ret = os.environ.get(key)
+	if ret is None:
+		raise NameError("Env var %s not set" % key)
+	else:
+		return ret
+
 def getenv_warn(key, default):
 	ret = os.environ.get(key)
 	if ret is None:

@@ -3,10 +3,11 @@ from configtools import *
 import socket
 servername = socket.gethostname()
 
-serverhosts = ["ledagpu5", "ledagpu6"]
-roachhosts  = ['169.254.128.64', '169.254.128.65']
-roachport   = 7147
-boffile     = 'l64x8_06022013.bof'
+headnodehost    = ["ledagpu5"]
+serverhosts     = ["ledagpu5", "ledagpu6"]
+roachhosts      = ['169.254.128.64', '169.254.128.65']
+roachport       = 7147
+boffile         = 'l64x8_06022013.bof'
 src_ip_starts   = [145, 161]
 src_port_starts = [4010, 4020]
 fid_starts      = [0, 4]
@@ -51,8 +52,10 @@ elif servername == serverhosts[1]:
 	capture_ips         = ["192.168.40.6", "192.168.40.6"]
 	capture_ports       = [4015, 4016]
 else:
-	print "Unknown server", servername
-	sys.exit(-1)
+	#print "Unknown server", servername
+	#sys.exit(-1)
+	raise NameError("This server (%s) is not in the config file" % servername)
+	
 capture_ninputs     = [8] * nstream
 capture_controlports = [12340,12341]
 capture_cores       = [1, 9]
