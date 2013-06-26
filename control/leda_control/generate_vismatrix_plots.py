@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import matplotlib
+matplotlib.use('Agg') # Prevent it from trying to use Xwindows backend
 from matplotlib.colors import LogNorm
 from pylab import figure, subplot, pcolor, title, colorbar, axis, savefig, cm
 from numpy import loadtxt
