@@ -159,6 +159,8 @@ class AJAXHandler(tornado.web.RequestHandler):
 			self.application.leda.setTotalPowerRecording(ncycles)
 
 if __name__ == "__main__":
+	from configtools import *
+	
 	tornado.options.parse_command_line()
 	
 	configfile = getenv('LEDA_CONFIG')
