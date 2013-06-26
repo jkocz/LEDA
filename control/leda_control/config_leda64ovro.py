@@ -3,7 +3,7 @@ from configtools import *
 import socket
 servername = socket.gethostname()
 
-headnodehost    = ["ledagpu5"]
+headnodehost    = "ledagpu5"
 serverhosts     = ["ledagpu5", "ledagpu6"]
 roachhosts      = ['169.254.128.64', '169.254.128.65']
 roachport       = 7147
