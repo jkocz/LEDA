@@ -3,6 +3,21 @@ from configtools import *
 import socket
 servername = socket.gethostname()
 
+# These are mainly just to be logged in the headers
+#corr_bandwidth     = 14.4#57.6 # TODO: Consider making these subband-specific
+#corr_centerfreqs   = 58.8
+corr_clockfreq     = 196.608
+corr_headersize    = 4096
+corr_headerversion = "1.0"
+corr_telescope     = "LWA-OVRO"
+corr_receiver      = "DIPOLE"
+corr_instrument    = "LEDA"
+corr_data_order    = "REG_TILE_TRIANGULAR"
+corr_nbit_in       = 4
+ndim               = 2
+npol               = 2
+tsamp              = 41.6667
+
 headnodehost    = "ledagpu5"
 serverhosts     = ["ledagpu5", "ledagpu6"]
 roachhosts      = ['169.254.128.64', '169.254.128.65']
@@ -11,11 +26,14 @@ boffile         = 'l64x8_06022013.bof'
 src_ip_starts   = [145, 161]
 src_port_starts = [4010, 4020]
 fid_starts      = [0, 4]
-# Digital gain registers set to 8x
-#gain_reg     = 0x2a
+# Digital gain registers set to 1x
+adc_gain        = 1  # Multiplier 1-15
+adc_gain_bits   = adc_gain | (adc_gain << 4) | (adc_gain << 8) | (adc_gain << 12)
+adc_gain_reg    = 0x2a
+roach_registers = {adc_gain_reg: adc_gain_bits}
 #gain_setting = 0x8888
 #roach_registers = {gain_reg: gain_setting}
-roach_registers = {}
+#roach_registers = {}
 
 logpath = getenv_warn('LEDA_LOG_DIR', "/home/leda/logs")
 
@@ -45,12 +63,17 @@ capture_path        = os.path.join(getenv_warn('LEDA_DADA_DIR',
 headerpath          = getenv_warn('LEDA_HEADER_DIR', "/home/leda/roach_scripts/")
 capture_headerpaths = [os.path.join(headerpath,"header64%s.txt"%x) \
 	                       for x in ['a','b']]
-if servername == serverhosts[0]:
+bandwidth = 14.4
+if True:#servername == serverhosts[0]:
 	capture_ips         = ["192.168.40.5", "192.168.40.5"]
 	capture_ports       = [4015, 4016]
+	centerfreqs         = [51.6, 66.0]
+	bandwidths          = [bandwidth, bandwidth]
 elif servername == serverhosts[1]:
 	capture_ips         = ["192.168.40.6", "192.168.40.6"]
-	capture_ports       = [4015, 4016]
+	capture_ports       = [4017, 4018]
+	centerfreqs         = [80.4, 37.2]
+	bandwidths          = [bandwidth, bandwidth]
 else:
 	#print "Unknown server", servername
 	#sys.exit(-1)
@@ -86,5 +109,5 @@ disk_logfiles       = [os.path.join(logpath,"dbdisk."+bufkey) \
 disk_path           = os.path.join(getenv_warn('PSRDADA_DIR',
                                                "/home/leda/software/psrdada/src"),
                                    "dada_dbdisk")
-disk_outpaths       = ["/data1", "/data2"]
+disk_outpaths       = ["/data1/one", "/data1/two"]
 disk_cores          = [4, 12]

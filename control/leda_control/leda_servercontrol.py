@@ -205,25 +205,39 @@ class LEDAUnpackProcess(LEDAProcess):
 		self._startProc(args)
 
 class LEDACaptureProcess(LEDAProcess):
-	def __init__(self, logpath, path, headerpath, bufkey, ip, port,
+	def __init__(self, logpath, path, header,
+	             centerfreq, bandwidth,
+	             bufkey, ip, port,
 	             ninput, controlport=None, core=None):
 		LEDAProcess.__init__(self, logpath, path)
-		self.headerpath  = headerpath
+		self.header      = header
+		self.centerfreq  = centerfreq
+		self.bandwidth   = bandwidth
 		self.bufkey      = bufkey
 		self.ip          = ip
 		self.port        = port
 		self.ninput      = ninput
 		self.controlport = controlport
 		self.core        = core
+		
+		## HACK TESTING
+		#self.start()
 	def _createUTCHeaderFile(self):
-		base, ext = os.path.splitext(self.headerpath)
-		utcheaderpath = base + "_utc" + ext
-		shutil.copyfile(self.headerpath, utcheaderpath)
-		utcheaderfile = open(utcheaderpath, 'a')
 		utc = datetime.datetime.utcnow().strftime("%Y-%m-%d-%H:%M:%S")
-		utcheaderfile.write("UTC_START " + utc + "\n")
-		utcheaderfile.close()
-		return utcheaderpath
+		header = self.header
+		header += "CFREQ           %f\n" % self.centerfreq
+		header += "BW              %f\n" % self.bandwidth
+		header += "UTC_START       " + utc + "\n"
+		
+		# Note: The header file is put in the log path for convenience
+		headerpath = os.path.join(self.logpath, "header." + self.bufkey)
+		## HACK TESTING
+		#headerpath = "header." + self.bufkey
+		
+		headerfile = open(headerpath, 'w')
+		headerfile.write(header)
+		headerfile.close()
+		return headerpath
 	def start(self):
 		utcheaderpath = self._createUTCHeaderFile()
 		args = ""
@@ -233,15 +247,6 @@ class LEDACaptureProcess(LEDAProcess):
 			args += " -b %i" % self.core
 		args += " -k %s -i %s -p %i -f %s -n%i" % \
 		    (self.bufkey, self.ip, self.port, utcheaderpath, self.ninput)
-		"""
-		args = ["-k", self.bufkey, "-i", self.ip,
-		        "-p", str(self.port), "-f", utcheaderpath,
-		        "-n%i"%self.ninput]
-		if self.controlport is not None:
-			args += ["-c", str(self.controlport)]
-		if self.core is not None:
-			args += ["-b", str(self.core)]
-		"""
 		self._startProc(args)
 
 class LEDABuffer(object):
@@ -266,7 +271,8 @@ class LEDABuffer(object):
 class LEDAServer(object):
 	def __init__(self, name,
 	             dadapath, bufkeys, bufsizes, bufcores,
-	             capture_logfiles, capture_path, capture_headerpaths,
+	             capture_logfiles, capture_path, capture_header,
+	             centerfreqs, bandwidths,
 	             capture_bufkeys, capture_ips, capture_ports,
 	             capture_ninputs, capture_controlports, capture_cores,
 	             unpack_logfiles, unpack_path, unpack_bufkeys,
@@ -279,12 +285,16 @@ class LEDAServer(object):
 		self.buffers = [LEDABuffer(dadapath,bufkey,size,core) \
 			                for bufkey,size,core in \
 			                zip(bufkeys,bufsizes,bufcores)]
-		self.capture = [LEDACaptureProcess(logfile,capture_path,headerpath,
+		self.capture = [LEDACaptureProcess(logfile,capture_path,capture_header,
+		                                   centerfreq, bandwidth,
 		                                   bufkey,ip,port,ninput,controlport,
 		                                   core) \
-			                for (logfile,headerpath,bufkey,ip,port,ninput,
+			                for (logfile,
+			                     centerfreq,bandwidth,
+			                     bufkey,ip,port,ninput,
 			                     controlport,core) \
-			                in zip(capture_logfiles,capture_headerpaths,
+			                in zip(capture_logfiles,
+			                       centerfreqs,bandwidths,
 			                       capture_bufkeys,capture_ips,capture_ports,
 			                       capture_ninputs,capture_controlports,
 			                       capture_cores)]
@@ -455,6 +465,47 @@ if __name__ == "__main__":
 		# Dynamically execute config script
 		execfile(configfile, globals())
 		
+		# TODO: Check for psrdada complaining about some of these
+		capture_header = ""
+		#capture_header += "BW              %f\n" % (-corr_bandwidth)
+		#capture_header += "CFREQ           %f\n" % corr_centerfreq
+		capture_header += "FREQ            %f\n" % corr_clockfreq
+		capture_header += "RA              %s\n" % "00:00:00.0"
+		capture_header += "DEC             %s\n" % "00:00:00.0"
+		
+		capture_header += "HDR_SIZE        %i\n" % corr_headersize
+		capture_header += "HDR_VERSION     %s\n" % corr_headerversion
+		capture_header += "PID             %s\n" % "P999"
+		capture_header += "TELESCOPE       %s\n" % corr_telescope
+		capture_header += "RECEIVER        %s\n" % corr_receiver
+		capture_header += "INSTRUMENT      %s\n" % corr_instrument
+		capture_header += "SOURCE          %s\n" % "DRIFT"
+		capture_header += "MODE            %s\n" % "TPS" # What is this?
+		
+		# Note: NBIT is re-written by the X-engine process
+		capture_header += "NBIT            %i\n" % corr_nbit_in
+		capture_header += "NCHAN           %i\n" % nchan
+		capture_header += "NDIM            %i\n" % ndim
+		capture_header += "NPOL            %i\n" % npol
+		capture_header += "NSTAND          %i\n" % (ninput/npol)
+		capture_header += "OBS_OFFSET      %i\n" % 0
+		capture_header += "TSAMP           %f\n" % tsamp
+		capture_header += "XENGINE_NTIME   %i\n" % ntime
+		capture_header += "NAVG            %i\n" % (ntime*xengine_navg)
+		capture_header += "BYTES_PER_AVG   %i\n" % outsize
+		
+		capture_header += "COMPUTE_NODE    %s\n" % servername
+		capture_header += "ROACH_BOF       %s\n" % boffile
+		capture_header += "DATA_ORDER      %s\n" % corr_data_order
+		
+		capture_header += "ADC_GAIN        %f\n" % adc_gain
+		# TODO: Work out how to get these
+		capture_header += "ARX_FILTER      %s\n" % "SPLIT_BAND"
+		capture_header += "ARX_GAIN        %f\n" % 1
+		
+		capture_header += "PROC_FILE       %s\n" % "leda.dbdisk" # What is this?
+		capture_header += "OBS_XFER        %i\n" % 0 # What is this?
+		
 		ledaserver = LEDAServer(servername,
 		                        
 		                        dadapath,
@@ -464,7 +515,9 @@ if __name__ == "__main__":
 		                        
 		                        capture_logfiles,
 		                        capture_path,
-		                        capture_headerpaths,
+		                        capture_header,
+		                        centerfreqs,
+		                        bandwidths,
 		                        capture_bufkeys,
 		                        capture_ips,
 		                        capture_ports,
