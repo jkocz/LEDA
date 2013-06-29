@@ -64,7 +64,7 @@ headerpath          = getenv_warn('LEDA_HEADER_DIR', "/home/leda/roach_scripts/"
 capture_headerpaths = [os.path.join(headerpath,"header64%s.txt"%x) \
 	                       for x in ['a','b']]
 bandwidth = 14.4
-if True:#servername == serverhosts[0]:
+if servername == serverhosts[0]:
 	capture_ips         = ["192.168.40.5", "192.168.40.5"]
 	capture_ports       = [4015, 4016]
 	centerfreqs         = [51.6, 66.0]
