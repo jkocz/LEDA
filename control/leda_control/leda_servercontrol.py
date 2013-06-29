@@ -230,7 +230,8 @@ class LEDACaptureProcess(LEDAProcess):
 		header += "UTC_START       " + utc + "\n"
 		
 		# Note: The header file is put in the log path for convenience
-		headerpath = os.path.join(self.logpath, "header." + self.bufkey)
+		headerpath = os.path.join(os.path.dirname(self.logpath),
+		                          "header." + self.bufkey)
 		## HACK TESTING
 		#headerpath = "header." + self.bufkey
 		
