@@ -109,5 +109,6 @@ disk_logfiles       = [os.path.join(logpath,"dbdisk."+bufkey) \
 disk_path           = os.path.join(getenv_warn('PSRDADA_DIR',
                                                "/home/leda/software/psrdada/src"),
                                    "dada_dbdisk")
-disk_outpaths       = ["/data1/one", "/data1/two"]
+#disk_outpaths       = ["/data1/one", "/data1/two"]
+disk_outpaths       = ["/data1/one", "/data2/one"]
 disk_cores          = [4, 12]

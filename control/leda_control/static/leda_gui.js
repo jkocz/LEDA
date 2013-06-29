@@ -134,6 +134,8 @@ function main() {
 	document.getElementById("vis_vismatrix_svr2_str3").onclick = onVisModeClick;
 	document.getElementById("vis_vismatrix_svr2_str4").onclick = onVisModeClick;
 	
+	/*document.getElementById("total_power_enabled").checked = false;*/
+	
 	requestStatus();
 	updateImages();
 	setInterval(requestStatus, 5000);
