@@ -488,7 +488,8 @@ if __name__ == "__main__":
 		capture_header += "NCHAN           %i\n" % nchan
 		capture_header += "NDIM            %i\n" % ndim
 		capture_header += "NPOL            %i\n" % npol
-		capture_header += "NSTAND          %i\n" % (ninput/npol)
+		#capture_header += "NSTAND          %i\n" % (ninput/npol)
+		capture_header += "NSTATION        %i\n" % (ninput/npol)
 		capture_header += "OBS_OFFSET      %i\n" % 0
 		capture_header += "TSAMP           %f\n" % tsamp
 		capture_header += "XENGINE_NTIME   %i\n" % ntime
@@ -506,6 +507,11 @@ if __name__ == "__main__":
 		
 		capture_header += "PROC_FILE       %s\n" % "leda.dbdisk" # What is this?
 		capture_header += "OBS_XFER        %i\n" % 0 # What is this?
+		# Note: BYTES_PER_SECOND is actually interpreted by psrdada as simply
+		#         1/10th the amount of data to put in the file.
+		max_filesize = 1024**3
+		bytes_per_second = (max_filesize-corr_headersize) // outsize // 10
+		capture_header += "BYTES_PER_SECOND %i\n" % bytes_per_second
 		
 		ledaserver = LEDAServer(servername,
 		                        
