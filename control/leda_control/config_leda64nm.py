@@ -45,7 +45,7 @@ dadapath = getenv_warn('PSRDADA_DIR', "/home/leda/software/psrdada/src")
 bufkeys  = ["dada", "eada", # Captured
 			"aada", "bada", # Unpacked
 			"cada", "fada"] # Correlated
-bufsizes = [bufsize]*nstream + [outsize]*nstream + [upsize]*nstream
+bufsizes = [bufsize]*nstream + [upsize]*nstream + [outsize]*nstream
 bufcores = [1, 9,
 			1, 9,
 			1, 9]
