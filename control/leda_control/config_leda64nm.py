@@ -67,7 +67,8 @@ if servername == "ledagpu3":
 	centerfreqs         = [66.0, 80.4]
 	bandwidths          = [bandwidth, bandwidth]
 elif servername == "ledagpu4":
-	capture_ips         = ["192.168.0.17", "192.168.0.49"]
+	#capture_ips         = ["192.168.0.17", "192.168.0.49"]
+	capture_ips         = ["192.168.0.17", "192.168.0.33"]
 	capture_ports       = [4001, 4003]
 	centerfreqs         = [37.2, 51.6]
 	bandwidths          = [bandwidth, bandwidth]
