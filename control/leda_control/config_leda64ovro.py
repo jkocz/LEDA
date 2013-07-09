@@ -4,8 +4,6 @@ import socket
 servername = socket.gethostname()
 
 # These are mainly just to be logged in the headers
-#corr_bandwidth     = 14.4#57.6 # TODO: Consider making these subband-specific
-#corr_centerfreqs   = 58.8
 corr_clockfreq     = 196.608
 corr_headersize    = 4096
 corr_headerversion = "1.0"
@@ -16,13 +14,14 @@ corr_data_order    = "REG_TILE_TRIANGULAR"
 corr_nbit_in       = 4
 ndim               = 2
 npol               = 2
-tsamp              = 41.6667
+tsamp              = 41.66667
 
 headnodehost    = "ledagpu5"
 serverhosts     = ["ledagpu5", "ledagpu6"]
 roachhosts      = ['169.254.128.64', '169.254.128.65']
 roachport       = 7147
-boffile         = 'l64x8_06022013.bof'
+#boffile         = 'l64x8_06022013.bof'
+boffile         = 'l64c_06052013.bof'
 src_ip_starts   = [145, 161]
 src_port_starts = [4010, 4020]
 fid_starts      = [0, 4]
@@ -37,13 +36,14 @@ roach_registers = {adc_gain_reg: adc_gain_bits}
 
 logpath = getenv_warn('LEDA_LOG_DIR', "/home/leda/logs")
 
-ninput = 64
-nchan  = 600
-ntime  = 8192
+ninput    = 64
+nchan     = 600
+ntime     = 8192
+nstream   = 2
+bandwidth = 14.4
 bufsize = ninput*nchan*ntime
 upsize  = bufsize * 2
 outsize = reg_tile_triangular_size(ninput, nchan)
-nstream = 2
 
 dadapath = getenv_warn('PSRDADA_DIR', "/home/leda/software/psrdada/src")
 bufkeys  = ["dada", "eada", # Captured
@@ -63,7 +63,6 @@ capture_path        = os.path.join(getenv_warn('LEDA_DADA_DIR',
 headerpath          = getenv_warn('LEDA_HEADER_DIR', "/home/leda/roach_scripts/")
 capture_headerpaths = [os.path.join(headerpath,"header64%s.txt"%x) \
 	                       for x in ['a','b']]
-bandwidth = 14.4
 if servername == serverhosts[0]:
 	capture_ips         = ["192.168.40.5", "192.168.40.5"]
 	capture_ports       = [4015, 4016]
@@ -75,8 +74,6 @@ elif servername == serverhosts[1]:
 	centerfreqs         = [80.4, 37.2]
 	bandwidths          = [bandwidth, bandwidth]
 else:
-	#print "Unknown server", servername
-	#sys.exit(-1)
 	raise NameError("This server (%s) is not in the config file" % servername)
 	
 capture_ninputs     = [8] * nstream
