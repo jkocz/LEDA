@@ -1,5 +1,5 @@
 DBXGPU_LIBS += -L$(CUDA_DIR)/lib64 -lcudart -L$(XGPU_DIR)/src -lxgpu -L$(PSRDADA_DIR)/src/.libs -lpsrdada
-DBXGPU_INC  += -I$(CUDA_DIR)/include -I$(XGPU_DIR)/src -I$(PSRDADA_DIR)/src
+DBXGPU_INC  += -I$(CUDA_DIR)/include -I$(XGPU_DIR)/src -I$(PSRDADA_DIR)/src -I$(PSRDADA_DIR)
 
 CXX_FLAGS   += -Wall -pedantic -O3
 DEBUG_FLAGS += -g
