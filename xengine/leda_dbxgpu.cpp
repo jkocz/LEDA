@@ -461,11 +461,15 @@ public:
 			bytes_written = m_xgpu_info.matLength * sizeof(Complex);
 		}
 		
-		xgpu_error = xgpuCudaXengine(m_xgpu, sync_op);
-		if( xgpu_error ) {
-			logError("dbgpu: xgpuCudaXengine failed");
-			cout << xgpu_error << endl;
-			throw std::runtime_error("xgpuCudaXengine failed");
+		// TESTING
+		// Only run xGPU if not recording total power data
+		if( !m_tp_inputs.size() ) {
+			xgpu_error = xgpuCudaXengine(m_xgpu, sync_op);
+			if( xgpu_error ) {
+				logError("dbgpu: xgpuCudaXengine failed");
+				cout << xgpu_error << endl;
+				throw std::runtime_error("xgpuCudaXengine failed");
+			}
 		}
 		
 		// Extract, compute and write total power from specified inputs
