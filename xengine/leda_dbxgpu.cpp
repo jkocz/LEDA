@@ -514,6 +514,8 @@ public:
 			//m_tp_ptr = (tptype*)m_tp_buf.advanceWrite(m_tp_size);
 			//cout << "  done" << endl;
 		}
+		// TESTING
+		else {
 		
 		// Manually sync xGPU
 		cudaThreadSynchronize();
@@ -528,6 +530,8 @@ public:
 			// Note: This being done here is somewhat arbitrary
 			// Hard system IO sync
 			sync();
+		}
+		
 		}
 		
 		//timer.stop();
