@@ -510,7 +510,7 @@ if __name__ == "__main__":
 		# Note: BYTES_PER_SECOND is actually interpreted by psrdada as simply
 		#         1/10th the amount of data to put in the file.
 		max_filesize = 1024**3
-		bytes_per_second = (max_filesize-corr_headersize) // outsize // 10
+		bytes_per_second = (max_filesize-corr_headersize) // (outsize * 10) * outsize
 		capture_header += "BYTES_PER_SECOND %i\n" % bytes_per_second
 		
 		ledaserver = LEDAServer(servername,
