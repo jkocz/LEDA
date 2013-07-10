@@ -461,15 +461,11 @@ public:
 			bytes_written = m_xgpu_info.matLength * sizeof(Complex);
 		}
 		
-		// TESTING
-		// Only run xGPU if not recording total power data
-		if( !m_tp_inputs.size() ) {
-			xgpu_error = xgpuCudaXengine(m_xgpu, sync_op);
-			if( xgpu_error ) {
-				logError("dbgpu: xgpuCudaXengine failed");
-				cout << xgpu_error << endl;
-				throw std::runtime_error("xgpuCudaXengine failed");
-			}
+		xgpu_error = xgpuCudaXengine(m_xgpu, sync_op);
+		if( xgpu_error ) {
+			logError("dbgpu: xgpuCudaXengine failed");
+			cout << xgpu_error << endl;
+			throw std::runtime_error("xgpuCudaXengine failed");
 		}
 		
 		// Extract, compute and write total power from specified inputs
@@ -514,8 +510,6 @@ public:
 			//m_tp_ptr = (tptype*)m_tp_buf.advanceWrite(m_tp_size);
 			//cout << "  done" << endl;
 		}
-		// TESTING
-		else {
 		
 		// Manually sync xGPU
 		cudaThreadSynchronize();
@@ -529,9 +523,9 @@ public:
 			
 			// Note: This being done here is somewhat arbitrary
 			// Hard system IO sync
-			sync();
-		}
-		
+			// WARNING: This caused massive packet loss at NM.
+			//            It doesn't seem to be necessary.
+			//sync();
 		}
 		
 		//timer.stop();
