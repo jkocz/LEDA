@@ -107,7 +107,8 @@ function onStartObsClick(event) {
 	else {
 		send("total_power=0");
 	}
-	send("start=1");
+	// Wait a second to ensure the TP message gets through first
+	setTimeout(function() { send("start=1"); }, 1000);
 }
 function onStopObsClick(event)  { send("stop=1"); }
 function onKillObsClick(event)  { send("kill=1"); }
