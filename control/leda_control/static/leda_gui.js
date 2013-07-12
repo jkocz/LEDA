@@ -69,6 +69,13 @@ function onStatusUpdate(response) {
 			
 			disk_usage = leda.control[i][1][j].disk_info.percent;
 			document.getElementById("control_disk_usage"+i+"_"+j).innerHTML = disk_usage;
+			
+			capture_receiving = leda.control[i][1][j].capture_info.receiving;
+			document.getElementById("control_capture_receiving"+i+"_"+j).innerHTML = capture_receiving;
+			capture_dropping = leda.control[i][1][j].capture_info.dropping;
+			document.getElementById("control_capture_dropping"+i+"_"+j).innerHTML = capture_dropping;
+			capture_dropped = leda.control[i][1][j].capture_info.dropped;
+			document.getElementById("control_capture_dropped"+i+"_"+j).innerHTML = capture_dropped;
 		}
 	}
 	

@@ -433,13 +433,15 @@ def onMessage(leda, message, clientsocket, address):
 	
 	if "status" in args:
 		control_status = [(server.host,server.control.getStatus()) for server in leda.servers]
+		"""
 		capture_status = [[(server.host,process.getStatus()) \
 			                   for process in server.capture.processes] \
 			                  for server in leda.servers]
+        """
 		roach_status = [roach.getStatus() for roach in leda.roaches]
 		#roach_status = [{"flowing": str(roach.isFlowing())} for roach in leda.roaches]
 		status = {"control": control_status,
-		          "capture": capture_status,
+		          #"capture": capture_status,
 		          "roach":   roach_status}
 		encoded = json.dumps(status)
 		clientsocket.send(encoded)

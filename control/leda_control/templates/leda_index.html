@@ -67,6 +67,9 @@
 	  <td>X-engine</td>
 	  <td>Disk</td>
 	  <td>Disk use</td>
+	  <td>Recv [Gb/s]</td>
+	  <td>Drop [MB/s]</td>
+	  <td>Lost pkts</td>
 	  <!--<td class="message_col">Messages</td>-->
 	</tr>
 	{% for i,(name,server) in enumerate(status['control']) %}
@@ -81,6 +84,9 @@
 	  <td><img id="control_xengine_status{{i}}_{{j}}" /></td>
 	  <td><img id="control_disk_status{{i}}_{{j}}" /></td>
 	  <td><span id="control_disk_usage{{i}}_{{j}}"></span></td>
+	  <td><span id="control_capture_receiving{{i}}_{{j}}"></span></td>
+	  <td><span id="control_capture_dropping{{i}}_{{j}}"></span></td>
+	  <td><span id="control_capture_dropped{{i}}_{{j}}"></span></td>
 	  <!--<td class="message_col"></td>-->
     </tr>
     {% end %}

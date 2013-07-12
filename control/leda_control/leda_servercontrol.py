@@ -249,6 +249,21 @@ class LEDACaptureProcess(LEDAProcess):
 		args += " -k %s -i %s -p %i -f %s -n%i" % \
 		    (self.bufkey, self.ip, self.port, utcheaderpath, self.ninput)
 		self._startProc(args)
+	def status(self):
+		# Grab the latest log entry and parse
+		tail = subprocess.Popen(["tail", "-n", "1", path], stdout=subprocess.PIPE)
+		output = tail.communicate()[0]
+		if output[0] == '[': # Line contains a message
+			return {"receiving":'?', "dropping":'?', "dropped":'?', "sleeps":'?'}
+		_,receiving,_,_,dropping,_,dropped,_,sleeps = output.split()
+		receiving = float(receiving)
+		dropping  = float(dropping)
+		dropped   = int(dropped[2:])
+		sleeps    = int(sleeps[4:])
+		return {"receiving": receiving,
+		        "dropping":  dropping,
+		        "dropped":   dropped,
+		        "sleeps":    sleeps}
 
 class LEDABuffer(object):
 	def __init__(self, dadapath, bufkey, size, core=None):
@@ -332,11 +347,13 @@ class LEDAServer(object):
 			xengine = 'ok' if xengine_proc.isRunning() else 'down'
 			disk    = 'ok' if disk_proc.isRunning()    else 'down'
 			disk_info = getDiskInfo(disk_proc.outpath)
+			capture_info = capture_proc.status()
 			status.append({'capture':capture,
 			               'unpack':unpack,
 			               'xengine':xengine,
 			               'disk':disk,
-			               'disk_info':disk_info})
+			               'disk_info':disk_info,
+			               'capture_info':capture_info})
 		return status
 		#return (self.name, status)
 		#return 'capture=%s&unpack=%s&xengine=%s&disk=%s' \
