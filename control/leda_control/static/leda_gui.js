@@ -58,6 +58,8 @@ function onStatusUpdate(response) {
 	for( var i=0; i<leda.control.length; ++i ) {
 		for( var j=0; j<leda.control[i][1].length; ++j ) {
 			/*name = leda.control[i][0]*/
+			img_src = status_img(leda.control[i][1][j].buffers);
+			document.getElementById("control_buffers_status"+i+"_"+j).src = img_src;
 			img_src = status_img(leda.control[i][1][j].capture);
 			document.getElementById("control_capture_status"+i+"_"+j).src = img_src;
 			img_src = status_img(leda.control[i][1][j].unpack);

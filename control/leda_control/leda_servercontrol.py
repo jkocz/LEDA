@@ -284,6 +284,13 @@ class LEDABuffer(object):
 		cmd += " -d -k %s" % self.bufkey
 		ret = subprocess.call(cmd, shell=True)
 		return ret
+	def exists(self):
+		output = open(os.devnull, 'w')
+		cmd = os.path.join(self.dadapath,"dada_dbmeminfo")
+		cmd += " -k %s" % (self.bufkey)
+		ret = subprocess.call(cmd, shell=True,
+		                      stdout=output, stderr=output)
+		return ret == 0
 
 class LEDAServer(object):
 	def __init__(self, name,
@@ -341,20 +348,25 @@ class LEDAServer(object):
 	"""
 	def getStatus(self):
 		status = []
+		all_buffers_exist = True
+		for buf in self.buffers:
+			all_buffers_exist = all_buffers_exist and buf.exists()
 		for capture_proc,unpack_proc,xengine_proc,disk_proc in \
 			    zip(self.capture,self.unpack,self.xengine,self.disk):
 			capture = 'ok' if capture_proc.isRunning() else 'down'
 			unpack  = 'ok' if unpack_proc.isRunning()  else 'down'
 			xengine = 'ok' if xengine_proc.isRunning() else 'down'
 			disk    = 'ok' if disk_proc.isRunning()    else 'down'
+			buffers = 'ok' if all_buffers_exist        else 'down'
 			disk_info = getDiskInfo(disk_proc.outpath)
 			capture_info = capture_proc.status()
-			status.append({'capture':capture,
-			               'unpack':unpack,
-			               'xengine':xengine,
-			               'disk':disk,
-			               'disk_info':disk_info,
-			               'capture_info':capture_info})
+			status.append({'capture':      capture,
+			               'unpack':       unpack,
+			               'xengine':      xengine,
+			               'disk':         disk,
+			               'disk_info':    disk_info,
+			               'capture_info': capture_info,
+			               'buffers':      buffers})
 		return status
 		#return (self.name, status)
 		#return 'capture=%s&unpack=%s&xengine=%s&disk=%s' \

@@ -62,13 +62,14 @@
 	<tr class="title_row">
 	  <td>Server</td>
 	  <td>Stream</td>
+	  <td>Buffers</td>
 	  <td>Capture</td>
 	  <td>Unpack</td>
 	  <td>X-engine</td>
 	  <td>Disk</td>
 	  <td>Disk use</td>
-	  <td>Recv [Gb/s]</td>
-	  <td>Drop [MB/s]</td>
+	  <td>Recv Gb/s</td>
+	  <td>Drop MB/s</td>
 	  <td>Lost pkts</td>
 	  <!--<td class="message_col">Messages</td>-->
 	</tr>
@@ -79,6 +80,7 @@
     <tr>
       <td>{{name}}</td>
 	  <td>{{j+1}}</td>
+	  <td><img id="control_buffers_status{{i}}_{{j}}" /></td>
 	  <td><img id="control_capture_status{{i}}_{{j}}" /></td>
 	  <td><img id="control_unpack_status{{i}}_{{j}}" /></td>
 	  <td><img id="control_xengine_status{{i}}_{{j}}" /></td>
