@@ -251,7 +251,8 @@ class LEDACaptureProcess(LEDAProcess):
 		self._startProc(args)
 	def status(self):
 		# Grab the latest log entry and parse
-		tail = subprocess.Popen(["tail", "-n", "1", path], stdout=subprocess.PIPE)
+		tail = subprocess.Popen(["tail", "-n", "1", self.logpath],
+		                        stdout=subprocess.PIPE)
 		output = tail.communicate()[0]
 		if output[0] == '[': # Line contains a message
 			return {"receiving":'?', "dropping":'?', "dropped":'?', "sleeps":'?'}
