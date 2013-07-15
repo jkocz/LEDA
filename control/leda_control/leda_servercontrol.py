@@ -206,13 +206,14 @@ class LEDAUnpackProcess(LEDAProcess):
 
 class LEDACaptureProcess(LEDAProcess):
 	def __init__(self, logpath, path, header,
-	             centerfreq, bandwidth,
+	             centerfreq, subband,#bandwidth,
 	             bufkey, ip, port,
 	             ninput, controlport=None, core=None):
 		LEDAProcess.__init__(self, logpath, path)
 		self.header      = header
 		self.centerfreq  = centerfreq
-		self.bandwidth   = bandwidth
+		self.subband     = subband
+		#self.bandwidth   = bandwidth
 		self.bufkey      = bufkey
 		self.ip          = ip
 		self.port        = port
@@ -226,7 +227,8 @@ class LEDACaptureProcess(LEDAProcess):
 		utc = datetime.datetime.utcnow().strftime("%Y-%m-%d-%H:%M:%S")
 		header = self.header
 		header += "CFREQ           %f\n" % self.centerfreq
-		header += "BW              %f\n" % self.bandwidth
+		header += "SUBBAND         %f\n" % self.subband
+		#header += "BW              %f\n" % self.bandwidth
 		header += "UTC_START       " + utc + "\n"
 		
 		# Note: The header file is put in the log path for convenience
@@ -296,7 +298,7 @@ class LEDAServer(object):
 	def __init__(self, name,
 	             dadapath, bufkeys, bufsizes, bufcores,
 	             capture_logfiles, capture_path, capture_header,
-	             centerfreqs, bandwidths,
+	             centerfreqs, subbands, #bandwidths,
 	             capture_bufkeys, capture_ips, capture_ports,
 	             capture_ninputs, capture_controlports, capture_cores,
 	             unpack_logfiles, unpack_path, unpack_bufkeys,
@@ -310,15 +312,15 @@ class LEDAServer(object):
 			                for bufkey,size,core in \
 			                zip(bufkeys,bufsizes,bufcores)]
 		self.capture = [LEDACaptureProcess(logfile,capture_path,capture_header,
-		                                   centerfreq, bandwidth,
+		                                   centerfreq, subband,#bandwidth,
 		                                   bufkey,ip,port,ninput,controlport,
 		                                   core) \
 			                for (logfile,
-			                     centerfreq,bandwidth,
+			                     centerfreq,subband,#bandwidth,
 			                     bufkey,ip,port,ninput,
 			                     controlport,core) \
 			                in zip(capture_logfiles,
-			                       centerfreqs,bandwidths,
+			                       centerfreqs,subbands,#bandwidths,
 			                       capture_bufkeys,capture_ips,capture_ports,
 			                       capture_ninputs,capture_controlports,
 			                       capture_cores)]
@@ -501,6 +503,7 @@ if __name__ == "__main__":
 		#capture_header += "BW              %f\n" % (-corr_bandwidth)
 		#capture_header += "CFREQ           %f\n" % corr_centerfreq
 		capture_header += "FREQ            %f\n" % corr_clockfreq
+		capture_header += "NFFT            %f\n" % corr_nfft
 		capture_header += "RA              %s\n" % "00:00:00.0"
 		capture_header += "DEC             %s\n" % "00:00:00.0"
 		
@@ -521,7 +524,11 @@ if __name__ == "__main__":
 		#capture_header += "NSTAND          %i\n" % (ninput/npol)
 		capture_header += "NSTATION        %i\n" % (ninput/npol)
 		capture_header += "OBS_OFFSET      %i\n" % 0
-		capture_header += "TSAMP           %f\n" % tsamp
+		capture_header += "LOWFREQ         %f\n" % corr_lowfreq
+		df = corr_clockfreq / float(corr_nfft)
+		capture_header += "CHAN_WIDTH      %f\n" % df
+		capture_header += "BW              %f\n" % (nchan * df)
+		capture_header += "TSAMP           %f\n" % (1./df)
 		capture_header += "XENGINE_NTIME   %i\n" % ntime
 		capture_header += "NAVG            %i\n" % (ntime*xengine_navg)
 		capture_header += "BYTES_PER_AVG   %i\n" % outsize
@@ -537,11 +544,13 @@ if __name__ == "__main__":
 		
 		capture_header += "PROC_FILE       %s\n" % "leda.dbdisk" # What is this?
 		capture_header += "OBS_XFER        %i\n" % 0 # What is this?
-		# Note: BYTES_PER_SECOND is actually interpreted by psrdada as simply
-		#         1/10th the amount of data to put in the file.
+		# Note: Apparently BYTES_PER_SECOND is actually interpreted by psrdada
+		#         as simply 1/10th the amount of data to put in the file.
 		max_filesize = 1024**3
 		bytes_per_second = (max_filesize-corr_headersize) // (outsize * 10) * outsize
 		capture_header += "BYTES_PER_SECOND %i\n" % bytes_per_second
+		
+		centerfreqs = [corr_lowfreq + (sb+0.5)*nchan*df for sb in subbands]
 		
 		ledaserver = LEDAServer(servername,
 		                        
@@ -554,7 +563,8 @@ if __name__ == "__main__":
 		                        capture_path,
 		                        capture_header,
 		                        centerfreqs,
-		                        bandwidths,
+		                        subbands,
+		                        #bandwidths,
 		                        capture_bufkeys,
 		                        capture_ips,
 		                        capture_ports,

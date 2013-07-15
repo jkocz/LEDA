@@ -5,6 +5,7 @@ servername = socket.gethostname()
 
 # These are mainly just to be logged in the headers
 corr_clockfreq     = 196.608
+corr_nfft          = 8192
 corr_headersize    = 4096
 corr_headerversion = "1.0"
 corr_telescope     = "LWA-OVRO"
@@ -14,7 +15,10 @@ corr_data_order    = "REG_TILE_TRIANGULAR_2x2"
 corr_nbit_in       = 4
 ndim               = 2
 npol               = 2
-tsamp              = 41.66667
+#tsamp              = 41.66667
+
+stands_file = getenv_warn('LEDA_STANDS_FILE',
+                          "stands_leda64ovro_2013-07-15.txt")
 
 headnodehost    = "ledagpu5"
 serverhosts     = ["ledagpu5", "ledagpu6"]
@@ -40,7 +44,7 @@ ninput    = 64
 nchan     = 600
 ntime     = 8192
 nstream   = 2
-bandwidth = 14.4
+#bandwidth = 14.4
 bufsize = ninput*nchan*ntime
 upsize  = bufsize * 2
 outsize = reg_tile_triangular_size(ninput, nchan)
@@ -66,13 +70,15 @@ capture_headerpaths = [os.path.join(headerpath,"header64%s.txt"%x) \
 if servername == serverhosts[0]:
 	capture_ips         = ["192.168.40.5", "192.168.40.5"]
 	capture_ports       = [4015, 4016]
-	centerfreqs         = [51.6, 66.0]
-	bandwidths          = [bandwidth, bandwidth]
+	subbands            = [1, 2]
+	#centerfreqs         = [51.6, 66.0]
+	#bandwidths          = [bandwidth, bandwidth]
 elif servername == serverhosts[1]:
 	capture_ips         = ["192.168.40.6", "192.168.40.6"]
 	capture_ports       = [4017, 4018]
-	centerfreqs         = [80.4, 37.2]
-	bandwidths          = [bandwidth, bandwidth]
+	subbands            = [3, 0]
+	#centerfreqs         = [80.4, 37.2]
+	#bandwidths          = [bandwidth, bandwidth]
 else:
 	raise NameError("This server (%s) is not in the config file" % servername)
 	

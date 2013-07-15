@@ -5,6 +5,7 @@ servername = socket.gethostname()
 
 # These are mainly just to be logged in the headers
 corr_clockfreq     = 196.608
+corr_nfft          = 8192
 corr_headersize    = 4096
 corr_headerversion = "1.0"
 corr_telescope     = "LWA1"
@@ -14,7 +15,10 @@ corr_data_order    = "REG_TILE_TRIANGULAR_2x2"
 corr_nbit_in       = 4
 ndim               = 2
 npol               = 2
-tsamp              = 41.66667
+#tsamp              = 41.66667
+
+stands_file = getenv_warn('LEDA_STANDS_FILE',
+                          "stands_leda64ovro_2013-07-15.txt")
 
 headnodehost    = "ledagpu4"
 serverhosts     = ["ledagpu3", "ledagpu4"]
@@ -36,7 +40,8 @@ ninput    = 64
 nchan     = 600
 ntime     = 8192
 nstream   = 2
-bandwidth = 14.4
+lowfreq   = 30.0
+#bandwidth = 14.4
 bufsize = ninput*nchan*ntime
 upsize  = bufsize * 2
 outsize = reg_tile_triangular_size(ninput, nchan)
@@ -50,9 +55,6 @@ bufcores = [1, 9,
 			1, 9,
 			1, 9]
 
-# -----------------------
-# Parameters for ledagpu4
-# -----------------------
 capture_bufkeys     = ["dada", "eada"]
 capture_logfiles    = [os.path.join(logpath,"udpdb."+bufkey) \
 	                       for bufkey in capture_bufkeys]
@@ -64,14 +66,16 @@ capture_headerpaths = [os.path.join(headerpath,"header64%s.txt"%x) for x in ['a'
 if servername == "ledagpu3":
 	capture_ips         = ["192.168.0.81", "192.168.0.113"]
 	capture_ports       = [4005, 4008]
-	centerfreqs         = [66.0, 80.4]
-	bandwidths          = [bandwidth, bandwidth]
+	subbands            = [3, 0]
+	#centerfreqs         = [66.0, 80.4]
+	#bandwidths          = [bandwidth, bandwidth]
 elif servername == "ledagpu4":
 	#capture_ips         = ["192.168.0.17", "192.168.0.49"]
 	capture_ips         = ["192.168.0.17", "192.168.0.33"]
 	capture_ports       = [4001, 4003]
-	centerfreqs         = [37.2, 51.6]
-	bandwidths          = [bandwidth, bandwidth]
+	subbands            = [1, 2]
+	#centerfreqs         = [37.2, 51.6]
+	#bandwidths          = [bandwidth, bandwidth]
 else:
 	raise NameError("This server (%s) is not in the config file" % servername)
 

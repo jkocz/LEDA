@@ -27,7 +27,8 @@ import subprocess
 import shutil
 from PIL import Image # Note: Must be like this when using 'pillow' fork
 import StringIO, base64
-
+from leda_logger import LEDALogger
+"""
 class LEDALogger(object):
 	def __init__(self, streams=sys.stderr, debuglevel=1):
 		try:
@@ -52,7 +53,7 @@ class LEDALogger(object):
 		output += " " + message.replace("`","'") + "\n"
 		for stream in self.streams:
 			stream.write(output)
-
+"""
 class LEDARemoteServerControl(object):
 	def __init__(self, host, port, log=LEDALogger()):
 		self.host = host
@@ -333,7 +334,7 @@ class LEDARemoteManager(object):
 	             boffile, registers,
 	             log=LEDALogger()):
 		self.log = log
-		self.debuglevel = debuglevel
+		#self.debuglevel = debuglevel
 		## TESTING + i
 		self.servers = [LEDARemoteServer(host,controlport,# + i,
 		                                 captureports,log) \
