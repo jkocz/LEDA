@@ -524,7 +524,7 @@ if __name__ == "__main__":
 		#capture_header += "NSTAND          %i\n" % (ninput/npol)
 		capture_header += "NSTATION        %i\n" % (ninput/npol)
 		capture_header += "OBS_OFFSET      %i\n" % 0
-		capture_header += "LOWFREQ         %f\n" % corr_lowfreq
+		capture_header += "LOWFREQ         %f\n" % lowfreq
 		df = corr_clockfreq / float(corr_nfft)
 		capture_header += "CHAN_WIDTH      %f\n" % df
 		capture_header += "BW              %f\n" % (nchan * df)
@@ -550,7 +550,7 @@ if __name__ == "__main__":
 		bytes_per_second = (max_filesize-corr_headersize) // (outsize * 10) * outsize
 		capture_header += "BYTES_PER_SECOND %i\n" % bytes_per_second
 		
-		centerfreqs = [corr_lowfreq + (sb+0.5)*nchan*df for sb in subbands]
+		centerfreqs = [lowfreq + (sb+0.5)*nchan*df for sb in subbands]
 		
 		ledaserver = LEDAServer(servername,
 		                        
