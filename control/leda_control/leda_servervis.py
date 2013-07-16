@@ -31,9 +31,10 @@ def logMsg(lvl, dlvl, message):
         sys.stderr.write("[" + time + "] " + message + "\n")
 
 class LEDAVis(object):
-	def __init__(self, datapaths):
+	def __init__(self, datapaths, nchan_reduced):
 		self.datapaths = datapaths
 		self.data = correlator_dump()
+		self.nchan_reduced = nchan_reduced
 		self.visibilities = None
 		
 	def open_latest(self):
@@ -120,6 +121,14 @@ def onMessage(ledavis, message, clientsocket, address):
 		i = np.arange(visibilities.shape[2])
 		powspectra_x = np.real(visibilities[0,:,i,i,0,0])
 		powspectra_y = np.real(visibilities[0,:,i,i,1,1])
+		
+		# Reduce channel resolution (taking the max val)
+		# Note: If taking avg here, need to normalise by len(sb)
+		powspectra_x = np.array_split(powspectra_x, ledavis.nchan_reduced)
+		powspectra_x = np.array([sb.max() for sb in powspectra_x])
+		powspectra_y = np.array_split(powspectra_y, ledavis.nchan_reduced)
+		powspectra_y = np.array([sb.max() for sb in powspectra_y])
+		
 		powspectra_x = 10*np.log10(powspectra_x)
 		powspectra_y = 10*np.log10(powspectra_y)
 		data = numpy.array([powspectra_x, powspectra_y])
@@ -135,7 +144,10 @@ if __name__ == "__main__":
 	# Dynamically execute config script
 	execfile(configfile, globals())
 	
-	ledavis = LEDAVis(disk_outpaths)
+	# TODO: This display parameter could be put into the config file
+	nchan_reduced_max = 128
+	nchan_reduced_server = nchan_reduced_max // len(serverhosts)
+	ledavis = LEDAVis(disk_outpaths, nchan_reduced_server)
 	
 	print "Listening for client requests on port %i..." % port
 	sock = SimpleSocket()

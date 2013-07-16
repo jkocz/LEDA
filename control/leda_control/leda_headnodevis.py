@@ -82,8 +82,6 @@ class LEDARemoteVisManager(object):
 		self.navg = self.servers[0].navg
 		self.center_freq = sum([server.center_freq for server in self.servers]) \
 		    / float(len(self.servers))
-		
-		self.freqs = np.linspace(self.lowfreq, self.highfreq, self.nchan)
 	def sortByFreq(self, values):
 		cfreqs = [server.center_freq for server in self.servers]
 		cfreqs, values = zip(*sorted(zip(cfreqs, values)))
@@ -160,17 +158,21 @@ def onMessage(ledavis, message, clientsocket, address):
 		idx = int(args['stand'])
 		powspec_x, powspec_y = ledavis.getStand(idx)
 		
-		freq_padding = 0.02
-		xmin = ledavis.lowfreq  * (1 - freq_padding)
-		xmax = ledavis.highfreq * (1 + freq_padding)
+		# Note: the servervis process may send < ledavis.nchan channels here
+		nchan_reduced = powspec_x.shape[0]
+		freqs = np.linspace(ledavis.lowfreq, ledavis.highfreq, nchan_reduced)
+		
+		freq_axis_padding = 0.02
+		xmin = ledavis.lowfreq  * (1 - freq_axis_padding)
+		xmax = ledavis.highfreq * (1 + freq_axis_padding)
 		# TODO: How/where to decide these?
 		ymin = 75
 		ymax = 95
 		nchan = powspec_x.shape[0]
 		
 		plt.figure(figsize=(10.24, 7.68), dpi=100)
-		plt.plot(ledavis.freqs, powspec_x, color='r', label="Pol A")
-		plt.plot(ledavis.freqs, powspec_y, color='b', label="Pol B")
+		plt.plot(freqs, powspec_x, color='r', label="Pol A")
+		plt.plot(freqs, powspec_y, color='b', label="Pol B")
 		plt.xlim([xmin, xmax])
 		plt.ylim([ymin, ymax])
 		plt.xlabel('Frequency [MHz]')
@@ -187,9 +189,13 @@ def onMessage(ledavis, message, clientsocket, address):
 		idx_j = int(args['j'])
 		fringes_xx, fringes_yy = ledavis.getFringes(idx_i, idx_j)
 		
+		# Note: the servervis process may send < ledavis.nchan channels here
+		nchan_reduced = fringes_xx.shape[0]
+		freqs = np.linspace(ledavis.lowfreq, ledavis.highfreq, nchan_reduced)
+		
 		plt.figure(figsize=(10.24, 7.68), dpi=100)
-		plt.plot(ledavis.freqs, fringes_xx, color='r')
-		plt.plot(ledavis.freqs, fringes_yy, color='b')
+		plt.plot(freqs, fringes_xx, color='r')
+		plt.plot(freqs, fringes_yy, color='b')
 		imgfile = StringIO.StringIO()
 		plt.savefig(imgfile, format='png', bbox_inches='tight')
 		plt.close()
@@ -267,6 +273,10 @@ def onMessage(ledavis, message, clientsocket, address):
 		"""
 		plt.figure(figsize=(10.24, 7.68), dpi=100)
 		plt.axis('off')
+		
+		# Note: the servervis process may send < ledavis.nchan channels here
+		nchan_reduced = powspectra_x.shape[0]
+		freqs = np.linspace(ledavis.lowfreq, ledavis.highfreq, nchan_reduced)
 		
 		ntile = 16
 		for v in range(ledavis.nstation / ntile):
