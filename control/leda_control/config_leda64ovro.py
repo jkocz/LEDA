@@ -21,6 +21,7 @@ stands_file = getenv_warn('LEDA_STANDS_FILE',
                           "stands_leda64ovro_2013-07-15.txt")
 
 headnodehost    = "ledagpu5"
+webserverhost   = "ledagpu5"
 serverhosts     = ["ledagpu5", "ledagpu6"]
 roachhosts      = ['169.254.128.64', '169.254.128.65']
 roachport       = 7147
@@ -44,6 +45,7 @@ ninput    = 64
 nchan     = 600
 ntime     = 8192
 nstream   = 2
+lowfreq   = 30.0
 #bandwidth = 14.4
 bufsize = ninput*nchan*ntime
 upsize  = bufsize * 2
@@ -67,6 +69,7 @@ capture_path        = os.path.join(getenv_warn('LEDA_DADA_DIR',
 headerpath          = getenv_warn('LEDA_HEADER_DIR', "/home/leda/roach_scripts/")
 capture_headerpaths = [os.path.join(headerpath,"header64%s.txt"%x) \
 	                       for x in ['a','b']]
+
 if servername == serverhosts[0]:
 	capture_ips         = ["192.168.40.5", "192.168.40.5"]
 	capture_ports       = [4015, 4016]
@@ -79,8 +82,9 @@ elif servername == serverhosts[1]:
 	subbands            = [3, 0]
 	#centerfreqs         = [80.4, 37.2]
 	#bandwidths          = [bandwidth, bandwidth]
-else:
-	raise NameError("This server (%s) is not in the config file" % servername)
+elif servername not in [headnodehost, webserverhost]:
+	#raise NameError("This server (%s) is not in the config file" % servername)
+	print "WARNING: This server (%s) is not recognised in the config file" % servername
 	
 capture_ninputs     = [8] * nstream
 capture_controlports = [12340,12341]
