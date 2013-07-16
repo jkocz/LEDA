@@ -258,9 +258,14 @@ class LEDACaptureProcess(LEDAProcess):
 		output = tail.communicate()[0]
 		if output[0] == '[': # Line contains a message
 			return {"receiving":'?', "dropping":'?', "dropped":'?', "sleeps":'?'}
-		_,receiving,_,_,dropping,_,dropped,_,sleeps = output.split()
+		# WAR for change in log syntax when dropping > 0.0 (missing space)
+		try:
+			_,receiving,_,_,dropping,_,dropped,_,sleeps = output.split()
+			dropping = float(dropping)
+		except ValueError:
+			_,receiving,_,dropping,_,dropped,_,sleeps = output.split()
+			dropping = float(dropping[2:])
 		receiving = float(receiving)
-		dropping  = float(dropping)
 		dropped   = int(dropped[2:])
 		sleeps    = int(sleeps[4:])
 		return {"receiving": receiving,
