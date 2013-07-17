@@ -181,7 +181,6 @@ class AJAXHandler(tornado.web.RequestHandler):
 	def get(self):
 		if self.get_argument("status", default=None) is not None:
 			self.application.updateStatus()
-			print "New status:", self.application.status
 			self.write(self.application.status)
 		"""
 		image_updated = False
@@ -215,9 +214,9 @@ class AJAXHandler(tornado.web.RequestHandler):
 			self.write("ok")
 		elif self.get_argument("get_vis", default=None) is not None:
 			visname = self.get_argument("get_vis")
-			## Note: Web interface uses 1-based indexing
-			i = int(self.get_argument("i"))# - 1
-			j = int(self.get_argument("j"))# - 1
+			# Note: Web interface uses 1-based indexing
+			i = int(self.get_argument("i")) - 1
+			j = int(self.get_argument("j")) - 1
 			self.application.getVis(visname, i, j)
 
 if __name__ == "__main__":

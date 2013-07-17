@@ -41,7 +41,7 @@ status_img = function(status) {
 
 /*vis_image = "roach01_adc01";*/
 vis_image = "latest_vis";
-vis_mode  = "stand=1";
+vis_mode  = "stand";
 vis_image_number = 0;
 
 function onStatusUpdate(response) {
@@ -99,7 +99,7 @@ function onStatusUpdate(response) {
 function setVisImage() {
 	i = document.getElementById("stand_i").value;
 	j = document.getElementById("stand_j").value;
-	send("get_vis=" + vis_mode + "&i=" + i + "&j=" + j);
+	send("get_vis=" + vis_mode + "=1&i=" + i + "&j=" + j);
 	
 	img_src = "static/images/" + vis_image + ".png";
 	// Append date to prevent caching

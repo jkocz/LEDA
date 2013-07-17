@@ -55,7 +55,7 @@ class LEDARemoteVisServer(LEDAClient):
 	def update(self):
 		return self._sendcmd('update=1')
 	def getStand(self, idx):
-		metadata = receive_array(self._sendmsg('stand=%i' % idx))
+		metadata = receive_array(self._sendmsg('stand=1&i=%i' % idx))
 		if metadata is None:
 			return None
 		data = metadata['data']
@@ -162,7 +162,9 @@ class LEDARemoteVisManager(object):
 		cfreqs = [server.center_freq for server in self.servers]
 		cfreqs, values = zip(*sorted(zip(cfreqs, values)))
 	def getStand(self, idx):
-		idx = self.stand2leda[idx]
+		# TODO: This, if still desired, requires searching for the entry
+		#         and handling missing stands.
+		#idx = self.stand2leda[idx]
 		
 		powspec_subbands_x = []
 		powspec_subbands_y = []
@@ -179,8 +181,8 @@ class LEDARemoteVisManager(object):
 		powspec_y = np.concatenate(powspec_subbands_y, axis=0)
 		return powspec_x, powspec_y
 	def getFringes(self, idx_i, idx_j):
-		idx_i = self.stand2leda[idx_i]
-		idx_j = self.stand2leda[idx_j]
+		#idx_i = self.stand2leda[idx_i]
+		#idx_j = self.stand2leda[idx_j]
 		
 		fringes_subbands_xx = []
 		fringes_subbands_yy = []
@@ -305,7 +307,7 @@ def onMessage(ledavis, message, clientsocket, address):
 		# TODO: Should probably move most of this code into plot_* methods
 		#         of ledavis.
 		
-		idx = int(args['stand'])
+		idx = int(args['i'])
 		ret = ledavis.getStand(idx)
 		if ret is None:
 			plot_none()

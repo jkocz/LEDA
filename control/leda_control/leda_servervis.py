@@ -93,7 +93,7 @@ def onMessage(ledavis, message, clientsocket, address):
 		ledavis.update()
 		clientsocket.send('ok')
 	elif 'stand' in args:
-		i = int(args['stand'])
+		i = int(args['i'])
 		logMsg(1, DL, "Stand %i data requested" % (i))
 		visibilities = ledavis.get_visibilities()
 		if visibilities is None:
