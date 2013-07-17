@@ -217,10 +217,10 @@ class LEDARemoteVisManager(object):
 			amp_yy_subbands.append(amp_yy)
 			phase_xx_subbands.append(phase_xx)
 			phase_yy_subbands.append(phase_yy)
-		amp_xx = np.array(amp_xx_subbands).avg(axis=0)
-		amp_yy = np.array(amp_yy_subbands).avg(axis=0)
-		phase_xx = np.array(phase_xx_subbands).avg(axis=0)
-		phase_yy = np.array(phase_yy_subbands).avg(axis=0)
+		amp_xx = np.array(amp_xx_subbands).mean(axis=0)
+		amp_yy = np.array(amp_yy_subbands).mean(axis=0)
+		phase_xx = np.array(phase_xx_subbands).mean(axis=0)
+		phase_yy = np.array(phase_yy_subbands).mean(axis=0)
 		"""
 		# Sort into real stand order
 		amp_xx = amp_xx[self.stand2leda, self.stand2leda]
