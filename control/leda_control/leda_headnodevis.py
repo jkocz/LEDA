@@ -129,16 +129,19 @@ class LEDARemoteVisManager(object):
 	             roachhosts, roachport,
 	             lowfreq, highfreq,
 	             stands_x, stands_y,
-	             stand2adc, stand2leda,
+	             adc2stand, leda2stand,
+	             #stand2adc, stand2leda,
 	             log=LEDALogger()):
 		self.lowfreq   = lowfreq
 		self.highfreq  = highfreq
 		self.stands_x  = stands_x
 		self.stands_y  = stands_y
-		self.stand2adc  = stand2adc
-		self.adc2stand  = stand2adc.argsort()
-		self.stand2leda = stand2leda
-		self.leda2stand = stand2leda.argsort()
+		#self.stand2adc  = stand2adc
+		#self.adc2stand  = stand2adc.argsort()
+		#self.stand2leda = stand2leda
+		#self.leda2stand = stand2leda.argsort()
+		self.adc2stand  = adc2stand
+		self.leda2stand = leda2stand
 		self.log = log
 		self.servers = [LEDARemoteVisServer(host,controlport,log) \
 			                for host in serverhosts]
@@ -155,12 +158,14 @@ class LEDARemoteVisManager(object):
 		self.navg = self.servers[0].navg
 		self.center_freq = sum([server.center_freq for server in self.servers]) \
 		    / float(len(self.servers))
+		# Sort servers by frequency
+		self.servers.sort(key=lambda s: s.center_freq)
 	def update(self):
 		for server in self.servers:
 			server.update()
-	def sortByFreq(self, values):
-		cfreqs = [server.center_freq for server in self.servers]
-		cfreqs, values = zip(*sorted(zip(cfreqs, values)))
+	#def sortByFreq(self, values):
+	#	cfreqs = [server.center_freq for server in self.servers]
+	#	cfreqs, values = zip(*sorted(zip(cfreqs, values)))
 	def getStand(self, idx):
 		# TODO: This, if still desired, requires searching for the entry
 		#         and handling missing stands.
@@ -175,8 +180,8 @@ class LEDARemoteVisManager(object):
 			powspec_x, powspec_y = ret
 			powspec_subbands_x.append(powspec_x)
 			powspec_subbands_y.append(powspec_y)
-		self.sortByFreq(powspec_subbands_x)
-		self.sortByFreq(powspec_subbands_y)
+		#self.sortByFreq(powspec_subbands_x)
+		#self.sortByFreq(powspec_subbands_y)
 		powspec_x = np.concatenate(powspec_subbands_x, axis=0)
 		powspec_y = np.concatenate(powspec_subbands_y, axis=0)
 		return powspec_x, powspec_y
@@ -193,8 +198,8 @@ class LEDARemoteVisManager(object):
 			fringes_xx, fringes_yy = ret
 			fringes_subbands_xx.append(fringes_xx)
 			fringes_subbands_yy.append(fringes_yy)
-		self.sortByFreq(fringes_subbands_xx)
-		self.sortByFreq(fringes_subbands_yy)
+		#self.sortByFreq(fringes_subbands_xx)
+		#self.sortByFreq(fringes_subbands_yy)
 		fringes_xx = np.concatenate(fringes_subbands_xx, axis=0)
 		fringes_yy = np.concatenate(fringes_subbands_yy, axis=0)
 		return fringes_xx, fringes_yy
@@ -212,10 +217,10 @@ class LEDARemoteVisManager(object):
 			amp_yy_subbands.append(amp_yy)
 			phase_xx_subbands.append(phase_xx)
 			phase_yy_subbands.append(phase_yy)
-		amp_xx = np.array(amp_xx_subbands).sum(axis=0)
-		amp_yy = np.array(amp_yy_subbands).sum(axis=0)
-		phase_xx = np.array(phase_xx_subbands).sum(axis=0)
-		phase_yy = np.array(phase_yy_subbands).sum(axis=0)
+		amp_xx = np.array(amp_xx_subbands).avg(axis=0)
+		amp_yy = np.array(amp_yy_subbands).avg(axis=0)
+		phase_xx = np.array(phase_xx_subbands).avg(axis=0)
+		phase_yy = np.array(phase_yy_subbands).avg(axis=0)
 		"""
 		# Sort into real stand order
 		amp_xx = amp_xx[self.stand2leda, self.stand2leda]
@@ -234,8 +239,8 @@ class LEDARemoteVisManager(object):
 			powspectra_x, powspectra_y = ret
 			powspectra_subbands_x.append(powspectra_x)
 			powspectra_subbands_y.append(powspectra_y)
-		self.sortByFreq(powspectra_subbands_x)
-		self.sortByFreq(powspectra_subbands_y)
+		#self.sortByFreq(powspectra_subbands_x)
+		#self.sortByFreq(powspectra_subbands_y)
 		powspectra_x = np.concatenate(powspectra_subbands_x, axis=0)
 		powspectra_y = np.concatenate(powspectra_subbands_y, axis=0)
 		"""
@@ -314,6 +319,8 @@ def onMessage(ledavis, message, clientsocket, address):
 		else:
 			powspec_x, powspec_y = ret
 			
+			stand_i = ledavis.leda2stand[idx]
+			
 			# Note: the servervis process may send < ledavis.nchan channels here
 			nchan_reduced = powspec_x.shape[0]
 			freqs = np.linspace(ledavis.lowfreq, ledavis.highfreq, nchan_reduced)
@@ -333,7 +340,7 @@ def onMessage(ledavis, message, clientsocket, address):
 			plt.ylim([ymin, ymax])
 			plt.xlabel('Frequency [MHz]')
 			plt.ylabel('Power [dB]')
-			plt.title('LEDA output for stand %i' % (idx))
+			plt.title('LEDA output for stand %i' % (stand_i + 1))
 			plt.legend()
 		imgfile = StringIO.StringIO()
 		plt.savefig(imgfile, format='png', bbox_inches='tight')
@@ -458,8 +465,9 @@ def onMessage(ledavis, message, clientsocket, address):
 					i = u + v*ntile
 					powspec_x = powspectra_x[:,i]
 					powspec_y = powspectra_y[:,i]
-					powspec_x = 10*np.log10(powspec_x)
-					powspec_y = 10*np.log10(powspec_y)
+					# TODO: These have already been done on the server
+					#powspec_x = 10*np.log10(powspec_x)
+					#powspec_y = 10*np.log10(powspec_y)
 					# Saturate values to visible range for better visualisation
 					powspec_x[powspec_x < ymin] = ymin
 					#powspec_x[powspec_x > ymax] = ymax
@@ -511,21 +519,30 @@ if __name__ == "__main__":
 	stands_x = stands_x[inds]
 	stands_y = stands_y[inds]
 	
-	stands, roaches, adcs, adc_inds, stand2leda = \
+	stands, roaches, adcs, adc_inds, leda_inds = \
 	    np.loadtxt(leda_stands_file, usecols=[0,1,2,3,4], unpack=True)
 	# Convert from 1-based to 0-based indexing
-	stands     -= 1
-	roaches    -= 1
-	adcs       -= 1
-	adc_inds   -= 1
-	stand2leda -= 1
+	stands    -= 1
+	roaches   -= 1
+	adcs      -= 1
+	adc_inds  -= 1
+	leda_inds -= 1
 	# Sort into stand order
-	inds = stands.argsort()
+	#inds = stands.argsort()
+	inds = leda_inds.argsort()
+	leda2stand = stands[inds]
+	
+	adc_inds = adc_inds + 8*(adcs + 2*(roaches))
+	inds = adc_inds.argsort()
+	adc2stand = stands[inds]
+	"""
 	roaches    = roaches[inds]
 	adcs       = adcs[inds]
 	adc_inds   = adc_inds[inds]
+	leda_inds  = leda_inds[inds]
 	stand2leda = stand2leda[inds]
 	stand2adc  = adc_inds + 8*(adcs + 2*(roaches))
+	"""
 	"""
 	# Note: Loaded cols are LEDAST, STAND, POSX, POSY
 	leda_stands, stands, stands_x, stands_y = \
@@ -546,7 +563,8 @@ if __name__ == "__main__":
 	                               roachhosts, roachport,
 	                               lowfreq, highfreq,
 	                               stands_x, stands_y,
-	                               stand2adc, stand2leda,
+	                               #stand2adc, stand2leda,
+	                               adc2stand, leda2stand,
 	                               LEDALogger(logstream, debuglevel))
 	
 	print "Listening for client requests on port %i..." % g_port

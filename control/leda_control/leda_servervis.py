@@ -124,12 +124,12 @@ def onMessage(ledavis, message, clientsocket, address):
 			clientsocket.send("none")
 		else:
 			# TODO: This assumes we want to sum across the whole band
-			matrix_xx = np.sum(visibilities[0,:,:,:,0,0], axis=0)
-			matrix_yy = np.sum(visibilities[0,:,:,:,1,1], axis=0)
-			amp_xx    = 10*np.log10(np.abs(matrix_xx))
-			amp_yy    = 10*np.log10(np.abs(matrix_yy))
-			phase_xx  = np.angle(matrix_xx)
-			phase_yy  = np.angle(matrix_yy)
+			matrix_xx = visibilities[0,:,:,:,0,0]
+			matrix_yy = visibilities[0,:,:,:,1,1]
+			amp_xx    = 10*np.log10(np.avg(np.abs(matrix_xx), axis=0))
+			amp_yy    = 10*np.log10(np.avg(np.abs(matrix_yy), axis=0))
+			phase_xx  = np.avg(np.angle(matrix_xx), axis=0)
+			phase_yy  = np.avg(np.angle(matrix_yy), axis=0)
 			data = np.array([amp_xx, amp_yy, phase_xx, phase_yy])
 			send_array(clientsocket, data)
 	elif 'all_spectra' in args:

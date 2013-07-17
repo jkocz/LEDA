@@ -251,9 +251,10 @@ function main() {
 	
 	initTabs();
 	
-	requestStatus();
-	setInterval(requestStatus, 5000);
 	updateVis();
 	// Note: This seems to block the status updates if they coincide exactly
-	setInterval(updateVis, 5123);
+	setInterval(updateVis, 5523);
+	
+	requestStatus();
+	setInterval(requestStatus, 5000);
 }
