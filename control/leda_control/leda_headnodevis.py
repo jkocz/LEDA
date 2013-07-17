@@ -19,7 +19,7 @@ from leda_logger import LEDALogger
 import base64
 import matplotlib
 import numpy as np
-matplotlib.use('TkAgg')
+#matplotlib.use('TkAgg') # Requires tkinter
 import matplotlib.pyplot as plt
 import time
 
