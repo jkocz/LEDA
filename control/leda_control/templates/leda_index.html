@@ -7,6 +7,17 @@
 </head>
 <body onload="main();">
 
+<div id="wrapper">
+<div id="tabContainer">
+<div class="tabs">
+  <ul>
+	<li id="tabHeader_1">Control</li>
+	<li id="tabHeader_2">Monitor</li>
+  </ul>
+</div>
+<div class="tabscontent">
+  <div class="tabpage" id="tabpage_1">
+
 <div id="title_panel">
   <img id="ledalogo" src="{{ static_url('images/LEDALogo.png') }}" /><!--<h1>LEDA-64</h1>-->
 </div>
@@ -20,11 +31,10 @@
   <input id="total_power_enabled" type="checkbox" checked="false">Record total power
   (interval=<input id="total_power" type="text" value="100" size="4">)
   <br /><br />
-  <button id="program_roaches" title="Program roaches"><img src="{{ static_url('icons/drive_edit.png') }}" />ROACHes</button>
-  <button id="create_buffers" title="(Re)create buffers"><img src="{{ static_url('icons/database_refresh.png') }}" /> Buffers</button>
+  <button id="program_roaches" title="Program roaches"><img src="{{ static_url('icons/drive_edit.png') }}" /><br>ROACHes</button>
+  <button id="create_buffers" title="(Re)create buffers"><img src="{{ static_url('icons/database_refresh.png') }}" /><br>Buffers</button>
   <br />
   <!--<input type="checkbox" disabled="disabled">Save logs-->
-  
 </div>
 
 <div id="status_panel">
@@ -98,25 +108,56 @@
   </table>
 </div>
 
+  </div> <!-- end tab page 1 -->
+  <div class="tabpage" id="tabpage_2">
+	
 <div id="vis_panel">
-  <h3>Monitoring</h3>
-  <form>
-	<input type="radio" id="vis_roach1_adc1" name="cur_minivis" value="roach01_adc01">ROACH 1 ADC 1<br />
-	<input type="radio" id="vis_roach1_adc2" name="cur_minivis" value="roach01_adc02">ROACH 1 ADC 2<br />
-	<input type="radio" id="vis_roach2_adc1" name="cur_minivis" value="roach02_adc01">ROACH 2 ADC 1<br />
-	<input type="radio" id="vis_roach2_adc2" name="cur_minivis" value="roach02_adc02">ROACH 2 ADC 2<br />
+  <!--<form id="vis_selection">-->
+	<span class="visbuttons_label">ADC:</span>
+	<button class="vismodebutton" id="adc_stand" disabled>One stand</button>
+	<button class="vismodebutton" id="adc_all_spectra" disabled>All spectra</button>
+	<button class="vismodebutton" id="adc_all_hists" disabled>All histograms</button>
+	<button class="vismodebutton" id="adc_all_time" disabled>All timeseries</button>
+	<br>
+	<span class="visbuttons_label">F-engine:</span>
+	<button class="vismodebutton" id="fpga_stand" disabled>One stand</button>
+	<button class="vismodebutton" id="fpga_all_spectra" disabled>All spectra</button>
+	<button class="vismodebutton" id="fpga_all_hists" disabled>All histograms</button>
+	<br>
+	<span class="visbuttons_label">X-engine:</span>
+	<button class="vismodebutton" id="stand">One stand</button>
+	<button class="vismodebutton" id="all_spectra">All spectra</button>
+	<button class="vismodebutton" id="matrices">Matrices</button>
+	<button class="vismodebutton" id="fringes">Fringes</button>
+	<!--<button id=""></button>-->
+	<br>
+	Stand (i) = <input type="text" id="stand_i" value="1" size="3">;
+	stand j = <input type="text" id="stand_j" value="2" size="3">
+	<br>
+	<!--
+	<input type="radio" id="vis_roach1_adc1" name="cur_minivis" value="roach01_adc01">ROACH 1 ADC 1<br>
+	<input type="radio" id="vis_roach1_adc2" name="cur_minivis" value="roach01_adc02">ROACH 1 ADC 2<br>
+	<input type="radio" id="vis_roach2_adc1" name="cur_minivis" value="roach02_adc01">ROACH 2 ADC 1<br>
+	<input type="radio" id="vis_roach2_adc2" name="cur_minivis" value="roach02_adc02">ROACH 2 ADC 2<br>
 	
-	<input type="radio" id="vis_vismatrix_svr2_str1" name="cur_minivis" value="vismatrix_svr02_str01">VisMat server 1 stream 1<br />
-	<input type="radio" id="vis_vismatrix_svr2_str2" name="cur_minivis" value="vismatrix_svr02_str02">VisMat server 1 stream 2<br />
-	<input type="radio" id="vis_vismatrix_svr2_str3" name="cur_minivis" value="vismatrix_svr02_str03">VisMat server 1 stream 3<br />
-	<input type="radio" id="vis_vismatrix_svr2_str4" name="cur_minivis" value="vismatrix_svr02_str04">VisMat server 1 stream 4<br />
+	<input type="radio" id="vis_vismatrix_svr2_str1" name="cur_minivis" value="vismatrix_svr02_str01">VisMat server 1 stream 1<br>
+	<input type="radio" id="vis_vismatrix_svr2_str2" name="cur_minivis" value="vismatrix_svr02_str02">VisMat server 1 stream 2<br>
+	<input type="radio" id="vis_vismatrix_svr2_str3" name="cur_minivis" value="vismatrix_svr02_str03">VisMat server 1 stream 3<br>
+	<input type="radio" id="vis_vismatrix_svr2_str4" name="cur_minivis" value="vismatrix_svr02_str04">VisMat server 1 stream 4<br>
 	
-	<input type="radio" id="vis_auto_cor"    name="cur_minivis" value="auto_cor" disabled="disabled">Auto-correlations<br />
-	<input type="radio" id="vis_cross_cor"   name="cur_minivis" value="cross_cor" disabled="disabled">Cross-correlations<br />
-  </form>
+	<input type="radio" id="vis_auto_cor"    name="cur_minivis" value="auto_cor" disabled="disabled">Auto-correlations<br>
+	<input type="radio" id="vis_cross_cor"   name="cur_minivis" value="cross_cor" disabled="disabled">Cross-correlations<br>
+	-->
+  <!--</form>-->
   <img id="minivis" alt="Selected data visualisation" />
 </div>
 
+  </div> <!-- end tab page 2 -->
+</div> <!-- end tabscontent -->
+</div> <!-- end tabContainer -->
+</div> <!-- end wrapper -->
+
+<!--
 <div id="observations_panel">
   <h3>Observations</h3>
 </div>
@@ -124,6 +165,7 @@
 <div id="schedule_panel">
   <h3>Schedule</h3>
 </div>
+-->
 
 </body>
 

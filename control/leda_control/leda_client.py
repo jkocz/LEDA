@@ -1,4 +1,5 @@
 
+import sys
 from SimpleSocket import SimpleSocket
 
 class LEDAClient(object):

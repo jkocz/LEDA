@@ -1,5 +1,21 @@
 #!/usr/bin/env python
 
+"""
+
+By Ben Barsdell (2013)
+
+On init, call remotevis.open()
+When 'start' is clicked, call remotevis.open()
+Every 10 secs, call remotevis.update()
+  Set last_vis_update = now
+
+On ajax msg "get_vis=visname&i=0&j=1":
+  if modified_time(visname+".png") is before last_vis_update:
+    imgdata = ledavis.get(msg)
+    save imgdata to visname+".png"
+
+"""
+
 import os
 import sys
 import tornado
@@ -13,27 +29,39 @@ import time
 
 import random
 
-from leda_remotecontrol import LEDARemoteHeadNodeControl, LEDALogger
+from leda_logger import LEDALogger
+from leda_remotecontrol import LEDARemoteHeadNodeControl
+from leda_remotevis import LEDARemoteHeadNodeVis
 
 # Command line options
 define("port", default=8888, help="Run on the given port", type=int)
 
 class Application(tornado.web.Application):
-	def __init__(self, remote_host, remote_port):
+	def __init__(self, remote_host, control_port, vis_port):
 		self.remote_host = remote_host
 		logstream   = sys.stderr
 		debuglevel  = 1
 		self.log    = LEDALogger(logstream, debuglevel)
 		self.leda   = LEDARemoteHeadNodeControl(self.remote_host,
-		                                        remote_port,
+		                                        control_port,
 		                                        self.log)
+		self.ledavis = LEDARemoteHeadNodeVis(self.remote_host,
+		                                     vis_port,
+		                                     self.log)
  #self.last_vismatimage_time >= self.min_vismat_refresh_time:
-		self.min_refresh_time   = 4
+		"""
 		self.min_adcimage_refresh_time = 14
 		self.min_vismat_refresh_time = 10000#30
-		self.last_status_time   = 0
 		self.last_adcimage_time = 0
 		self.last_vismatimage_time = 0
+		"""
+		self.last_status_time   = 0
+		self.min_refresh_time   = 4
+		self.last_vis_update_time = 0
+		self.min_vis_refresh_time = 10
+		self.last_vis_get_time    = 0
+		self.min_vis_get_time     = 0.1
+		
 		self.updateStatus()
 		handlers = [
 			(r"/", MainHandler),
@@ -80,6 +108,24 @@ class Application(tornado.web.Application):
 				self.status['headnode'] = {'host':self.remote_host,
 										   'alive':'ok',
 										   'control':'ok'}
+	def updateVis(self):
+		print "Vis update request"
+		if time.time() - self.last_vis_update_time >= self.min_vis_refresh_time:
+			print "Requesting updated vis data from head node"
+			self.last_vis_update_time = time.time()
+			self.ledavis.update()
+	def getVis(self, visname, i, j):
+		print "Request for vis '%s' (i=%i j=%i)" % (visname,i,j)
+		if time.time() - self.last_vis_get_time >= self.min_vis_get_time:
+			imgdata = self.ledavis.get("%s=1&i=%i&j=%i" % (visname,i,j))
+			if imgdata is None:
+				print "Vis connection down"
+				print "Reconnecting"
+				self.ledavis.connect()
+			else:
+				filename = "static/images/latest_vis.png"
+				open(filename, 'wb').write(imgdata)
+	"""
 	def updateADCImages(self):
 		print "ADC image update request"
 		if not self.leda.isConnected():
@@ -120,7 +166,7 @@ class Application(tornado.web.Application):
 				for stream, stream_image in enumerate(images):
 					filename = "static/images/vismatrix_svr02_str%02i.png"%(stream+1)
 					open(filename, 'wb').write(stream_image)
-
+	"""
 class MainHandler(tornado.web.RequestHandler):
 	def get(self):
 		# Generate (random) unique identifier
@@ -133,7 +179,7 @@ class AJAXHandler(tornado.web.RequestHandler):
 		if self.get_argument("status", default=None) is not None:
 			self.application.updateStatus()
 			self.write(self.application.status)
-		
+		"""
 		image_updated = False
 		if self.get_argument("adc_images", default=None) is not None:
 			self.application.updateADCImages()
@@ -143,6 +189,7 @@ class AJAXHandler(tornado.web.RequestHandler):
 			image_updated = True
 		if image_updated:
 			self.write("ok")
+		"""
 		
 		if self.get_argument("start", default=None) is not None:
 			self.application.leda.startObservation()
@@ -157,6 +204,15 @@ class AJAXHandler(tornado.web.RequestHandler):
 		elif self.get_argument("total_power", default=None) is not None:
 			ncycles = int(self.get_argument("total_power"))
 			self.application.leda.setTotalPowerRecording(ncycles)
+		elif self.get_argument("update_vis", default=None) is not None:
+			self.application.updateVis()
+		elif self.get_argument("get_vis", default=None) is not None:
+			visname = self.get_argument("get_vis")
+			# Note: Web interface uses 1-based indexing
+			i = int(self.get_argument("i")) - 1
+			j = int(self.get_argument("j")) - 1
+			self.application.getVis(visname, i, j)
+			self.write("ok")
 
 if __name__ == "__main__":
 	from configtools import *
@@ -168,7 +224,8 @@ if __name__ == "__main__":
 	config = {}
 	execfile(configfile, config)
 	
-	app = Application(remote_host=config['headnodehost'], remote_port=6282)
+	app = Application(remote_host=config['headnodehost'],
+	                  control_port=6282, vis_port=6283)
 	app.listen(options.port)
 	print "Listening for connections..."
 	tornado.ioloop.IOLoop.instance().start()

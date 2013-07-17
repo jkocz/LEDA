@@ -227,7 +227,7 @@ class LEDACaptureProcess(LEDAProcess):
 		utc = datetime.datetime.utcnow().strftime("%Y-%m-%d-%H:%M:%S")
 		header = self.header
 		header += "CFREQ           %f\n" % self.centerfreq
-		header += "SUBBAND         %f\n" % self.subband
+		header += "SUBBAND         %i\n" % self.subband
 		#header += "BW              %f\n" % self.bandwidth
 		header += "UTC_START       " + utc + "\n"
 		

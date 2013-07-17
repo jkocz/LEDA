@@ -8,10 +8,12 @@ from leda_client import LEDAClient
 from leda_logger import LEDALogger
 
 def receive_image(encoded_image):
+	if encoded_image is None:
+		return None
 	imgdata = base64.standard_b64decode(encoded_image)
 	return imgdata
 
-class LEDARemoteHeadNodeVis(object):
+class LEDARemoteHeadNodeVis(LEDAClient):
 	def __init__(self, host, port, log=LEDALogger()):
 		super(LEDARemoteHeadNodeVis, self).__init__(host, port, log)
 		self.connect()
@@ -30,6 +32,9 @@ class LEDARemoteHeadNodeVis(object):
 		return imgdata
 	def getAllSpectra(self):
 		imgdata = receive_image(self._sendmsg('all_spectra=1'))
+		return imgdata
+	def get(self, msg):
+		imgdata = receive_image(self._sendmsg(msg))
 		return imgdata
 
 if __name__ == "__main__":

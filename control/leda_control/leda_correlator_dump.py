@@ -130,6 +130,8 @@ class correlator_subband_dump(object):
 		f.seek(0, 2)
 		file_size = f.tell() - self.header_size
 		file_nints = file_size // self.bytes_per_avg
+		if file_nints == 0:
+			return None
 		file_offset = (file_nints-1) * self.bytes_per_avg
 		nbytes = self.bytes_per_avg
 		f.seek(self.header_size + file_offset, 0)

@@ -17,8 +17,10 @@ ndim               = 2
 npol               = 2
 #tsamp              = 41.66667
 
-stands_file = getenv_warn('LEDA_STANDS_FILE',
-                          "stands_leda64ovro_2013-07-15.txt")
+site_stands_file = getenv_warn('SITE_STANDS_FILE',
+                               "site_stands_ovro.txt")
+leda_stands_file = getenv_warn('LEDA_STANDS_FILE',
+                               "leda_stands_leda64ovro.txt")
 
 headnodehost    = "ledagpu5"
 webserverhost   = "ledagpu5"

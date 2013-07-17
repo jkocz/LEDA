@@ -39,7 +39,9 @@ status_img = function(status) {
 	}
 }
 
-vis_image = "roach01_adc01";
+/*vis_image = "roach01_adc01";*/
+vis_image = "latest_vis";
+vis_mode  = "adc_all_spectra";
 vis_image_number = 0;
 
 function onStatusUpdate(response) {
@@ -94,6 +96,10 @@ function onStatusUpdate(response) {
 	}
 }
 function setVisImage() {
+	i = document.getElementById("stand_i").value;
+	j = document.getElementById("stand_j").value;
+	send("get_vis=" + vis_mode + "&i=" + i + "&j=" + j);
+	
 	img_src = "static/images/" + vis_image + ".png";
 	// Append date to prevent caching
 	//img_src += "?" + new Date().getTime();
@@ -120,14 +126,102 @@ function onStartObsClick(event) {
 	// Wait a second to ensure the TP message gets through first
 	setTimeout(function() { send("start=1"); }, 1000);
 }
-function onStopObsClick(event)  { send("stop=1"); }
-function onKillObsClick(event)  { send("kill=1"); }
+function onStopObsClick(event) { send("stop=1"); }
+function onKillObsClick(event) { send("kill=1"); }
 function onProgramRoachesClick(event) { send("program_roaches=1"); }
 function onCreateBuffersClick(event) { send("create_buffers=1"); }
-function onVisModeClick(event)  { vis_image = this.value; setVisImage(); }
+function onVisModeClick(event) {
+	vis_mode = this.id;
+	setVisImage();
+}
 function requestStatus() { request("status=1", onStatusUpdate); }
-function updateImages() { request("adc_images=1&vismatrix_images=1", onImageUpdate);
-						  /*request("vismatrix_images=1", onImageUpdate);*/ }
+/*function updateImages() { request("adc_images=1&vismatrix_images=1", onImageUpdate); }*/
+function updateVis() { request("update_vis=1", onImageUpdate); }
+
+/*
+ This tabs code comes from here:
+   http://www.my-html-codes.com/javascript-tabs-html-5-css3
+*/
+function initTabs() {
+	/*
+	// get tab container
+  	var container = document.getElementById("tabContainer");
+		var tabcon = document.getElementById("tabscontent");
+		//alert(tabcon.childNodes.item(1));
+    // set current tab
+    var navitem = document.getElementById("tabHeader_1");
+		
+    //store which tab we are on
+    var ident = navitem.id.split("_")[1];
+		//alert(ident);
+    navitem.parentNode.setAttribute("data-current",ident);
+    //set current tab with class of activetabheader
+    navitem.setAttribute("class","tabActiveHeader");
+
+    //hide two tab contents we don't need
+   	 var pages = tabcon.getElementsByTagName("div");
+    	for (var i = 1; i < pages.length; i++) {
+     	 pages.item(i).style.display="none";
+		};
+
+    //this adds click event to tabs
+    var tabs = container.getElementsByTagName("li");
+    for (var i = 0; i < tabs.length; i++) {
+      tabs[i].onclick=displayPage;
+    }
+	*/
+	
+	
+	// get tab container
+	var container = document.getElementById("tabContainer");
+    // set current tab
+    var navitem = container.querySelector(".tabs ul li");
+    //store which tab we are on
+    var ident = navitem.id.split("_")[1];
+    navitem.parentNode.setAttribute("data-current",ident);
+    //set current tab with class of activetabheader
+    navitem.setAttribute("class","tabActiveHeader");
+
+    //hide two tab contents we don't need
+    var pages = container.querySelectorAll(".tabpage");
+    for (var i = 1; i < pages.length; i++) {
+      pages[i].style.display="none";
+    }
+
+    //this adds click event to tabs
+    var tabs = container.querySelectorAll(".tabs ul li");
+    for (var i = 0; i < tabs.length; i++) {
+      tabs[i].onclick=displayTabPage;
+    }
+    
+}
+// Called on click of one of the tabs
+function displayTabPage() {
+	/*
+  var current = this.parentNode.getAttribute("data-current");
+  //remove class of activetabheader and hide old contents
+  document.getElementById("tabHeader_" + current).removeAttribute("class");
+  document.getElementById("tabpage_" + current).style.display="none";
+
+  var ident = this.id.split("_")[1];
+  //add class of activetabheader to new active tab and show contents
+  this.setAttribute("class","tabActiveHeader");
+  document.getElementById("tabpage_" + ident).style.display="block";
+  this.parentNode.setAttribute("data-current",ident);
+	*/
+	
+  var current = this.parentNode.getAttribute("data-current");
+  //remove class of activetabheader and hide old contents
+  document.getElementById("tabHeader_" + current).removeAttribute("class");
+  document.getElementById("tabpage_" + current).style.display="none";
+
+  var ident = this.id.split("_")[1];
+  //add class of activetabheader to new active tab and show contents
+  this.setAttribute("class","tabActiveHeader");
+  document.getElementById("tabpage_" + ident).style.display="block";
+  this.parentNode.setAttribute("data-current",ident);
+
+}
 
 function main() {
 	document.getElementById("start_obs").onclick = onStartObsClick;
@@ -135,6 +229,7 @@ function main() {
 	document.getElementById("kill_obs").onclick  = onKillObsClick;
 	document.getElementById("program_roaches").onclick  = onProgramRoachesClick;
 	document.getElementById("create_buffers").onclick  = onCreateBuffersClick;
+	/*
 	document.getElementById("vis_roach1_adc1").checked = 1;
 	document.getElementById("vis_roach1_adc1").onclick = onVisModeClick;
 	document.getElementById("vis_roach1_adc2").onclick = onVisModeClick;
@@ -144,11 +239,19 @@ function main() {
 	document.getElementById("vis_vismatrix_svr2_str2").onclick = onVisModeClick;
 	document.getElementById("vis_vismatrix_svr2_str3").onclick = onVisModeClick;
 	document.getElementById("vis_vismatrix_svr2_str4").onclick = onVisModeClick;
-	
+	*/
 	/*document.getElementById("total_power_enabled").checked = false;*/
 	
+	var container = document.getElementById("vis_panel");
+	var vismodebuttons = container.querySelectorAll(".vismodebutton");
+    for( var i=0; i<vismodebuttons.length; i++ ) {
+		vismodebuttons[i].onclick = onVisModeClick;
+    }
+	
+	initTabs();
+	
 	requestStatus();
-	updateImages();
 	setInterval(requestStatus, 5000);
-	setInterval(updateImages, 10000);
+	updateVis();
+	setInterval(updateVis, 5000);
 }
