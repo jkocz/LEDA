@@ -18,9 +18,9 @@ class LEDARemoteHeadNodeVis(LEDAClient):
 		super(LEDARemoteHeadNodeVis, self).__init__(host, port, log)
 		self.connect()
 	def open(self):
-		self._sendcmd('open=1')
+		return self._sendcmd('open=1')
 	def update(self):
-		self._sendcmd('update=1')
+		return self._sendcmd('update=1')
 	def getStand(self, idx):
 		imgdata = receive_image(self._sendmsg('stand=%i' % idx))
 		return imgdata

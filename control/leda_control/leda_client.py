@@ -47,7 +47,9 @@ class LEDAClient(object):
 	def _sendcmd(self, cmd):
 		ret = self._sendmsg(cmd)
 		if ret is None:
-			return
-		if ret != 'ok':
+			return None
+		if ret == 'ok':
+			return True
+		else:
 			self.log.write("Remote command failed", -2)
 			raise Exception("Remote command failed")

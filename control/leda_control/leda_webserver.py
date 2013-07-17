@@ -113,15 +113,17 @@ class Application(tornado.web.Application):
 		if time.time() - self.last_vis_update_time >= self.min_vis_refresh_time:
 			print "Requesting updated vis data from head node"
 			self.last_vis_update_time = time.time()
-			self.ledavis.update()
+			ret = self.ledavis.update()
+			if ret is None:
+				print "Vis connection down"
+				print "Reconnecting"
+				self.ledavis.connect()
 	def getVis(self, visname, i, j):
 		print "Request for vis '%s' (i=%i j=%i)" % (visname,i,j)
 		if time.time() - self.last_vis_get_time >= self.min_vis_get_time:
 			imgdata = self.ledavis.get("%s=1&i=%i&j=%i" % (visname,i,j))
 			if imgdata is None:
-				print "Vis connection down"
-				print "Reconnecting"
-				self.ledavis.connect()
+				print "Vis connection down, cannot get data"
 			else:
 				filename = "static/images/latest_vis.png"
 				open(filename, 'wb').write(imgdata)
