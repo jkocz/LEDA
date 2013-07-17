@@ -73,17 +73,19 @@ capture_headerpaths = [os.path.join(headerpath,"header64%s.txt"%x) \
 	                       for x in ['a','b']]
 
 if servername == serverhosts[0]:
-	capture_ips         = ["192.168.40.5", "192.168.40.5"]
-	capture_ports       = [4015, 4016]
-	subbands            = [1, 2]
-	#centerfreqs         = [51.6, 66.0]
-	#bandwidths          = [bandwidth, bandwidth]
+	#capture_ips         = ["192.168.40.5", "192.168.40.5"]
+	#capture_ports       = [4015, 4016]
+	#subbands            = [1, 2]
+	capture_ips         = ["192.168.40.6", "192.168.40.5"]
+	capture_ports       = [4018, 4015]
+	subbands            = [0, 1]
 elif servername == serverhosts[1]:
-	capture_ips         = ["192.168.40.6", "192.168.40.6"]
-	capture_ports       = [4017, 4018]
-	subbands            = [3, 0]
-	#centerfreqs         = [80.4, 37.2]
-	#bandwidths          = [bandwidth, bandwidth]
+	#capture_ips         = ["192.168.40.6", "192.168.40.6"]
+	#capture_ports       = [4017, 4018]
+	#subbands            = [3, 0]
+	capture_ips         = ["192.168.40.5", "192.168.40.6"]
+	capture_ports       = [4016, 4017]
+	subbands            = [2, 3]
 elif servername not in [headnodehost, webserverhost]:
 	#raise NameError("This server (%s) is not in the config file" % servername)
 	print "WARNING: This server (%s) is not recognised in the config file" % servername
