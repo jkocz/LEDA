@@ -20,7 +20,7 @@ npol               = 2
 site_stands_file = getenv_warn('SITE_STANDS_FILE',
                                "site_stands_ovro.txt")
 leda_stands_file = getenv_warn('LEDA_STANDS_FILE',
-                               "leda_stands_leda64ovro.txt")
+                               "leda_stands_ovro64.txt")
 
 headnodehost    = "ledagpu5"
 webserverhost   = "ledagpu5"

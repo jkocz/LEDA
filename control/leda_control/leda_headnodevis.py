@@ -16,6 +16,7 @@ import StringIO
 from SimpleSocket import SimpleSocket
 from leda_client import LEDAClient
 from leda_logger import LEDALogger
+import corr
 import base64
 import matplotlib
 import numpy as np
@@ -134,7 +135,7 @@ class LEDARemoteVisManager(object):
 		self.stand2leda = stand2leda
 		self.leda2stand = stand2leda.argsort()
 		self.log = log
-		self.servers = [LEDARemoveVisServer(host,controlport,log) \
+		self.servers = [LEDARemoteVisServer(host,controlport,log) \
 			                for host in serverhosts]
 		self.roaches = [LEDARoachVis(host,roachport,log) \
 			                for host in roachhosts]
@@ -478,6 +479,7 @@ def onMessage(ledavis, message, clientsocket, address):
 		send_image(clientsocket, imgdata)
 
 if __name__ == "__main__":
+	import sys
 	from configtools import *
 	import functools
 	
@@ -489,8 +491,8 @@ if __name__ == "__main__":
 	logstream   = sys.stderr
 	debuglevel  = 1
 	
-	df     = corr_clockfreq / float(corr_nfft)
-	hifreq = lowfreq + df*nchan*len(serverhosts)
+	df       = corr_clockfreq / float(corr_nfft)
+	highfreq = lowfreq + df*nchan*len(serverhosts)
 	
 	stands, stands_x, stands_y = \
 	    np.loadtxt(site_stands_file, usecols=[0,1,2], unpack=True)
@@ -500,7 +502,7 @@ if __name__ == "__main__":
 	stands_y = stands_y[inds]
 	
 	stands, roaches, adcs, adc_inds, stand2leda = \
-	    np.load(leda_stands_file, usecols=[0,1,2,3,4], unpack=True)
+	    np.loadtxt(leda_stands_file, usecols=[0,1,2,3,4], unpack=True)
 	# Convert from 1-based to 0-based indexing
 	stands     -= 1
 	roaches    -= 1
