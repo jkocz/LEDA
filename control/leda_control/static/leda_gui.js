@@ -46,7 +46,7 @@ vis_image_number = 0;
 
 function onStatusUpdate(response) {
 	leda = JSON.parse(response);
-	console.log(response);
+	//console.log(response);
 	//leda = response;
 	
 	img_src = status_img(leda.headnode.alive);
@@ -99,7 +99,7 @@ function onStatusUpdate(response) {
 function setVisImage() {
 	i = document.getElementById("stand_i").value;
 	j = document.getElementById("stand_j").value;
-	send("get_vis=" + vis_mode + "=1&i=" + i + "&j=" + j);
+	send("get_vis=" + vis_mode + "&i=" + i + "&j=" + j);
 	
 	img_src = "static/images/" + vis_image + ".png";
 	// Append date to prevent caching
@@ -254,5 +254,6 @@ function main() {
 	requestStatus();
 	setInterval(requestStatus, 5000);
 	updateVis();
-	setInterval(updateVis, 5000);
+	// Note: This seems to block the status updates if they coincide exactly
+	setInterval(updateVis, 5123);
 }

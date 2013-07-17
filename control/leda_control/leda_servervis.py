@@ -141,16 +141,18 @@ def onMessage(ledavis, message, clientsocket, address):
 		if visibilities is None:
 			clientsocket.send("none")
 		else:
-			i = np.arange(visibilities.shape[2])
-			powspectra_x = np.real(visibilities[0,:,i,i,0,0])
-			powspectra_y = np.real(visibilities[0,:,i,i,1,1])
+			#i = np.arange(visibilities.shape[2])
+			#powspectra_x = np.real(visibilities[0,:,i,i,0,0])
+			#powspectra_y = np.real(visibilities[0,:,i,i,1,1])
+			powspectra_x = np.real(visibilities[0,:,:,:,0,0]).diagonal(axis1=1,axis2=2)
+			powspectra_y = np.real(visibilities[0,:,:,:,1,1]).diagonal(axis1=1,axis2=2)
 			
 			# Reduce channel resolution (taking the max val)
 			# Note: If taking avg here, need to normalise by len(sb)
 			powspectra_x = np.array_split(powspectra_x, ledavis.nchan_reduced)
-			powspectra_x = np.array([sb.max() for sb in powspectra_x])
+			powspectra_x = np.array([sb.max(axis=0) for sb in powspectra_x])
 			powspectra_y = np.array_split(powspectra_y, ledavis.nchan_reduced)
-			powspectra_y = np.array([sb.max() for sb in powspectra_y])
+			powspectra_y = np.array([sb.max(axis=0) for sb in powspectra_y])
 			
 			powspectra_x = 10*np.log10(powspectra_x)
 			powspectra_y = 10*np.log10(powspectra_y)

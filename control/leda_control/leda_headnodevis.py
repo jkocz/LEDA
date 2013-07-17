@@ -62,7 +62,7 @@ class LEDARemoteVisServer(LEDAClient):
 		powspec_x, powspec_y = data
 		return powspec_x, powspec_y
 	def getFringes(self, idx_i, idx_j):
-		metadata = receive_array(self._sendmsg('fringes=1&i=%i&j=%j' \
+		metadata = receive_array(self._sendmsg('fringes=1&i=%i&j=%i' \
 			                                       % (idx_i,idx_j)))
 		if metadata is None:
 			return None
@@ -70,14 +70,14 @@ class LEDARemoteVisServer(LEDAClient):
 		fringes_xx, fringes_yy = data
 		return fringes_xx, fringes_yy
 	def getMatrices(self):
-		metadata = receive_array(self._sendmsg('matrices'))
+		metadata = receive_array(self._sendmsg('matrices=1'))
 		if metadata is None:
 			return None
 		data = metadata['data']
 		amp_xx, amp_yy, phase_xx, phase_yy = data
 		return amp_xx, amp_yy, phase_xx, phase_yy
 	def getAllSpectra(self):
-		metadata = receive_array(self._sendmsg('all_spectra'))
+		metadata = receive_array(self._sendmsg('all_spectra=1'))
 		if metadata is None:
 			return None
 		data = metadata['data']
@@ -190,7 +190,7 @@ class LEDARemoteVisManager(object):
 			ret = server.getFringes(idx_i, idx_j)
 			if ret is None:
 				return None
-			fringes_x, fringes_y = ret
+			fringes_xx, fringes_yy = ret
 			fringes_subbands_xx.append(fringes_xx)
 			fringes_subbands_yy.append(fringes_yy)
 		self.sortByFreq(fringes_subbands_xx)

@@ -22,7 +22,7 @@ class LEDARemoteHeadNodeVis(LEDAClient):
 	def update(self):
 		return self._sendcmd('update=1')
 	def getStand(self, idx):
-		imgdata = receive_image(self._sendmsg('stand=%i' % idx))
+		imgdata = receive_image(self._sendmsg('stand=1&i=%i' % idx))
 		return imgdata
 	def getFringes(self, i, j):
 		imgdata = receive_image(self._sendmsg('fringes=1&i=%i&j=%i' % (i,j)))
