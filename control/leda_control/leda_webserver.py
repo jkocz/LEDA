@@ -48,6 +48,7 @@ class Application(tornado.web.Application):
 		self.ledavis = LEDARemoteHeadNodeVis(self.remote_host,
 		                                     vis_port,
 		                                     self.log)
+		self.ledavis.open()
  #self.last_vismatimage_time >= self.min_vismat_refresh_time:
 		"""
 		self.min_adcimage_refresh_time = 14
@@ -195,6 +196,8 @@ class AJAXHandler(tornado.web.RequestHandler):
 		
 		if self.get_argument("start", default=None) is not None:
 			self.application.leda.startObservation()
+			# TODO: Make sure this works so quickly after starting
+			self.application.ledavis.open()
 		elif self.get_argument("stop", default=None) is not None:
 			self.application.leda.stopObservation()
 		elif self.get_argument("kill", default=None) is not None:
@@ -210,9 +213,9 @@ class AJAXHandler(tornado.web.RequestHandler):
 			self.application.updateVis()
 		elif self.get_argument("get_vis", default=None) is not None:
 			visname = self.get_argument("get_vis")
-			# Note: Web interface uses 1-based indexing
-			i = int(self.get_argument("i")) - 1
-			j = int(self.get_argument("j")) - 1
+			## Note: Web interface uses 1-based indexing
+			i = int(self.get_argument("i"))# - 1
+			j = int(self.get_argument("j"))# - 1
 			self.application.getVis(visname, i, j)
 			self.write("ok")
 

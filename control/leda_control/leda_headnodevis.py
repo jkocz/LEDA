@@ -48,7 +48,7 @@ class LEDARemoteVisServer(LEDAClient):
 		self.navg        = metadata['navg']
 		self.center_freq = metadata['center_freq']
 	def update(self):
-		self._sendcmd('update=1')
+		return self._sendcmd('update=1')
 	def getStand(self, idx):
 		metadata = receive_array(self._sendmsg('stand=%i' % idx))
 		if metadata is None:
@@ -150,6 +150,9 @@ class LEDARemoteVisManager(object):
 		self.navg = self.servers[0].navg
 		self.center_freq = sum([server.center_freq for server in self.servers]) \
 		    / float(len(self.servers))
+	def update(self):
+		for server in self.servers:
+			server.update()
 	def sortByFreq(self, values):
 		cfreqs = [server.center_freq for server in self.servers]
 		cfreqs, values = zip(*sorted(zip(cfreqs, values)))
