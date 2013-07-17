@@ -18,19 +18,24 @@ from leda_client import LEDAClient
 from leda_logger import LEDALogger
 import corr
 import base64
-import matplotlib
+import json
 import numpy as np
-#matplotlib.use('TkAgg') # Requires tkinter
+import matplotlib
+matplotlib.use('Agg') # Prevent it from trying to use Xwindows backend
 import matplotlib.pyplot as plt
 import time
 
 g_port = 6283
 
 def receive_array(msg):
-	if msg == "none":
+	if msg is None or msg == "none":
 		return None
+	#datastr = StringIO.StringIO(msg)
+	#data = np.load(datastr)
+	#return data
 	metadata = json.loads(msg)
-	datastr = StringIO.StringIO(metadata['data'])
+	decoded_data = base64.standard_b64decode(metadata['data'])
+	datastr = StringIO.StringIO(decoded_data)
 	metadata['data'] = np.load(datastr)
 	return metadata
 

@@ -8,11 +8,19 @@ By Ben Barsdell (2013)
 
 import datetime
 import os
+import sys
+import glob
+import json
+import base64
 import StringIO
+import numpy as np
 from SimpleSocket import SimpleSocket
 from leda_correlator_dump import correlator_dump
 
 port = 3142
+
+# Debug level
+DL = 1
 
 def getCurrentDadaTimeUS():
   now = datetime.datetime.today()
@@ -40,13 +48,15 @@ class LEDAVis(object):
 	def open_latest(self):
 		""" 'Opens' latest correlator dump
 		"""
-		datestamps = [self.getLatestDatestamp(path) \
+		datestamps = [self._getLatestDatestamp(path) \
 			              for path in self.datapaths]
 		self.data.open(datestamps)
 		
 	def _getLatestDatestamp(self, path, rank=0):
-		return sorted(glob.glob(path + "/*.dada"),
-		              key=os.path.getmtime, reverse=True)[rank][:19]
+		pathname = sorted(glob.glob(path + "/*.dada"),
+		                  key=os.path.getmtime, reverse=True)[rank]
+		datestamp = pathname[:-29]
+		return datestamp
 	
 	def update(self):
 		self.visibilities = self.data.read_last()
@@ -58,9 +68,10 @@ def send_array(socket, data, metadata={}):
 	datastr = StringIO.StringIO()
 	np.save(datastr, data)
 	#socket.send(datastr.getvalue())
-	metadata['data'] = datastr.getvalue()
-	encoded = json.dumps(metadata)
-	socket.send(encoded)
+	encoded_data = base64.standard_b64encode(datastr.getvalue())
+	metadata['data'] = encoded_data
+	encoded_metadata = json.dumps(metadata)
+	socket.send(encoded_metadata)
 
 def onMessage(ledavis, message, clientsocket, address):
 	args = dict([x.split('=') for x in message.split('&')])
@@ -92,7 +103,7 @@ def onMessage(ledavis, message, clientsocket, address):
 			powspec_y = np.real(visibilities[0,:,i,i,1,1])
 			powspec_x = 10*np.log10(powspec_x)
 			powspec_y = 10*np.log10(powspec_y)
-			data = numpy.array([powspec_x, powspec_y])
+			data = np.array([powspec_x, powspec_y])
 			send_array(clientsocket, data)
 	elif 'fringes' in args:
 		i = int(args['i'])
@@ -104,7 +115,7 @@ def onMessage(ledavis, message, clientsocket, address):
 		else:
 			fringes_xx = np.angle(visibilities[0,:,i,j,0,0])
 			fringes_yy = np.angle(visibilities[0,:,i,j,1,1])
-			data = numpy.array([fringes_xx, fringes_yy])
+			data = np.array([fringes_xx, fringes_yy])
 			send_array(clientsocket, data)
 	elif 'matrices' in args:
 		logMsg(1, DL, "Matrix data requested")
@@ -119,7 +130,7 @@ def onMessage(ledavis, message, clientsocket, address):
 			amp_yy    = 10*np.log10(np.abs(matrix_yy))
 			phase_xx  = np.angle(matrix_xx)
 			phase_yy  = np.angle(matrix_yy)
-			data = numpy.array([amp_xx, amp_yy, phase_xx, phase_yy])
+			data = np.array([amp_xx, amp_yy, phase_xx, phase_yy])
 			send_array(clientsocket, data)
 	elif 'all_spectra' in args:
 		logMsg(1, DL, "All-spectra data requested")
@@ -143,7 +154,7 @@ def onMessage(ledavis, message, clientsocket, address):
 			
 			powspectra_x = 10*np.log10(powspectra_x)
 			powspectra_y = 10*np.log10(powspectra_y)
-			data = numpy.array([powspectra_x, powspectra_y])
+			data = np.array([powspectra_x, powspectra_y])
 			send_array(clientsocket, data)
 	else:
 		logMsg(1, DL, "Ignoring unknown message: %s" % message)

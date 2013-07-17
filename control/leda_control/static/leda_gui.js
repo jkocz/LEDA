@@ -41,11 +41,12 @@ status_img = function(status) {
 
 /*vis_image = "roach01_adc01";*/
 vis_image = "latest_vis";
-vis_mode  = "adc_all_spectra";
+vis_mode  = "stand=1";
 vis_image_number = 0;
 
 function onStatusUpdate(response) {
 	leda = JSON.parse(response);
+	console.log(response);
 	//leda = response;
 	
 	img_src = status_img(leda.headnode.alive);

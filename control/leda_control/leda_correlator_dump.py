@@ -1,5 +1,6 @@
 
 import numpy as np
+import glob
 
 def lookup_warn(table, key, default=None):
 	try:
@@ -44,15 +45,26 @@ class correlator_dump(object):
 		self.ndim     = self.subbands[0].ndim
 		self.npol     = self.subbands[0].npol
 		self.nstation = self.subbands[0].nstation
-		self.input    = self.subbands[0].ninput
+		self.ninput   = self.subbands[0].ninput
 		self.navg     = self.subbands[0].navg
 		self.center_freq = sum([sb.center_freq for sb in self.subbands]) \
 		    / float(len(self.subbands))
 		
 	def read(self, first_int, nint=1):
-		fullmatrix = np.concatenate([sb.read(first_int, nint) \
-			                             for sb in self.subbands],
-		                            axis=1)
+		if len(self.subbands) == 0:
+			return None
+		subbands = [sb.read(first_int, nint) for sb in self.subbands]
+		if any([sb is None for sb in subbands]):
+			return None
+		fullmatrix = np.concatenate(subbands, axis=1)
+		return fullmatrix
+	def read_last(self):
+		if len(self.subbands) == 0:
+			return None
+		subbands = [sb.read_last() for sb in self.subbands]
+		if any([sb is None for sb in subbands]):
+			return None
+		fullmatrix = np.concatenate(subbands, axis=1)
 		return fullmatrix
 
 # Represents one sub-band of a correlator dump
