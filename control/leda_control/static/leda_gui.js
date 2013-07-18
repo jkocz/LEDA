@@ -103,8 +103,8 @@ function setVisImage() {
 	
 	img_src = "static/images/" + vis_image + ".png";
 	// Append date to prevent caching
-	//img_src += "?" + new Date().getTime();
-	img_src += "?" + vis_image_number;
+	img_src += "?" + new Date().getTime();
+	//img_src += "?" + vis_image_number;
 	document.getElementById("minivis").src = img_src;
 }
 function onImageUpdate(response) {

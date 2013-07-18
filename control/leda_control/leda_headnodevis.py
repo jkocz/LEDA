@@ -122,6 +122,13 @@ class LEDARoachVis(object):
 		powspectra_x = np.real(fdata_x*np.conj(fdata_x)).astype(np.float32)
 		powspectra_y = np.real(fdata_y*np.conj(fdata_y)).astype(np.float32)
 		return powspectra_x, powspectra_y
+	def getSampleHists(self):
+		all_samples_x, all_samples_y = self.getSamples()
+		all_samples_x = all_samples_x.T
+		all_samples_y = all_samples_y.T
+		hists_x = [np.histogram(s, bins=15)[0] for s in all_samples_x]
+		hists_y = [np.histogram(s, bins=15)[0] for s in all_samples_y]
+		return hists_x, hists_y
 
 class LEDARemoteVisManager(object):
 	def __init__(self,
@@ -217,10 +224,10 @@ class LEDARemoteVisManager(object):
 			amp_yy_subbands.append(amp_yy)
 			phase_xx_subbands.append(phase_xx)
 			phase_yy_subbands.append(phase_yy)
-		amp_xx = np.array(amp_xx_subbands).mean(axis=0)
-		amp_yy = np.array(amp_yy_subbands).mean(axis=0)
-		phase_xx = np.array(phase_xx_subbands).mean(axis=0)
-		phase_yy = np.array(phase_yy_subbands).mean(axis=0)
+		amp_xx = np.median(np.array(amp_xx_subbands), axis=0)
+		amp_yy = np.median(np.array(amp_yy_subbands), axis=0)
+		phase_xx = np.median(np.array(phase_xx_subbands), axis=0)
+		phase_yy = np.median(np.array(phase_yy_subbands), axis=0)
 		"""
 		# Sort into real stand order
 		amp_xx = amp_xx[self.stand2leda, self.stand2leda]
@@ -361,12 +368,30 @@ def onMessage(ledavis, message, clientsocket, address):
 			nchan_reduced = fringes_xx.shape[0]
 			freqs = np.linspace(ledavis.lowfreq, ledavis.highfreq, nchan_reduced)
 			
+			stand_i = ledavis.leda2stand[idx_i]
+			stand_j = ledavis.leda2stand[idx_j]
+			stands_x, stands_y = ledavis.stands_x.copy(), ledavis.stands_y.copy()
+			# HACK to bring outriggers in closer
+			stands_x[-5:] *= 0.5
+			stands_y[-5:] *= 0.5
+			
 			plt.figure(figsize=(10.24, 7.68), dpi=100)
 			plt.plot(freqs, fringes_xx, color='r')
 			plt.plot(freqs, fringes_yy, color='b')
 			plt.xlabel('Frequency [MHz]')
 			plt.ylabel('Phase [radians]')
-			plt.title('LEDA fringes for baseline %i - %i' % (idx_i,idx_j))
+			plt.title('LEDA fringes for baseline %i - %i' % \
+				          (stand_i+1, stand_j+1))
+			# Add subplot showing stands and baseline
+			ax2 = plt.axes([0.7,0.7,0.2,0.2])
+			ax2.plot(stands_x, stands_y, '.', c='black', markersize=2)
+			ax2.plot([stands_x[stand_i],stands_x[stand_j]],
+			         [stands_y[stand_i],stands_y[stand_j]],
+			         color='purple', lw=2)
+			ax2.set_xticklabels(())
+			ax2.set_yticklabels(())
+			ax2.set_xticks(())
+			ax2.set_yticks(())
 		imgfile = StringIO.StringIO()
 		plt.savefig(imgfile, format='png', bbox_inches='tight')
 		plt.close()
@@ -444,14 +469,13 @@ def onMessage(ledavis, message, clientsocket, address):
 			dv = 1.1 * (ymax-ymin)
 			
 			#stands = ledavis.stands
-			stands_x, stands_y = ledavis.stands_x, ledavis.stands_y
+			stands_x, stands_y = ledavis.stands_x.copy(), ledavis.stands_y.copy()
 			stands_x_max = np.abs(stands_x).max()
 			stands_y_max = np.abs(stands_y).max()
-			"""
 			# HACK to bring outriggers in closer
-			stands_x[251:256] *= 0.5
-			stands_y[251:256] *= 0.5
-			"""
+			stands_x[-5:] *= 0.5
+			stands_y[-5:] *= 0.5
+			
 			plt.figure(figsize=(10.24, 7.68), dpi=100)
 			plt.axis('off')
 			
@@ -495,6 +519,47 @@ def onMessage(ledavis, message, clientsocket, address):
 		plt.close()
 		imgdata = imgfile.getvalue()
 		send_image(clientsocket, imgdata)
+	
+	elif 'adc_all_spectra' in args:
+		ret = ledavis.getADCAllSpectra()
+		if ret is None:
+			plot_none()
+		else:
+			powspectra_x, powspectra_y = ret
+			
+			xmin = ledavis.lowfreq
+			xmax = ledavis.highfreq
+			ymin = 75
+			ymax = 95
+			
+			du = 1.1 * (xmax-xmin)
+			dv = 1.1 * (ymax-ymin)
+			
+			plt.figure(figsize=(10.24, 7.68), dpi=100)
+			plt.axis('off')
+			
+			for v in range(ledavis.nstation / ntile):
+				for u in range(ntile):
+					i = u + v*ntile
+					powspec_x = powspectra_x[:,i]
+					powspec_y = powspectra_y[:,i]
+					# Saturate values to visible range for better visualisation
+					powspec_x[powspec_x < ymin] = ymin
+					powspec_y[powspec_y < ymin] = ymin
+					
+					stand_i = ledavis.adc2stand[i]
+					plt.plot(freqs + u*du, powspec_x + v*dv, color='r', linewidth=0.5)
+					plt.plot(freqs + u*du, powspec_y + v*dv, color='b', linewidth=0.5)
+					plt.text(xmin + u*du, ymin + v*dv,
+					         # Note: i here is (0-based) real stand index
+							 stand_i + 1,
+							 fontsize=6, color='black')
+					
+		imgfile = StringIO.StringIO()
+		plt.savefig(imgfile, format='png', bbox_inches='tight')
+		plt.close()
+		imgdata = imgfile.getvalue()
+		send_image(clientsocket, imgdata)
 
 if __name__ == "__main__":
 	import sys
@@ -510,11 +575,12 @@ if __name__ == "__main__":
 	debuglevel  = 1
 	
 	df       = corr_clockfreq / float(corr_nfft)
-	highfreq = lowfreq + df*nchan*len(serverhosts)
+	highfreq = lowfreq + df*nchan*len(serverhosts)*nstream
 	
 	stands, stands_x, stands_y = \
 	    np.loadtxt(site_stands_file, usecols=[0,1,2], unpack=True)
 	# Sort into proper stand order
+	stands = stands.astype(np.int32)
 	inds = stands.argsort()
 	stands_x = stands_x[inds]
 	stands_y = stands_y[inds]
@@ -522,11 +588,11 @@ if __name__ == "__main__":
 	stands, roaches, adcs, adc_inds, leda_inds = \
 	    np.loadtxt(leda_stands_file, usecols=[0,1,2,3,4], unpack=True)
 	# Convert from 1-based to 0-based indexing
-	stands    -= 1
-	roaches   -= 1
-	adcs      -= 1
-	adc_inds  -= 1
-	leda_inds -= 1
+	stands    = stands.astype(np.int32) - 1
+	roaches   = roaches.astype(np.int32) - 1
+	adcs      = adcs.astype(np.int32) - 1
+	adc_inds  = adc_inds.astype(np.int32) - 1
+	leda_inds = leda_inds.astype(np.int32) - 1
 	# Sort into stand order
 	#inds = stands.argsort()
 	inds = leda_inds.argsort()

@@ -31,7 +31,7 @@ class correlator_dump(object):
 			header_sizes = [None] * len(datestamps)
 		if extensions is None:
 			extensions = [None] * len(datestamps)
-		
+		self.subbands = []
 		for datestamp, header_size, extension \
 			    in zip(datestamps,header_sizes,extensions):
 			subband = correlator_subband_dump()
