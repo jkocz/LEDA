@@ -118,6 +118,8 @@ class LEDADiskProcess(LEDAProcess):
 		self.bufkey  = bufkey
 		self.outpath = outpath
 		self.core    = core
+		if not os.path.exists(outpath):
+			raise ValueError("Output path '%s' does not exist" % outpath)
 	def start(self):
 		args = "-b%i -s -W -k %s -D %s" % (self.core, self.bufkey, self.outpath)
 		#args = ["-b%i"%self.core, "-s", "-W",
@@ -256,11 +258,11 @@ class LEDACaptureProcess(LEDAProcess):
 		tail = subprocess.Popen(["tail", "-n", "1", self.logpath],
 		                        stdout=subprocess.PIPE)
 		output = tail.communicate()[0]
-		if output[0] == '[': # Line contains a message
-			return {"receiving":'?', "dropping":'?', "dropped":'?', "sleeps":'?'}
-		cols = output.split()
-		# WAR for changes in log syntax at different values (wtf psrdada?)
+		# WAR for changes in log syntax at different values
 		try:
+			if output[0] == '[': # Line contains a message
+				return {"receiving":'?', "dropping":'?', "dropped":'?', "sleeps":'?'}
+			cols = output.split()
 			if len(cols) == 9:
 				_,receiving,_,_,dropping,_,dropped,_,sleeps = cols
 				dropping = float(dropping)
