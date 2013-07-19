@@ -28,7 +28,7 @@ import datetime
 import subprocess
 import json
 import glob
-from PIL import Image # Note: Must be like this when using 'pillow' fork
+#from PIL import Image # Note: Must be like this when using 'pillow' fork
 import StringIO, base64
 
 #from leda_visrenderer import generate_vismatrix_plots
@@ -259,22 +259,25 @@ class LEDACaptureProcess(LEDAProcess):
 		if output[0] == '[': # Line contains a message
 			return {"receiving":'?', "dropping":'?', "dropped":'?', "sleeps":'?'}
 		cols = output.split()
-		# WAR for change in log syntax when dropping > 0.0 (missing space)
-		if len(cols) == 9:
-			_,receiving,_,_,dropping,_,dropped,_,sleeps = cols
-			dropping = float(dropping)
-		elif len(cols) == 8:
-			_,receiving,_,dropping,_,dropped,_,sleeps = cols
-			dropping = float(dropping[2:])
-		else: # Some other message (e.g., "Terminated")
+		# WAR for changes in log syntax at different values (wtf psrdada?)
+		try:
+			if len(cols) == 9:
+				_,receiving,_,_,dropping,_,dropped,_,sleeps = cols
+				dropping = float(dropping)
+			elif len(cols) == 8:
+				_,receiving,_,dropping,_,dropped,_,sleeps = cols
+				dropping = float(dropping[2:])
+			else: # Some other message (e.g., "Terminated")
+				return {"receiving":'?', "dropping":'?', "dropped":'?', "sleeps":'?'}
+			receiving = float(receiving)
+			dropped   = int(dropped[2:])
+			sleeps    = int(sleeps[4:])
+			return {"receiving": receiving,
+					"dropping":  dropping,
+					"dropped":   dropped,
+					"sleeps":    sleeps}
+		except ValueError:
 			return {"receiving":'?', "dropping":'?', "dropped":'?', "sleeps":'?'}
-		receiving = float(receiving)
-		dropped   = int(dropped[2:])
-		sleeps    = int(sleeps[4:])
-		return {"receiving": receiving,
-		        "dropping":  dropping,
-		        "dropped":   dropped,
-		        "sleeps":    sleeps}
 
 class LEDABuffer(object):
 	def __init__(self, dadapath, bufkey, size, core=None):

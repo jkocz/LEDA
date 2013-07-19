@@ -16,8 +16,10 @@ corr_nbit_in       = 4
 ndim               = 2
 npol               = 2
 
-stands_file = getenv_warn('LEDA_STANDS_FILE',
-                          "stands_leda512ovro_???.txt")
+site_stands_file = getenv_warn('SITE_STANDS_FILE',
+                               "site_stands_ovro.txt")
+leda_stands_file = getenv_warn('LEDA_STANDS_FILE',
+                               "leda_stands_ovro512.txt")
 
 headnodehost    = "ledagpu0"
 webserverhost   = "ledagpu0"

@@ -16,6 +16,7 @@ import StringIO
 from SimpleSocket import SimpleSocket
 from leda_client import LEDAClient
 from leda_logger import LEDALogger
+import subprocess
 import corr
 import base64
 import json
@@ -121,6 +122,8 @@ class LEDARoachVis(object):
 		fdata_y = np.fft.rfft(tdata_y, axis=0) / tdata_y.shape[0]
 		powspectra_x = np.real(fdata_x*np.conj(fdata_x)).astype(np.float32)
 		powspectra_y = np.real(fdata_y*np.conj(fdata_y)).astype(np.float32)
+		powspectra_x = 10*np.log10(powspectra_x)
+		powspectra_y = 10*np.log10(powspectra_y)
 		return powspectra_x, powspectra_y
 	def getSampleHists(self):
 		all_samples_x, all_samples_y = self.getSamples()
@@ -538,6 +541,10 @@ def onMessage(ledavis, message, clientsocket, address):
 			plt.figure(figsize=(10.24, 7.68), dpi=100)
 			plt.axis('off')
 			
+			nchan_reduced = powspectra_x.shape[0]
+			freqs = np.linspace(ledavis.lowfreq, ledavis.highfreq, nchan_reduced)
+			
+			ntile = 16
 			for v in range(ledavis.nstation / ntile):
 				for u in range(ntile):
 					i = u + v*ntile
