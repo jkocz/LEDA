@@ -45,6 +45,7 @@ ninput    = 512
 nchan     = 109
 ntime     = 8192
 nstream   = 2
+lowfreq   = 30.0
 bufsize = ninput*nchan*ntime
 upsize  = bufsize * 2
 outsize = reg_tile_triangular_size(ninput, nchan)
@@ -68,12 +69,15 @@ headerpath          = getenv_warn('LEDA_HEADER_DIR', "/home/leda/roach_scripts/"
 capture_headerpaths = [os.path.join(headerpath,"header64%s.txt"%x) \
 	                       for x in ['a','b']]
 
-server_id = int(servername[len("ledaovro"):])
-capture_ip    = "192.168.40.%i" % server_id
-capture_ips   = [capture_ip, capture_ip]
-capture_ports = [4000 + 2*server_id-1, 4000 + 2*server_id-0]
-subbands      = [server_id*2+0, server_id*2+1]
-if servername not in serverhosts + [headnodehost, webserverhost]:
+if servername == headnodehost or servername == webserverhost:
+	pass
+elif servername in serverhosts:
+	server_id = int(servername[len("ledaovro"):])
+	capture_ip    = "192.168.40.%i" % server_id
+	capture_ips   = [capture_ip, capture_ip]
+	capture_ports = [4000 + 2*server_id-1, 4000 + 2*server_id-0]
+	subbands      = [server_id*2+0, server_id*2+1]
+else:
 	#raise NameError("This server (%s) is not in the config file" % servername)
 	print "WARNING: This server (%s) is not recognised in the config file" % servername
 	
