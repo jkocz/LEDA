@@ -258,11 +258,11 @@ class LEDACaptureProcess(LEDAProcess):
 		tail = subprocess.Popen(["tail", "-n", "1", self.logpath],
 		                        stdout=subprocess.PIPE)
 		output = tail.communicate()[0]
+		if len(output) == 0 or output[0] == '[': # Error or line contains a message
+			return {"receiving":'?', "dropping":'?', "dropped":'?', "sleeps":'?'}
+		cols = output.split()
 		# WAR for changes in log syntax at different values
 		try:
-			if output[0] == '[': # Line contains a message
-				return {"receiving":'?', "dropping":'?', "dropped":'?', "sleeps":'?'}
-			cols = output.split()
 			if len(cols) == 9:
 				_,receiving,_,_,dropping,_,dropped,_,sleeps = cols
 				dropping = float(dropping)
