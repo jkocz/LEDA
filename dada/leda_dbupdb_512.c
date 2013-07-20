@@ -436,8 +436,8 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
   uint64_t ipkt;
   unsigned j = 0;
   const unsigned int nant_per_packet = 4; // how many _antennas_ (both pol) present per packet
-  const unsigned int npacket_per_resolution = 8; // how many packets until complete set from different roachs 
-  const unsigned int ntime_per_packet = 1;
+  const unsigned int npacket_per_resolution = 64; // how many packets until complete set from different roachs 
+  const unsigned int ntime_per_packet = 2;
   uint64_t out_time_sample_stride = 0;
 
   unsigned int in = 0;
@@ -490,27 +490,28 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
       {
         in = j;
         ou = npacket_per_resolution * j;
-	// having this loop costs ~ 400MB/s in throughput...
+	// having this in a loop costs ~ 400MB/s in throughput... (benchmarked for L64)
 
         //for (curr_chan = 0; curr_chan < (npacket_per_resolution-1); curr_chan++) 
         //for (curr_chan = 0; curr_chan < 3; curr_chan++) 
 
         //{
-          // pkt 0 - npacket_per_resolution (LEDA32=4, LEDA64=8, LEDA512=64)
-          out_dat_16[ou+0] = lookup[in_dat[in+0]];    // a0p0
-          out_dat_16[ou+1] = lookup[in_dat[in+1]];    // a0p1
-          out_dat_16[ou+2] = lookup[in_dat[in+2]];    // a1p0
-          out_dat_16[ou+3] = lookup[in_dat[in+3]];    // a1p1
-          out_dat_16[ou+4] = lookup[in_dat[in+4]];    // a2p0
-          out_dat_16[ou+5] = lookup[in_dat[in+5]];    // a2p1
-          out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a3p0
-          out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a3p1
+
+        // pkt 1 - npacket_per_resolution (LEDA32=4, LEDA64=8, LEDA512=64)
+        out_dat_16[ou+0] = lookup[in_dat[in+0]];    // a0p0
+        out_dat_16[ou+1] = lookup[in_dat[in+1]];    // a0p1
+        out_dat_16[ou+2] = lookup[in_dat[in+2]];    // a1p0
+        out_dat_16[ou+3] = lookup[in_dat[in+3]];    // a1p1
+        out_dat_16[ou+4] = lookup[in_dat[in+4]];    // a2p0
+        out_dat_16[ou+5] = lookup[in_dat[in+5]];    // a2p1
+        out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a3p0
+        out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a3p1
         
-          in += UDP_DATA;
-          ou += 8;
+        in += UDP_DATA;
+        ou += 8;
      
 
-        // pkt 1
+        // pkt 2
         out_dat_16[ou+0] = lookup[in_dat[in+0]];    // a4p0    
         out_dat_16[ou+1] = lookup[in_dat[in+1]];    // a4p1
         out_dat_16[ou+2] = lookup[in_dat[in+2]];    // a5p0
@@ -1337,7 +1338,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
       }
 
       // increment input ptr to next packet
-      in_dat += UDP_DATA * npacket_per_resolution;
+      in_dat += UDP_DATA * npacket_per_resolution;// * ntime_per_packet;
       out_dat += out_time_sample_stride;
 
       out_dat_16 = (uint16_t *) out_dat;
