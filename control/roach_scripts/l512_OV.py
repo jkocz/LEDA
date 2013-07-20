@@ -97,7 +97,7 @@ fpga.write_int('tenge_start_count',1252);
 fpga.write_int('tenge_stop_count',1470);
 fpga.write_int('tenge_high_ch',109);
 
-fpga.write_int('fft_fft_shift',65535);
+#fpga.write_int('fft_fft_shift',65535);
 
 odata = numpy.ones(4096,'l')*(1500<<7)
 cstr = struct.pack('>4096l',*odata)
@@ -115,9 +115,9 @@ cstr = struct.pack('>4096l',*odata)
 
 print '------------------------\n'
 print 'Resetting counter...\n',
-fpga.write_int('tenge_enable', 0)
-fpga.write_int('adc_rst', 3)
-fpga.write_int('adc_rst', 0)
+#fpga.write_int('tenge_enable', 0)
+#fpga.write_int('adc_rst', 3)
+#fpga.write_int('adc_rst', 0)
 #fpga.write_int('enable', 1)
 print 'done'
 
@@ -125,4 +125,11 @@ print 'done'
 #print 'Stopping counter...',
 #fpga.write_int('pkt_sim2_enable',0)
 #print 'done'
+
+fpga.write_int('tenge_enable',0)
+fpga.write_int('fft_rst',3)
+fpga.write_int('tenge_enable',1)
+#fpga.write_int('fft_rst',0)
+#fpga.write_int('fft_force_sync',1)
+#fpga.write_int('fft_force_sync',0)
 
