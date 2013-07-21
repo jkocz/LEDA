@@ -15,6 +15,7 @@
 //#define UDP_PAYLOAD  8208           // header + datasize
 //#define UDP_PAYLOAD  8200           // header + datasize
 #define UDP_PAYLOAD  2416           // header + datasize
+#define UDP_SUBLOAD  604           // header + datasize
 //#define UDP_PAYLOAD  6528           // header + datasize
 #define UDP_IFACE    "192.168.4.14" // default interface
 

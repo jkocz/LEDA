@@ -44,7 +44,7 @@ void usage()
            " -v        verbose mode\n");
 }
 
-#define UDP_DATA_64 UDP_DATA/8
+#define UDP_DATA_64 UDP_DATA/4
 
 typedef struct {
 
@@ -436,7 +436,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
   uint64_t ipkt;
   unsigned j = 0;
   const unsigned int nant_per_packet = 4; // how many _antennas_ (both pol) present per packet
-  const unsigned int npacket_per_resolution = 64; // how many packets until complete set from different roachs 
+  const unsigned int npacket_per_resolution = 64; // 64 (16*4 because 4 "fengines" / roach how many packets until complete set from different roachs 
   const unsigned int ntime_per_packet = 2;
   uint64_t out_time_sample_stride = 0;
 
@@ -507,7 +507,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a3p0
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a3p1
         
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
      
 
@@ -521,7 +521,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a7p0
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a7p1
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 3
@@ -534,7 +534,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a11p0
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a11p1
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 4
@@ -547,7 +547,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a15p0
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a15p1
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
   
         // pkt 5
@@ -560,7 +560,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a19p0
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a19p1
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 6
@@ -573,7 +573,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a23p0
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a23p1
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 7
@@ -586,7 +586,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a27p0
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a27p1
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
         //}
 
@@ -600,7 +600,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a31p0
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a31p1
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
 
@@ -614,7 +614,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a35p0
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a35p1
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 10
@@ -627,7 +627,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a39p0
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a39p1
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 11
@@ -640,7 +640,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a43p0
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a43p1
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 12
@@ -653,7 +653,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a47p0
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a47p1
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 13
@@ -666,7 +666,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a51p0
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a51p1
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 14
@@ -679,7 +679,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a55p0
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a55p1
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 15
@@ -692,7 +692,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a59p0
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a59p1
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 16
@@ -705,7 +705,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a63p0
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a63p1
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 17
@@ -718,7 +718,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a67p0
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a67p1
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
 
@@ -732,7 +732,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a71p0
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a71p1
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 19
@@ -745,7 +745,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a75p0
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a75p1
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 20
@@ -758,7 +758,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a79p0
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a79p1
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 21
@@ -771,7 +771,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a83p0
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a83p1
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 22
@@ -784,7 +784,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a87p0
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a87p1
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 23
@@ -797,7 +797,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a91p0
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a91p1
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 24
@@ -810,7 +810,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a95p0
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a95p1
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 25
@@ -823,7 +823,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a99p0
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a9971
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 26
@@ -836,7 +836,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a1030
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a1031
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 27
@@ -849,7 +849,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a1070
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a1071
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 28
@@ -862,7 +862,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a1110
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a1111
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 29
@@ -875,7 +875,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a1150
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a1151
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 30
@@ -888,7 +888,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a1190
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a1991
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 31
@@ -901,7 +901,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a1230
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a1231
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 32
@@ -914,7 +914,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a1270
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a1271
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 33
@@ -927,7 +927,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a131p0
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a131p1
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 34
@@ -940,7 +940,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a1350
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a1351
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 35
@@ -953,7 +953,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a1390
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a1391
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 36
@@ -966,7 +966,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a1430
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a1431
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 37
@@ -979,7 +979,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a1470
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a1471
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 38
@@ -992,7 +992,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a1510
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a1511
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
 
@@ -1006,7 +1006,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a1550
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a1551
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 40
@@ -1019,7 +1019,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a1590
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a1591
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 41
@@ -1032,7 +1032,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a1630
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a1631
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 42
@@ -1045,7 +1045,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a1670
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a1671
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 43
@@ -1058,7 +1058,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a1710
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a1711
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 44
@@ -1071,7 +1071,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a1750
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a1751
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 45
@@ -1084,7 +1084,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a1790
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a1791
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 46
@@ -1097,7 +1097,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a1830
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a1831
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 47
@@ -1110,7 +1110,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a1870
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a1871
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 48
@@ -1123,7 +1123,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a1910
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a1911
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 49
@@ -1136,7 +1136,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a1950
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a1951
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 50
@@ -1149,7 +1149,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a1990
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a1991
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 51
@@ -1162,7 +1162,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a2030
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a2031
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 52
@@ -1175,7 +1175,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a2070
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a2071
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 53
@@ -1188,7 +1188,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a2110
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a2111
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 54
@@ -1201,7 +1201,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a2150
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a2151
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 55
@@ -1214,7 +1214,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a2190
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a2191
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 56
@@ -1227,7 +1227,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a2230
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a2231
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 57
@@ -1240,7 +1240,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a2270
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a2271
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 58
@@ -1253,7 +1253,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a2310
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a2311
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 59
@@ -1266,7 +1266,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a2350
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a2351
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 60
@@ -1279,7 +1279,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a2390
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a2391
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 61
@@ -1292,7 +1292,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a2430
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a2431
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 62
@@ -1305,7 +1305,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a2470
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a2471
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // pkt 63
@@ -1318,7 +1318,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
         out_dat_16[ou+6] = lookup[in_dat[in+6]];    // a2510
         out_dat_16[ou+7] = lookup[in_dat[in+7]];    // a2511
 
-        in += UDP_DATA;
+        in += UDP_DATA_64;
         ou += 8;
 
         // final packet
@@ -1333,12 +1333,12 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
 
 
         // not required for final packet
-        //in += UDP_DATA;
+        //in += UDP_DATA_64;
         //ou += 8;
       }
 
       // increment input ptr to next packet
-      in_dat += UDP_DATA * npacket_per_resolution;// * ntime_per_packet;
+      in_dat += UDP_DATA_64 * npacket_per_resolution;// * ntime_per_packet;
       out_dat += out_time_sample_stride;
 
       out_dat_16 = (uint16_t *) out_dat;
