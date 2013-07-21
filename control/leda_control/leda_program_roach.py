@@ -77,6 +77,7 @@ if __name__ == "__main__":
 	# Dynamically execute config script
 	execfile(configfile, globals())
 	
+	# TODO: Consider spawning these in separate threads to save time
 	for i in xrange(len(roachhosts)):
 		print "Programming ROACH %i @ %s" % (i, roachhosts[i])
 		print "---------------------"

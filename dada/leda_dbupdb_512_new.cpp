@@ -125,6 +125,27 @@ protected:
 		    Transpose dims 0<->1, where each input element is 64 bits
 		    [2 time samples 109 chans][16 roaches 4 input groups][4 stations 2 pols 2 dims 4 bits]
 		*/
+#define UNPACK_64_BITS {	\
+	uint64_t inword = *in; \
+	uchar8   invals = *(uchar8*)&inword; \
+	ushort4  outvals0; \
+	outvals0.x = four2eight[invals.s0]; \
+	outvals0.y = four2eight[invals.s1]; \
+	outvals0.z = four2eight[invals.s2]; \
+	outvals0.w = four2eight[invals.s3]; \
+	ushort4  outvals1; \
+	outvals1.x = four2eight[invals.s4]; \
+	outvals1.y = four2eight[invals.s5]; \
+	outvals1.z = four2eight[invals.s6]; \
+	outvals1.w = four2eight[invals.s7]; \
+	uint64_t outword0 = *(uint64_t*)&outvals0; \
+	uint64_t outword1 = *(uint64_t*)&outvals1; \
+	out[0] = outword0; \
+	out[1] = outword1; \
+	in  += NCHAN*NTIME_PER_PKT; \
+	out += 2; \
+  }
+		
 		enum {
 			NCHAN          = 109,
 			NTIME_PER_PKT  = 2,
@@ -132,37 +153,32 @@ protected:
 			NROACH         = 16,
 			GULP_SIZE = NCHAN*NTIME_PER_PKT*NGROUP_PER_PKT*NROACH
 		};
+		const uint64_t* in  = ((uint64_t*)data_in);
+		      uint64_t* out = ((uint64_t*)data_out);
 		size_t nwords = in_size / sizeof(uint64_t);
 		//#pragma omp parallel for
 		for( size_t t=0; t<nwords; t+=GULP_SIZE ) {
-			const uint64_t* in  = ((uint64_t*)data_in)  + t;
-			      uint64_t* out = ((uint64_t*)data_out) + t;
-			
 			for( size_t tc=0; tc<NCHAN*NTIME_PER_PKT; ++tc ) {
-				for( size_t rg=0; rg<NGROUP_PER_PKT*NROACH; ++rg ) {
-					size_t in_idx  = tc + rg * NCHAN*NTIME_PER_PKT;
-					size_t out_idx = rg + tc * NGROUP_PER_PKT*NROACH;
-					
-					uint64_t inword = in[in_idx];
-					uchar8   invals = *(uchar8*)&inword;
-					
-					ushort4  outvals0;
-					outvals0.x = four2eight[invals.s0];
-					outvals0.y = four2eight[invals.s1];
-					outvals0.z = four2eight[invals.s2];
-					outvals0.w = four2eight[invals.s3];
-					ushort4  outvals1;
-					outvals1.x = four2eight[invals.s4];
-					outvals1.y = four2eight[invals.s5];
-					outvals1.z = four2eight[invals.s6];
-					outvals1.w = four2eight[invals.s7];
-					
-					uint64_t outword0 = *(uint64_t*)&outvals0;
-					uint64_t outword1 = *(uint64_t*)&outvals1;
-					
-					out[out_idx*2 + 0] = outword0;
-					out[out_idx*2 + 1] = outword1;
+				for( size_t rg=0; rg<NGROUP_PER_PKT*NROACH / 16; ++rg ) {
+					UNPACK_64_BITS;
+					UNPACK_64_BITS;
+					UNPACK_64_BITS;
+					UNPACK_64_BITS;
+					UNPACK_64_BITS;
+					UNPACK_64_BITS;
+					UNPACK_64_BITS;
+					UNPACK_64_BITS;
+					UNPACK_64_BITS;
+					UNPACK_64_BITS;
+					UNPACK_64_BITS;
+					UNPACK_64_BITS;
+					UNPACK_64_BITS;
+					UNPACK_64_BITS;
+					UNPACK_64_BITS;
+					UNPACK_64_BITS;
 				}
+				in -= GULP_SIZE;
+				in += 1;
 			}
 		}
 		size_t bytes_written = in_size*2;
