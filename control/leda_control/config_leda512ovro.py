@@ -24,20 +24,26 @@ leda_stands_file = getenv_warn('LEDA_STANDS_FILE',
 headnodehost    = "ledagpu0"
 webserverhost   = "ledagpu0"
 serverhosts     = ["ledaovro%i" % (i+1) for i in xrange(11)]
-roachhosts      = []#"rofl%i" % (i+1) for i in xrange(16)]
+#roachhosts      = ["rofl%i" % (i+1) for i in xrange(16)]
+roachhosts      = ["rofl%i" % i for i in [1, 3, 4, 6, 7, 8, 9, 10, 11, 13, 14]]
 roachport       = 7147
-boffile         = '???.bof'
-src_ip_starts   = [145, 161]
-src_port_starts = [4010, 4020]
-fid_starts      = [0, 4]
+boffile         = '512_dev_20130717.bof'
+nroach      = len(roachhosts)
+fids        = [i for i in xrange(nroach)]
+src_ips     = [["192.168.40.%i" % (50 + i*2),
+                "192.168.40.%i" % (51 + i*2)] \
+	               for i in xrange(nroach)]
+src_ports   = [4000, 4001]
+dest_ips    = ["192.168.40.%i" % (10 + i) for i in xrange(nroach)]
+dest_ports  = [4015, 4016]
+have_adcs   = False
+use_progdev = True
 # Digital gain registers set to 1x
 adc_gain        = 1  # Multiplier 1-15
 adc_gain_bits   = adc_gain | (adc_gain << 4) | (adc_gain << 8) | (adc_gain << 12)
 adc_gain_reg    = 0x2a
 roach_registers = {adc_gain_reg: adc_gain_bits}
-#gain_setting = 0x8888
-#roach_registers = {gain_reg: gain_setting}
-#roach_registers = {}
+fft_shiftmask   = 0xFFFF
 
 logpath = getenv_warn('LEDA_LOG_DIR', "/home/leda/logs")
 
