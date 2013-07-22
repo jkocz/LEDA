@@ -56,6 +56,7 @@ def programRoach(fpga, boffile, fids, src_ips, src_ports,
 		fpga.write_int('tenge_header_fid%i'%(i+2), fid)
 		
 	print "Writing gain coefficients"
+	# TODO: Allow passing in arrays of input- and channel-specific coefs
 	odata = numpy.ones(4096,'l') * gain_coef
 	cstr = struct.pack('>4096l',*odata)
 	odata0 = numpy.zeros(4096,'l')
@@ -89,7 +90,7 @@ if __name__ == "__main__":
 		
 		programRoach(fpga, boffile, fids[i], src_ips[i], src_ports,
 		             dest_ips, dest_ports,
-		             first_chan, last_chan, nchans, gain_coef,
+		             fft_first_chan, fft_last_chan, nchan, fft_gain_coef,
 		             have_adcs=have_adcs, use_progdev=use_progdev,
 		             registers=roach_registers,
 		             fft_shift_mask=fft_shift_mask)

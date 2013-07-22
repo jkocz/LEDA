@@ -36,6 +36,9 @@ src_ips     = [["192.168.40.%i" % (50 + i*2),
 src_ports   = [4000, 4001]
 dest_ips    = ["192.168.40.%i" % (10 + i) for i in xrange(nroach)]
 dest_ports  = [4015, 4016]
+fft_first_chan = 1250
+fft_last_chan  = 1468
+fft_gain_coef  = 1500<<7
 have_adcs   = False
 use_progdev = True
 # Digital gain registers set to 1x
