@@ -26,7 +26,10 @@ leda_dbxgpu: leda_dbxgpu.cpp dada_db2db.hpp dada_db2db.cpp
 leda_dbbdi: leda_dbbdi.cpp dada_db2db.hpp dada_db2db.cpp
 	$(CXX) -o leda_dbbdi $(CXX_FLAGS) $(DEBUG_FLAGS) $(DBBDI_INC) leda_dbbdi.cpp dada_db2db.cpp $(DBBDI_LIBS)
 
-leda_dbbeam: leda_dbbeam.cpp dada_db2db.hpp dada_db2db.cpp
+aaplus/lib/libaaplus.so:
+	cd aaplus; cmake .; make; cd ..
+
+leda_dbbeam: leda_dbbeam.cpp dada_db2db.hpp dada_db2db.cpp aaplus/lib/libaaplus.so
 	$(CXX) -o leda_dbbeam $(CXX_FLAGS) $(DEBUG_FLAGS) $(DBBEAM_INC) leda_dbbeam.cpp dada_db2db.cpp $(DBBEAM_LIBS)
 
 hackhex: hackhex.cpp
