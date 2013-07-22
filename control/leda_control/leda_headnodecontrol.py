@@ -25,7 +25,7 @@ import json
 import time, datetime
 import subprocess
 import shutil
-from PIL import Image # Note: Must be like this when using 'pillow' fork
+#from PIL import Image # Note: Must be like this when using 'pillow' fork
 import StringIO, base64
 from leda_logger import LEDALogger
 """
@@ -245,16 +245,27 @@ class LEDARemoteServer(object):
 		self.capture = LEDARemoteCapture(host, captureports, log)
 
 class LEDARoach(object):
-	def __init__(self, host, port, src_ip_start, src_port_start, fid_start,
-	             boffile, registers = {},
+	def __init__(self, host, port,
+	             boffile, fids, src_ips, src_ports, desp_ips, dest_ports,
+	             first_chan, last_chan, nchans, gain_coef,
+	             have_adcs=True, use_progdev=False, registers={},
 	             log=LEDALogger()):
 		self.host = host
 		self.port = port
-		self.src_ip_start   = src_ip_start
-		self.src_port_start = src_port_start
-		self.fid_start      = fid_start
-		self.boffile = boffile
-		self.registers = registers
+		self.boffile     = boffile
+		self.fids        = fids
+		self.src_ips     = src_ips
+		self.src_ports   = src_ports
+		self.dest_ips    = dest_ips
+		self.dest_ports  = dest_ports
+		self.first_chan  = first_chan
+		self.last_chan   = last_chan
+		self.nchans      = nchans
+		self.gain_coef   = gain_coef
+		self.have_adcs   = have_adcs
+		self.use_progdev = use_progdev
+		self.registers   = registers
+		self.fft_shift_mask = fft_shift_mask
 		self.log  = log
 		self.connect()
 	def connect(self):
@@ -316,34 +327,32 @@ class LEDARoach(object):
 		if self.fpga == None:
 			self.log.write("Not connected", -2)
 			return
-		
-		programRoach(self.fpga, self.boffile, self.src_ip_start, self.src_port_start,
-		             self.fid_start,
-		             self.registers)
-		## TODO: Manage log information
-		#ret = subprocess.call("leda_program_roach.py", shell=True)
-		#return ret
-		# l64x8_06022013.bof
-		#ret = subprocess.call("adc16_init.rb %s %s", self.host, boffile
-		#adc16_init.rb 169.254.128.14 l64x8_06022013.bof
+		programRoach(self.fpga, self.boffile, self.fids,
+		             self.src_ips, self.src_ports,
+		             self.dest_ips, self.dest_ports,
+		             self.first_chan, self.last_chan, self.nchans,
+		             self.gain_coef, self.have_adcs, self.use_progdev,
+		             self.registers, self.fft_shift_mask)
 
 class LEDARemoteManager(object):
 	def __init__(self, serverhosts, roachhosts,
 	             controlport, captureports, roachport,
-	             src_ip_starts, src_port_starts, fid_starts,
-	             boffile, registers,
+	             boffile, all_fids, all_src_ips, src_ports, desp_ips, dest_ports,
+	             first_chan, last_chan, nchans, gain_coef,
+	             have_adcs, use_progdev, registers,
 	             log=LEDALogger()):
 		self.log = log
-		#self.debuglevel = debuglevel
-		## TESTING + i
-		self.servers = [LEDARemoteServer(host,controlport,# + i,
+		self.servers = [LEDARemoteServer(host,controlport,
 		                                 captureports,log) \
 			                for i,host in enumerate(serverhosts)]
 		self.roaches = [LEDARoach(host,roachport,
-		                          src_ip_start,src_port_start,fid_start,
-		                          boffile,registers,log) \
-			                for host,src_ip_start,src_port_start,fid_start \
-			                in zip(roachhosts,src_ip_starts,src_port_starts,fid_starts)]
+		                          boffile,fids,src_ips,src_ports,
+		                          dest_ips,dest_ports,
+		                          first_chan,last_chan,nchans,gain_coef,
+		                          have_adcs,use_progdev,registers,
+		                          log) \
+			                for host,fids,src_ips \
+			                in zip(roachhosts,all_fids,all_src_ips)]
 	
 	def programRoaches(self):
 		self.log.write("Programming roaches; wait 3 mins to take effect", 0)
@@ -507,26 +516,15 @@ if __name__ == "__main__":
 	# Dynamically execute config script
 	execfile(configfile, globals())
 	
-	"""
-	# TODO: Pull these params out into the separate config script
-	#         Be careful of the control ports
-	serverhosts = ["ledagpu3", "ledagpu4"]
-	roachhosts  = ['169.254.128.14', '169.254.128.13']
-	capture_controlports = [12340,12341,12342,12343]
-	roachport    = 7147
-	boffile      = 'l64x8_06022013.bof'
-	src_ip_starts   = [145, 161]
-	src_port_starts = [4010, 4020]
-	fid_starts      = [0, 4]
-	"""
 	controlport  = 3141
 	logstream    = sys.stderr
 	debuglevel   = 1
 	
 	leda = LEDARemoteManager(serverhosts, roachhosts,
 	                         controlport, capture_controlports, roachport,
-	                         src_ip_starts, src_port_starts, fid_starts,
-	                         boffile, roach_registers,
+	                         boffile, all_fids, all_src_ips, src_ports, desp_ips, dest_ports,
+	                         first_chan, last_chan, nchans, gain_coef,
+	                         have_adcs, use_progdev, registers,
 	                         LEDALogger(logstream, debuglevel))
 	
 	port = 6282
