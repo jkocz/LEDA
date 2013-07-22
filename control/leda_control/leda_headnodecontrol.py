@@ -246,9 +246,10 @@ class LEDARemoteServer(object):
 
 class LEDARoach(object):
 	def __init__(self, host, port,
-	             boffile, fids, src_ips, src_ports, desp_ips, dest_ports,
-	             first_chan, last_chan, nchans, gain_coef,
-	             have_adcs=True, use_progdev=False, registers={},
+	             boffile, fids, src_ips, src_ports, dest_ips, dest_ports,
+	             first_chan, last_chan, nchan, gain_coef,
+	             have_adcs=True, use_progdev=False,
+	             registers={}, fft_shift_mask=0xFFFF,
 	             log=LEDALogger()):
 		self.host = host
 		self.port = port
@@ -260,7 +261,7 @@ class LEDARoach(object):
 		self.dest_ports  = dest_ports
 		self.first_chan  = first_chan
 		self.last_chan   = last_chan
-		self.nchans      = nchans
+		self.nchan       = nchan
 		self.gain_coef   = gain_coef
 		self.have_adcs   = have_adcs
 		self.use_progdev = use_progdev
@@ -330,16 +331,16 @@ class LEDARoach(object):
 		programRoach(self.fpga, self.boffile, self.fids,
 		             self.src_ips, self.src_ports,
 		             self.dest_ips, self.dest_ports,
-		             self.first_chan, self.last_chan, self.nchans,
+		             self.first_chan, self.last_chan, self.nchan,
 		             self.gain_coef, self.have_adcs, self.use_progdev,
 		             self.registers, self.fft_shift_mask)
 
 class LEDARemoteManager(object):
 	def __init__(self, serverhosts, roachhosts,
 	             controlport, captureports, roachport,
-	             boffile, all_fids, all_src_ips, src_ports, desp_ips, dest_ports,
-	             first_chan, last_chan, nchans, gain_coef,
-	             have_adcs, use_progdev, registers,
+	             boffile, all_fids, all_src_ips, src_ports, dest_ips, dest_ports,
+	             first_chan, last_chan, nchan, gain_coef,
+	             have_adcs, use_progdev, registers, fft_shift_mask,
 	             log=LEDALogger()):
 		self.log = log
 		self.servers = [LEDARemoteServer(host,controlport,
@@ -348,8 +349,9 @@ class LEDARemoteManager(object):
 		self.roaches = [LEDARoach(host,roachport,
 		                          boffile,fids,src_ips,src_ports,
 		                          dest_ips,dest_ports,
-		                          first_chan,last_chan,nchans,gain_coef,
-		                          have_adcs,use_progdev,registers,
+		                          first_chan,last_chan,nchan,gain_coef,
+		                          have_adcs,use_progdev,
+		                          registers,fft_shift_mask,
 		                          log) \
 			                for host,fids,src_ips \
 			                in zip(roachhosts,all_fids,all_src_ips)]
@@ -522,9 +524,12 @@ if __name__ == "__main__":
 	
 	leda = LEDARemoteManager(serverhosts, roachhosts,
 	                         controlport, capture_controlports, roachport,
-	                         boffile, all_fids, all_src_ips, src_ports, desp_ips, dest_ports,
-	                         first_chan, last_chan, nchans, gain_coef,
-	                         have_adcs, use_progdev, registers,
+	                         boffile, fids,
+	                         src_ips, src_ports,
+	                         dest_ips, dest_ports,
+	                         fft_first_chan, fft_last_chan, nchan, fft_gain_coef,
+	                         have_adcs, use_progdev,
+	                         roach_registers, fft_shift_mask,
 	                         LEDALogger(logstream, debuglevel))
 	
 	port = 6282
