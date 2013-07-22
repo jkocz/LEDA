@@ -4,12 +4,12 @@ DBXGPU_INC  += -I$(CUDA_DIR)/include -I$(XGPU_DIR)/src -I$(PSRDADA_DIR)/src -I$(
 DBBDI_LIBS += -L$(PSRDADA_DIR)/src/.libs -L$(PSRDADA_DIR)/.libs -lpsrdada
 DBBDI_INC  += -I$(PSRDADA_DIR)/src -I$(PSRDADA_DIR)
 
-CXX_FLAGS   += -Wall -pedantic -O3
+CXX_FLAGS   += -Wall -pedantic -O3 -Wno-long-long
 DEBUG_FLAGS += -g
 
 CXX ?= g++
 
-all: leda_dbxgpu hackhex
+all: leda_dbxgpu hackhex leda_dbbdi
 
 leda_dbxgpu: leda_dbxgpu.cpp dada_db2db.hpp dada_db2db.cpp
 	$(CXX) -o leda_dbxgpu $(CXX_FLAGS) $(DEBUG_FLAGS) $(DBXGPU_INC) leda_dbxgpu.cpp dada_db2db.cpp $(DBXGPU_LIBS)
