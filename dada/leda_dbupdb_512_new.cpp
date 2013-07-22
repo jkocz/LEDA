@@ -159,7 +159,9 @@ protected:
 		//#pragma omp parallel for
 		for( size_t t=0; t<nwords; t+=GULP_SIZE ) {
 			for( size_t tc=0; tc<NCHAN*NTIME_PER_PKT; ++tc ) {
-				for( size_t rg=0; rg<NGROUP_PER_PKT*NROACH / 16; ++rg ) {
+				for( size_t rg=0; rg<NGROUP_PER_PKT*NROACH /* / 16*/; ++rg ) {
+					UNPACK_64_BITS;
+					/*
 					UNPACK_64_BITS;
 					UNPACK_64_BITS;
 					UNPACK_64_BITS;
@@ -175,7 +177,7 @@ protected:
 					UNPACK_64_BITS;
 					UNPACK_64_BITS;
 					UNPACK_64_BITS;
-					UNPACK_64_BITS;
+					*/
 				}
 				in -= GULP_SIZE;
 				in += 1;

@@ -1,5 +1,5 @@
 DBUPDB512NEW_LIBS += -L$(PSRDADA_DIR)/src/.libs -L$(PSRDADA_DIR)/.libs -lpsrdada
-DBUPDB512NEW_INC  += -I$(PSRDADA_DIR)/src #-I$(PSRDADA_DIR)
+DBUPDB512NEW_INC  += -I$(PSRDADA_DIR)/src -I$(PSRDADA_DIR)
 
 CXX_FLAGS   += -Wall -pedantic -O3
 DEBUG_FLAGS += -g
