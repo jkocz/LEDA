@@ -36,7 +36,8 @@ def programRoach(fpga, boffile, fids, src_ips, src_ports,
 	fpga.write_int('tenge_start_count', first_chan)
 	fpga.write_int('tenge_high_ch',     nchans)
 	fpga.write_int('tenge_stop_count',  last_chan)
-	fpga.write_int('fft_fft_shift',     fft_shift_mask)
+	if fft_shift_mask is not None:
+		fpga.write_int('fft_fft_shift',     fft_shift_mask)
 	
 	print "Setting network configuration"
 	mac_base = (2<<40) + (2<<32)
@@ -51,19 +52,24 @@ def programRoach(fpga, boffile, fids, src_ips, src_ports,
 			ii = i*len(dest_ips) + j
 			fpga.write_int('tenge_ips_ip%i'%(ii+1), ip2int(dest_ip))
 	
-	fpga.write_int('tenge_header_fid', fids[0])
-	for i, fid in enumerate(fids[1:]):
-		fpga.write_int('tenge_header_fid%i'%(i+2), fid)
+	try:
+		fpga.write_int('tenge_header_fid', fids[0])
+	except TypeError:
+		fpga.write_int('tenge_header_fid', fids)
+	else:
+		for i, fid in enumerate(fids[1:]):
+			fpga.write_int('tenge_header_fid%i'%(i+2), fid)
 		
 	print "Writing gain coefficients"
 	# TODO: Allow passing in arrays of input- and channel-specific coefs
-	odata = numpy.ones(4096,'l') * gain_coef
-	cstr = struct.pack('>4096l',*odata)
-	odata0 = numpy.zeros(4096,'l')
-	cstr0 = struct.pack('>4096l',*odata0)
-	for i in range(4):
-		fpga.write('fft_f%i_coeffs' %(i+1),cstr)
-		fpga.write('fft_f%i_coeffs1'%(i+1),cstr0)
+	if gain_coef is not None:
+		odata = numpy.ones(4096,'l') * gain_coef
+		cstr = struct.pack('>4096l',*odata)
+		odata0 = numpy.zeros(4096,'l')
+		cstr0 = struct.pack('>4096l',*odata0)
+		for i in range(4):
+			fpga.write('fft_f%i_coeffs' %(i+1),cstr)
+			fpga.write('fft_f%i_coeffs1'%(i+1),cstr0)
 	
 	print "Resetting counter"
 	fpga.write_int('tenge_enable', 0)

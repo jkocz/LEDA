@@ -32,8 +32,14 @@ img {
 	width:   85px;
 }
 
-#status_panel {
-	width: 600px;
+#roach_status_panel {
+	width:   200px;
+	display: inline-block;
+	/*float: left;*/
+}
+#server_status_panel {
+	width:   600px;
+	display: inline-block;
 	/*float: left;*/
 }
 #vis_panel {

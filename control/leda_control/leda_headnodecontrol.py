@@ -267,12 +267,13 @@ class LEDARoach(object):
 		self.use_progdev = use_progdev
 		self.registers   = registers
 		self.fft_shift_mask = fft_shift_mask
+		self.reset_cmd = 'adc_rst' if have_adcs else 'fft_rst'
 		self.log  = log
 		self.connect()
 	def connect(self):
 		self.log.write("Connecting to ROACH %s:%i" % (self.host,self.port))
 		self.fpga = corr.katcp_wrapper.FpgaClient(self.host, self.port)
-		time.sleep(2)
+		time.sleep(0.5)
 		if not self.fpga.is_connected():
 			self.log.write("Failed to connect", -2)
 			self.fpga = None
@@ -284,7 +285,7 @@ class LEDARoach(object):
 		if not self.fpga.is_connected():
 			self.log.write("Not connected", -2)
 			return
-		self.fpga.write_int('adc_rst',3)
+		self.fpga.write_int(self.reset_cmd,3)
 		self.fpga.write_int('tenge_enable',1)
 	def startFlow(self):
 		self.log.write("Starting ROACH flow")
@@ -292,7 +293,7 @@ class LEDARoach(object):
 		if not self.fpga.is_connected():
 			self.log.write("Not connected", -2)
 			return
-		self.fpga.write_int('adc_rst',0)
+		self.fpga.write_int(self.reset_cmd,0)
 	def stopFlow(self):
 		self.log.write("Stopping ROACH flow")
 		if self.fpga == None:
@@ -303,11 +304,16 @@ class LEDARoach(object):
 		if self.fpga == None:
 			self.log.write("Not connected", -2)
 			return None
-		tenge_enable = self.fpga.read_int('tenge_enable')
-		adc_rst      = self.fpga.read_int('adc_rst')
+		try:
+			tenge_enable = self.fpga.read_int('tenge_enable')
+			adc_rst      = self.fpga.read_int(self.reset_cmd)
+		except RuntimeError:
+			self.log.write("[%s] Read request 'tenge_enable' or 'fft_rst' failed" % self.host, -2)
+			return None
 		return tenge_enable and adc_rst == 0
 	def getStatus(self):
-		return {'flow': 'ok' if self.isFlowing() else 'down'}
+		flow = self.isFlowing()
+		return {'flow': 'error' if flow is None else 'ok' if flow else 'down'}
 	def getADCImages(self):
 		self.log.write("Generating ADC input plots")
 		# TODO: This code is very specific to the current (LEDA64) setup

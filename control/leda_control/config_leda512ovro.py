@@ -23,22 +23,23 @@ leda_stands_file = getenv_warn('LEDA_STANDS_FILE',
 
 headnodehost    = "ledagpu0"
 webserverhost   = "ledagpu0"
-serverhosts     = ["ledaovro%i" % (i+1) for i in xrange(11)]
+#serverhosts     = ["ledaovro%i" % (i+1) for i in xrange(11)]
+serverhosts     = ["ledaovro2"]
 #roachhosts      = ["rofl%i" % (i+1) for i in xrange(16)]
 roachhosts      = ["rofl%i" % i for i in [1, 3, 4, 6, 7, 8, 9, 10, 11, 13, 14]]
 roachport       = 7147
-boffile         = '512_dev_20130717.bof'
+boffile         = 'l512_dev_20130717.bof'
 nroach      = len(roachhosts)
 fids        = [i for i in xrange(nroach)]
 src_ips     = [["192.168.40.%i" % (50 + i*2),
                 "192.168.40.%i" % (51 + i*2)] \
 	               for i in xrange(nroach)]
 src_ports   = [4000, 4001]
-dest_ips    = ["192.168.40.%i" % (10 + i) for i in xrange(nroach)]
+dest_ips    = ["192.168.40.%i" % (10 + i) for i in xrange(len(serverhosts))]
 dest_ports  = [4015, 4016]
-fft_first_chan = 1250
-fft_last_chan  = 1468
-fft_gain_coef  = 1500<<7
+fft_first_chan = 1246
+fft_last_chan  = 1464
+fft_gain_coef  = None#1500<<7
 have_adcs   = False
 use_progdev = True
 # Digital gain registers set to 1x
@@ -46,7 +47,7 @@ adc_gain        = 1  # Multiplier 1-15
 adc_gain_bits   = adc_gain | (adc_gain << 4) | (adc_gain << 8) | (adc_gain << 12)
 adc_gain_reg    = 0x2a
 roach_registers = {adc_gain_reg: adc_gain_bits}
-fft_shiftmask   = 0xFFFF
+fft_shift_mask  = None#0xFFFF
 
 logpath = getenv_warn('LEDA_LOG_DIR', "/home/leda/logs")
 
@@ -81,10 +82,11 @@ capture_headerpaths = [os.path.join(headerpath,"header64%s.txt"%x) \
 if servername == headnodehost or servername == webserverhost:
 	pass
 elif servername in serverhosts:
-	server_id = int(servername[len("ledaovro"):])
-	capture_ip    = "192.168.40.%i" % server_id
+	server_id = int(servername[len("ledaovro"):])-1
+	capture_ip    = "192.168.40.%i" % (10 + server_id)
 	capture_ips   = [capture_ip, capture_ip]
-	capture_ports = [4000 + 2*server_id-1, 4000 + 2*server_id-0]
+	#capture_ports = [4000 + 2*server_id-1, 4000 + 2*server_id-0]
+	capture_ports = [4015, 4016]
 	subbands      = [server_id*2+0, server_id*2+1]
 else:
 	#raise NameError("This server (%s) is not in the config file" % servername)
