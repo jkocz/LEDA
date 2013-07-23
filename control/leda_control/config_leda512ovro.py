@@ -101,7 +101,7 @@ unpack_logfiles     = [os.path.join(logpath,"unpack."+bufkey) \
 	                       for bufkey in unpack_bufkeys]
 unpack_path         = os.path.join(getenv_warn('LEDA_DADA_DIR',
                                                "/home/leda/software/psrdada/leda/src"),
-                                   "leda_dbupdb_paper")
+                                   "leda_dbupdb_512")
 unpack_cores        = [2, 10]
 
 xengine_bufkeys     = ["cada", "fada"]
