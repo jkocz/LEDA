@@ -92,7 +92,7 @@ else:
 	#raise NameError("This server (%s) is not in the config file" % servername)
 	print "WARNING: This server (%s) is not recognised in the config file" % servername
 	
-capture_ninputs     = [8] * nstream
+capture_ninputs     = [16] * nstream
 capture_controlports = [12340,12341]
 capture_cores       = [1, 9]
 
