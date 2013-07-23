@@ -23,8 +23,9 @@ leda_stands_file = getenv_warn('LEDA_STANDS_FILE',
 
 headnodehost    = "ledagpu0"
 webserverhost   = "ledagpu0"
-#serverhosts     = ["ledaovro%i" % (i+1) for i in xrange(11)]
-serverhosts     = ["ledaovro2"]
+serverhosts     = ["ledaovro%i" % (i+1) for i in xrange(11)]
+#serverhosts     = ["ledaovro1"]
+#serverhosts     = ["ledaovro2"]
 #roachhosts      = ["rofl%i" % (i+1) for i in xrange(16)]
 roachhosts      = ["rofl%i" % i for i in [1, 3, 4, 6, 7, 8, 9, 10, 11, 13, 14]]
 roachport       = 7147
@@ -35,7 +36,7 @@ src_ips     = [["192.168.40.%i" % (50 + i*2),
                 "192.168.40.%i" % (51 + i*2)] \
 	               for i in xrange(nroach)]
 src_ports   = [4000, 4001]
-dest_ips    = ["192.168.40.%i" % (10 + i) for i in xrange(len(serverhosts))]
+dest_ips    = ["192.168.40.%i" % (10 + i) for i in xrange(11)]
 dest_ports  = [4015, 4016]
 fft_first_chan = 1246
 fft_last_chan  = 1464

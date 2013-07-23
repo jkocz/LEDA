@@ -516,7 +516,7 @@ if __name__ == "__main__":
 		#capture_header += "BW              %f\n" % (-corr_bandwidth)
 		#capture_header += "CFREQ           %f\n" % corr_centerfreq
 		capture_header += "FREQ            %f\n" % corr_clockfreq
-		capture_header += "NFFT            %f\n" % corr_nfft
+		capture_header += "NFFT            %i\n" % corr_nfft
 		capture_header += "RA              %s\n" % "00:00:00.0"
 		capture_header += "DEC             %s\n" % "00:00:00.0"
 		
@@ -559,7 +559,7 @@ if __name__ == "__main__":
 		capture_header += "OBS_XFER        %i\n" % 0 # What is this?
 		# Note: Apparently BYTES_PER_SECOND is actually interpreted by psrdada
 		#         as simply 1/10th the amount of data to put in the file.
-		max_filesize = 1024**3
+		max_filesize = 2*1024**3
 		bytes_per_second = (max_filesize-corr_headersize) // (outsize * 10) * outsize
 		capture_header += "BYTES_PER_SECOND %i\n" % bytes_per_second
 		
