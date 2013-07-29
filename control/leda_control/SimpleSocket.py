@@ -43,7 +43,10 @@ class SimpleSocket(object):
 					print "Connection closed to ", address
 					break
 				#callback(self.sock, SimpleSocket(clientsocket), address)
-				callback(msg, clientsocket, address)
+				ret = callback(msg, clientsocket, address)
+				# On true return value, exit
+				if ret:
+					return
 		
 	def connect(self, host, port, attempts=5):
 		while attempts > 0:

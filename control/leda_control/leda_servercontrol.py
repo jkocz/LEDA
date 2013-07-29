@@ -436,6 +436,10 @@ def onMessage(ledaserver, message, clientsocket, address):
 	args = dict([x.split('=') for x in message.split('&')])
 	#print "Received:", args
 	
+	if 'exit' in args:
+		logMsg(1, DL, "Exit requested")
+		clientsocket.send('ok')
+		return True
 	if 'nstreams' in args:
 		logMsg(1, DL, "nstreams request")
 		nstreams = ledaserver.nstreams

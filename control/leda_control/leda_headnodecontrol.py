@@ -173,6 +173,9 @@ class LEDARemoteServerControl(object):
 			return None
 		encoded_images = json.loads(encoded)
 		return encoded_images
+	def exit(self):
+		self.log.write("Requesting server control script to exit", 2)
+		self._sendcmd("exit=1")
 
 class LEDARemoteCaptureProcess(object):
 	def __init__(self, host, port, log=LEDALogger()):
@@ -376,6 +379,9 @@ class LEDARemoteManager(object):
 		self.log.write("Setting total power recording param", 0)
 		for server in self.servers:
 			server.control.setTotalPowerRecording(ncycles)
+	def exit(self):
+		for server in self.servers:
+			server.control.exit()
 	def configure(self):
 		self.log.write("Configuring hardware", 0)
 		self.programRoaches()
@@ -480,6 +486,9 @@ def onMessage(leda, message, clientsocket, address):
 		#print encoded
 		print "Sending ADC plot image data"
 		clientsocket.send(encoded)
+	if "exit" in args:
+		leda.exit()
+		clientsocket.send('ok')
 	elif "configure" in args:
 		leda.configure()
 		clientsocket.send('ok')
