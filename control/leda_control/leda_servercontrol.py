@@ -281,7 +281,8 @@ class LEDACaptureProcess(LEDAProcess):
 					"dropping":  dropping,
 					"dropped":   dropped,
 					"sleeps":    sleeps}
-		except ValueError:
+		except ValueError, e:
+			print e
 			return {"receiving":'?', "dropping":'?', "dropped":'?', "sleeps":'?'}
 
 class LEDABuffer(object):
