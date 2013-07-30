@@ -288,11 +288,11 @@ class LEDACaptureProcess(LEDAProcess):
 			receiving = float(receiving)
 			dropped   = int(dropped[2:])
 			sleeps    = int(sleeps[4:])
+			"""
 			return {"receiving": receiving,
 					"dropping":  dropping,
 					"dropped":   dropped,
 					"sleeps":    sleeps}
-		"""
 		except ValueError, e:
 			print e
 			return {"receiving":'?', "dropping":'?', "dropped":'?', "sleeps":'?'}

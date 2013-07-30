@@ -435,7 +435,7 @@ def onMessage(leda, message, clientsocket, address):
 		#print encoded
 		print "Sending ADC plot image data"
 		clientsocket.send(encoded)
-	if "exit" in args:
+	elif "exit" in args:
 		leda.exit()
 		clientsocket.send('ok')
 	elif "configure" in args:
