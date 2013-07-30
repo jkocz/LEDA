@@ -266,11 +266,22 @@ class LEDACaptureProcess(LEDAProcess):
 		cols = output.split()
 		# WAR for changes in log syntax at different values
 		try:
+			receiving, dropping, dropped, sleeps = output.split(',')
+			receiving = float(receiving.strip()[2:-6])
+			dropping  = float(dropping.strip()[2:-6])
+			dropped   = int(dropped.strip()[2:-4])
+			sleeps    = int(sleeps.strip()[4:])
+			"""
 			if len(cols) == 9:
 				_,receiving,_,_,dropping,_,dropped,_,sleeps = cols
 				dropping = float(dropping)
 			elif len(cols) == 8:
+			"R=10.046 [Gb/s], D=85.7 [MB/s], D=970757 pkts, s_s=3450806"
 				_,receiving,_,dropping,_,dropped,_,sleeps = cols
+				dropping = float(dropping[2:])
+			elif len(cols) == 7:
+				receiving,_,dropping,_,dropped,_,sleeps = cols
+				receiving = float(receiving[2:])
 				dropping = float(dropping[2:])
 			else: # Some other message (e.g., "Terminated")
 				return {"receiving":'?', "dropping":'?', "dropped":'?', "sleeps":'?'}
@@ -281,6 +292,7 @@ class LEDACaptureProcess(LEDAProcess):
 					"dropping":  dropping,
 					"dropped":   dropped,
 					"sleeps":    sleeps}
+		"""
 		except ValueError, e:
 			print e
 			return {"receiving":'?', "dropping":'?', "dropped":'?', "sleeps":'?'}
