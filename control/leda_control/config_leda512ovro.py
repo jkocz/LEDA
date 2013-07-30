@@ -104,6 +104,7 @@ unpack_path         = os.path.join(getenv_warn('LEDA_DADA_DIR',
                                                "/home/leda/software/psrdada/leda/src"),
                                    "leda_dbupdb_512")
 unpack_cores        = [2, 10]
+unpack_ncores       = 2#1
 
 xengine_bufkeys     = ["cada", "fada"]
 xengine_logfiles    = [os.path.join(logpath,"dbgpu."+bufkey) \
@@ -115,7 +116,7 @@ xengine_path        = os.path.join(getenv_warn('LEDA_XENGINE_DIR',
                                    "leda_dbxgpu")
 xengine_gpus        = [0, 1]
 xengine_navg        = 25
-xengine_cores       = [3, 11]
+xengine_cores       = [4, 12]
 xengine_tp_ncycles  = 100
 
 disk_logfiles       = [os.path.join(logpath,"dbdisk."+bufkey) \
@@ -125,4 +126,4 @@ disk_path           = os.path.join(getenv_warn('PSRDADA_DIR',
                                    "dada_dbdisk")
 #disk_outpaths       = ["/data1/one", "/data1/two"]
 disk_outpaths       = ["/data1/one", "/data2/one"]
-disk_cores          = [4, 12]
+disk_cores          = [5, 13]

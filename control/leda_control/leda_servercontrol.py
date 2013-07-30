@@ -188,17 +188,20 @@ class LEDAXEngineProcess(LEDAProcess):
 		self._startProc(args)
 
 class LEDAUnpackProcess(LEDAProcess):
-	def __init__(self, logpath, path, in_bufkey, out_bufkey, core=None):
+	def __init__(self, logpath, path, in_bufkey, out_bufkey,
+	             core=None, ncores=1):
 		LEDAProcess.__init__(self, logpath, path)
 		self.logpath    = logpath
 		self.path       = path
 		self.in_bufkey  = in_bufkey
 		self.out_bufkey = out_bufkey
 		self.core       = core
+		self.ncores     = ncores
 	def start(self):
 		args = ""
 		if self.core is not None:
 			args += " -c%i" % self.core
+		args += " -n%i" % self.ncores
 		args += " %s %s" % (self.in_bufkey, self.out_bufkey)
 		#args = []
 		#if self.core is not None:
@@ -315,6 +318,7 @@ class LEDAServer(object):
 	             capture_bufkeys, capture_ips, capture_ports,
 	             capture_ninputs, capture_controlports, capture_cores,
 	             unpack_logfiles, unpack_path, unpack_bufkeys,
+	             unpack_cores, unpack_ncores,
 	             xengine_logfiles, xengine_path, xengine_bufkeys,
 	             xengine_gpus, xengine_navg, xengine_cores,
 	             xengine_tp_ncycles,
@@ -338,7 +342,7 @@ class LEDAServer(object):
 			                       capture_ninputs,capture_controlports,
 			                       capture_cores)]
 		self.unpack = [LEDAUnpackProcess(logfile,unpack_path,in_bufkey,
-		                                 out_bufkey,core) \
+		                                 out_bufkey,core,unpack_ncores) \
 			               for logfile,in_bufkey,out_bufkey,core \
 			               in zip(unpack_logfiles,capture_bufkeys,
 			                      unpack_bufkeys,unpack_cores)]
@@ -592,6 +596,8 @@ if __name__ == "__main__":
 		                        unpack_logfiles,
 		                        unpack_path,
 		                        unpack_bufkeys,
+		                        unpack_cores,
+		                        unpack_ncores,
 		                        
 		                        xengine_logfiles,
 		                        xengine_path,

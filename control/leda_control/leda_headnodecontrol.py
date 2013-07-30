@@ -28,32 +28,7 @@ import shutil
 #from PIL import Image # Note: Must be like this when using 'pillow' fork
 import StringIO, base64
 from leda_logger import LEDALogger
-"""
-class LEDALogger(object):
-	def __init__(self, streams=sys.stderr, debuglevel=1):
-		try:
-			streams.write("")
-		except:
-			self.streams = streams
-		else:
-			self.streams = [streams]
-		self.debuglevel = debuglevel
-	def copy(self):
-		return LEDALogger(self.streams, self.debuglevel)
-	def curTime(self):
-		now = datetime.datetime.today()
-		now_str = now.strftime("%Y-%m-%d-%H:%M:%S.%f")
-		return now_str
-	def write(self, message, level=1):
-		output = "[" + self.curTime() + "]"
-		if level == -1:
-			output += " WARN"
-		elif level == -2:
-			output += " ERR"
-		output += " " + message.replace("`","'") + "\n"
-		for stream in self.streams:
-			stream.write(output)
-"""
+
 class LEDARemoteServerControl(object):
 	def __init__(self, host, port, log=LEDALogger()):
 		self.host = host
@@ -109,24 +84,6 @@ class LEDARemoteServerControl(object):
 		if ret != 'ok':
 			self.log.write("Remote command failed", -2)
 			raise Exception("Remote command failed")
-	"""
-	@property
-	def nstreams(self):
-		if self._nstreams is not None:
-			return self._nstreams
-		self.log.write("Requesting value of nstreams", 3)
-		if self.sock is None:
-			self.log.write("Not connected", -2)
-			return None
-		ret = self._sendmsg("nstreams=1")
-		if ret is None:
-			return None
-		if "nstreams" in ret:
-			self._nstreams = int(ret.split('=')[1])
-			return self._nstreams
-		else:
-			return None
-	"""
 	def getStatus(self):
 		self.log.write("Requesting server status", 2)
 		if self.sock is None:
@@ -137,14 +94,6 @@ class LEDARemoteServerControl(object):
 			return None
 		status = json.loads(encoded)
 		return status
-		"""
-		stream_stats = []
-		for stream in self.nstreams:
-			ret = self._sendmsg("status=1&stream=%i"%stream)
-			args = dict([x.split('=') for x in ret.split('&')])
-			stream_stats.append(args)
-		return stream_stats
-		"""
 	def createBuffers(self):
 		self.log.write("Creating buffers", 2)
 		self._sendcmd("create_buffers=1")
