@@ -108,6 +108,9 @@ class LEDARemoteHeadNodeControl(object):
 		#images = [base64.standard_b64decode(im)
 		#	          for im in encoded_images]
 		return images
+	def exit(self):
+		self.log.write("Exiting", 2)
+		self._sendcmd("exit=1")
 	def configure(self):
 		self.log.write("Configuring", 2)
 		self._sendcmd("configure=1")
@@ -147,7 +150,7 @@ if __name__ == "__main__":
 	from configtools import *
 	
 	if len(sys.argv) <= 1:
-		print "Usage:", sys.argv[0], "[status|configure|start|stop|kill|program_roaches|create_buffers|total_power <ncycles>]"
+		print "Usage:", sys.argv[0], "[status|configure|start|stop|kill|program_roaches|create_buffers|total_power <ncycles>|exit]"
 		sys.exit(0)
 	cmd = sys.argv[1]
 	
@@ -201,6 +204,8 @@ if __name__ == "__main__":
 		print "Received image data"
 		# TODO: Do something with it
 		pass
+	elif cmd == "exit":
+		leda.exit()
 	elif cmd == "configure":
 		leda.configure()
 	elif cmd == "program_roaches":

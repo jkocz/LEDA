@@ -40,15 +40,15 @@ dest_ips    = ["192.168.40.%i" % (10 + i) for i in xrange(11)]
 dest_ports  = [4015, 4016]
 fft_first_chan = 1246
 fft_last_chan  = 1464
-fft_gain_coef  = None#1500<<7
-have_adcs   = False
-use_progdev = True
+fft_gain_coef  = 1500<<7#None
+have_adcs   = True#False
+use_progdev = False#True
 # Digital gain registers set to 1x
 adc_gain        = 1  # Multiplier 1-15
 adc_gain_bits   = adc_gain | (adc_gain << 4) | (adc_gain << 8) | (adc_gain << 12)
 adc_gain_reg    = 0x2a
 roach_registers = {adc_gain_reg: adc_gain_bits}
-fft_shift_mask  = None#0xFFFF
+fft_shift_mask  = 0xFFFF#None
 
 logpath = getenv_warn('LEDA_LOG_DIR', "/home/leda/logs")
 
@@ -104,6 +104,7 @@ unpack_path         = os.path.join(getenv_warn('LEDA_DADA_DIR',
                                                "/home/leda/software/psrdada/leda/src"),
                                    "leda_dbupdb_512")
 unpack_cores        = [2, 10]
+unpack_ncores       = 1
 
 xengine_bufkeys     = ["cada", "fada"]
 xengine_logfiles    = [os.path.join(logpath,"dbgpu."+bufkey) \
@@ -115,7 +116,7 @@ xengine_path        = os.path.join(getenv_warn('LEDA_XENGINE_DIR',
                                    "leda_dbxgpu")
 xengine_gpus        = [0, 1]
 xengine_navg        = 25
-xengine_cores       = [3, 11]
+xengine_cores       = [4, 12]
 xengine_tp_ncycles  = 100
 
 disk_logfiles       = [os.path.join(logpath,"dbdisk."+bufkey) \
@@ -125,4 +126,4 @@ disk_path           = os.path.join(getenv_warn('PSRDADA_DIR',
                                    "dada_dbdisk")
 #disk_outpaths       = ["/data1/one", "/data1/two"]
 disk_outpaths       = ["/data1/one", "/data2/one"]
-disk_cores          = [4, 12]
+disk_cores          = [5, 13]

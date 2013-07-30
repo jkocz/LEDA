@@ -1,0 +1,3 @@
+[submodule "interfits"]
+	path = interfits
+	url = git@github.com:telegraphic/interfits
