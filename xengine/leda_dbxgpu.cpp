@@ -220,6 +220,7 @@ using std::cout;
 using std::endl;
 #include <fstream>
 #include <iterator>
+#include <cmath>
 //#include <iomanip>
 #include <errno.h>       // For errno
 #include <sys/syscall.h> // For SYS_gettid
@@ -318,6 +319,9 @@ class dbgpu : public dada_db2db {
 	//tptype*          m_tp_ptr;
 	size_t           m_tp_ncycles;
 	size_t           m_tp_nrecord;
+	
+	std::ostream*        m_bp_outstream;
+	std::vector<Complex> m_bandpasses;
 public:
 	dbgpu(multilog_t* log, int verbose,
 	      size_t ntime_integrate,
@@ -328,7 +332,9 @@ public:
 		  m_subintegration(0),
 		  m_gpu_device(gpu_device),
 		  m_do_register(do_register),
-		  m_cycle(0) {
+		  m_cycle(0),
+		  m_tp_outstream(0),
+		  m_bp_outstream(0) {
 		
 		// Give the CPU a rest while the GPU kernel is running
 		cudaSetDeviceFlags(cudaDeviceScheduleYield);
@@ -389,6 +395,10 @@ public:
 		*/
 	}
 	
+	void setBandpassStream(std::ostream& bp_outstream) {
+		m_bp_outstream = &bp_outstream;
+	}
+	
 	virtual void onConnect(key_t in_key, key_t out_key) {
 		if( m_do_register ) {
 			// Register buffers as pinned memory
@@ -421,6 +431,19 @@ public:
 		// need to change some DADA parameters
 		if( ascii_header_set(header_out, "NBIT", "%d", 32) < 0 ) {
 			logInfo("dbgpu: Failed to set NBIT 32 in header_out");
+		}
+		
+		m_cycle = 0;
+		
+		if( m_bp_outstream ) {
+			Complex zero;
+			zero.real = 0;
+			zero.imag = 0;
+			m_bandpasses.resize(0);
+			m_bandpasses.resize(m_xgpu_info.nfrequency *
+			                    m_xgpu_info.nstation *
+			                    m_xgpu_info.npol,
+			                    zero);
 		}
 		
 		uint64_t bytes_per_read = m_xgpu_info.vecLength * sizeof(InType);
@@ -511,6 +534,38 @@ public:
 			//cout << "  done" << endl;
 		}
 		
+		if( m_bp_outstream ) {
+			size_t ntime    = m_xgpu_info.ntime;
+			size_t nchan    = m_xgpu_info.nfrequency;
+			size_t nstation = m_xgpu_info.nstation;
+			const ComplexInput* in = (ComplexInput*)data_in;
+			for( size_t t=0; t<ntime; ++t ) {
+				for( size_t c=0; c<nchan; ++c ) {
+					for( size_t s=0; s<nstation; ++s ) {
+						size_t in_idx  = s + nstation*(c + nchan*t);
+						size_t out_idx = s + nstation*c;
+						// Note: This assumes 2 pols
+						m_bandpasses[2*out_idx+0].real += in[2*in_idx+0].real*in[2*in_idx+0].real;
+						m_bandpasses[2*out_idx+0].imag += in[2*in_idx+0].imag*in[2*in_idx+0].imag;
+						m_bandpasses[2*out_idx+1].real += in[2*in_idx+1].real*in[2*in_idx+1].real;
+						m_bandpasses[2*out_idx+1].imag += in[2*in_idx+1].imag*in[2*in_idx+1].imag;
+					}
+				}
+			}
+			// Normalise (and undo unpacking bitshift)
+			for( size_t c=0; c<nchan; ++c ) {
+				for( size_t s=0; s<nstation; ++s ) {
+					size_t out_idx = s + nstation*c;
+					m_bandpasses[2*out_idx+0].real = sqrt(m_bandpasses[2*out_idx+0].real / ((1<<4) * ntime));
+					m_bandpasses[2*out_idx+0].imag = sqrt(m_bandpasses[2*out_idx+0].imag / ((1<<4) * ntime));
+					m_bandpasses[2*out_idx+1].real = sqrt(m_bandpasses[2*out_idx+1].real / ((1<<4) * ntime));
+					m_bandpasses[2*out_idx+1].imag = sqrt(m_bandpasses[2*out_idx+1].imag / ((1<<4) * ntime));
+				}
+			}
+			m_bp_outstream->write((char*)&m_bandpasses[0],
+			                      m_bandpasses.size()*sizeof(Complex));
+		}
+		
 		// Manually sync xGPU
 		cudaThreadSynchronize();
 		
@@ -547,6 +602,7 @@ void usage() {
 		" -p tpfile  filename for total power output\n"
 		" -n cycles  no. NTIMEs to record each total power antenna for (100)\n"
 		" -N ninputs no. inputs to record simultaneously (2)\n"
+		" -b bpfile  filename for bandpass recording\n"
 		" -r         disable host memory pinning\n"
 		" -h         print usage" << endl;
 }
@@ -564,9 +620,10 @@ int main(int argc, char* argv[])
 	std::string tp_filename = "";
 	int         tp_ncycles = 100;
 	int         tp_nrecord = 2; // no. inputs
+	std::string bp_filename = "";
 	
 	int arg = 0;
-	while( (arg = getopt(argc,argv,"d:t:c:p:n:rhv")) != -1 ) {
+	while( (arg = getopt(argc,argv,"d:t:c:p:n:b:rhv")) != -1 ) {
 		switch (arg){
 		case 'd':
 			if( optarg ) {
@@ -611,6 +668,15 @@ int main(int argc, char* argv[])
 			}
 			else {
 				fprintf(stderr, "ERROR: -n flag requires argument\n");
+				return EXIT_FAILURE;
+			}
+		case 'b':
+			if( optarg ) {
+				bp_filename = optarg;
+				break;
+			}
+			else {
+				fprintf(stderr, "ERROR: -b flag requires argument\n");
 				return EXIT_FAILURE;
 			}
 		case 'N':
@@ -703,6 +769,17 @@ int main(int argc, char* argv[])
 		}
 		ctx.setTotalPowerInputs(&tp_inputs[0], tp_inputs.size(),
 		                        tp_ncycles, tp_nrecord, tp_outfile);
+	}
+	
+	std::ofstream bp_outfile;
+	if( bp_filename != "" ) {
+		bp_outfile.open(bp_filename.c_str(), std::ios::binary);
+		if( !tp_outfile ) {
+			fprintf(stderr,
+			        "dbgpu: failed to open output file %s\n",bp_filename.c_str());
+			return -1;
+		}
+		ctx.setBandpassStream(bp_outfile);
 	}
 	
 	ctx.connect(in_key, out_key);
