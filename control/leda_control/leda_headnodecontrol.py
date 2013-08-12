@@ -28,6 +28,7 @@ import shutil
 #from PIL import Image # Note: Must be like this when using 'pillow' fork
 import StringIO, base64
 from leda_logger import LEDALogger
+from async import AsyncCaller
 
 class LEDARemoteServerControl(object):
 	def __init__(self, host, port, log=LEDALogger()):
@@ -394,8 +395,11 @@ class LEDARemoteManager(object):
 	def killObservation(self):
 		self.log.write("Killing observation", 0)
 		self.stopObservation()
+		async = AsyncCaller()
 		for server in self.servers:
-			server.control.killPipeline()
+			#server.control.killPipeline()
+			async(server.control.killPipeline)()
+		async.wait()
 	def clearLogs(self):
 		self.log.write("Clearing all logs", 0)
 		for server in self.servers:
