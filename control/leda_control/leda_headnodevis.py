@@ -44,16 +44,22 @@ def receive_array(msg):
 class LEDARemoteVisServer(LEDAClient):
 	def __init__(self, host, port, log):
 		super(LEDARemoteVisServer, self).__init__(host, port, log)
-		self.connect()
+		#self.connect()
 	def open(self):
-		metadata = json.loads(self._sendmsg('open=1'))
-		self.nchan       = metadata['nchan']
-		self.ndim        = metadata['ndim']
-		self.npol        = metadata['npol']
-		self.nstation    = metadata['nstation']
-		self.ninput      = metadata['ninput']
-		self.navg        = metadata['navg']
-		self.center_freq = metadata['center_freq']
+		ret = self._sendmsg('open=1')
+		if ret is not None:
+			metadata = json.loads(ret)
+		else:
+			metadata = {'nchan':0,'ndim':0,'npol':0,
+			            'nstation':0,'ninput':0,'navg':0,
+			            'center_freq':0.}
+		self.nchan       = int(metadata['nchan'])
+		self.ndim        = int(metadata['ndim'])
+		self.npol        = int(metadata['npol'])
+		self.nstation    = int(metadata['nstation'])
+		self.ninput      = int(metadata['ninput'])
+		self.navg        = int(metadata['navg'])
+		self.center_freq = float(metadata['center_freq'])
 	def update(self):
 		return self._sendcmd('update=1')
 	def getStand(self, idx):
@@ -98,7 +104,7 @@ class LEDARoachVis(object):
 		self.log  = log
 		self.ninputs = 32
 		self.npol = 2
-		self.connect()
+		#self.connect()
 	def connect(self):
 		self.log.write("Connecting to ROACH %s:%i" % (self.host,self.port))
 		self.fpga = corr.katcp_wrapper.FpgaClient(self.host, self.port)
@@ -157,10 +163,17 @@ class LEDARemoteVisManager(object):
 		self.adc2stand  = adc2stand
 		self.leda2stand = leda2stand
 		self.log = log
+		async = AsyncCaller()
 		self.servers = [LEDARemoteVisServer(host,controlport,log) \
 			                for host in serverhosts]
+		for server in self.servers:
+			async(server.connect)()
+		async.wait()
 		self.roaches = [LEDARoachVis(host,roachport,log) \
 			                for host in roachhosts]
+		for roach in self.roaches:
+			async(roach.connect)()
+		async.wait()
 	def open(self):
 		async = AsyncCaller()
 		for server in self.servers:
