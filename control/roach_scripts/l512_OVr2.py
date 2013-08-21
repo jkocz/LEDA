@@ -108,23 +108,27 @@ for roach2 in (roach_array):
 	
 	fpga.write_int('tenge_header_fid',i)
 
-	fpga.write_int('tenge_start_count',1252);
-	fpga.write_int('tenge_stop_count',1470);
+	fpga.write_int('tenge_start_count',1246);
+	fpga.write_int('tenge_stop_count',1464);
 	fpga.write_int('tenge_high_ch',109);
 
-	fpga.write_int('fft_fft_shift',65535);
+
+	fpga.write_int('fft_f1_fft_shift',65535);
+	fpga.write_int('fft_f2_fft_shift',65535);
+	fpga.write_int('fft_f3_fft_shift',65535);
+	fpga.write_int('fft_f4_fft_shift',65535);
 
 	odata = numpy.ones(4096,'l')*(1500<<7)
 	cstr = struct.pack('>4096l',*odata)
 
-	#fpga.write('fft_f1_coeffs',cstr)
-	#fpga.write('fft_f1_coeffs1',cstr)
-	#fpga.write('fft_f2_coeffs',cstr)
-	#fpga.write('fft_f2_coeffs1',cstr)
-	#fpga.write('fft_f3_coeffs',cstr)
-	#fpga.write('fft_f3_coeffs1',cstr)
-	#fpga.write('fft_f4_coeffs',cstr)
-	#fpga.write('fft_f4_coeffs1',cstr)
+	fpga.write('fft_f1_coeffs',cstr)
+	fpga.write('fft_f1_coeffs1',cstr)
+	fpga.write('fft_f2_coeffs',cstr)
+	fpga.write('fft_f2_coeffs1',cstr)
+	fpga.write('fft_f3_coeffs',cstr)
+	fpga.write('fft_f3_coeffs1',cstr)
+	fpga.write('fft_f4_coeffs',cstr)
+	fpga.write('fft_f4_coeffs1',cstr)
 
 
 
