@@ -19,7 +19,7 @@ roach14    = 'rofl14'
 roach15    = 'rofl15'
 roach16    = 'rofl16'
 
-roach_array = ('rofl1', 'rofl2','rofl3','rofl4','rofl5','rofl6','rofl7',
+roach_array = ('rofl1', 'rofl2','rofl3','rofl4','rofl5','rofl6',
 	       'rofl8', 'rofl9','rofl10','rofl11','rofl12','rofl13','rofl14',
 	       'rofl15','rofl16')
 
@@ -204,8 +204,8 @@ for roach2 in (roach_array):
 	
 	fpga.write_int('tenge_header_fid',i)
 
-	fpga.write_int('tenge_start_count',1252);
-	fpga.write_int('tenge_stop_count',1470);
+	fpga.write_int('tenge_start_count',1246);
+	fpga.write_int('tenge_stop_count',1464);
 	fpga.write_int('tenge_high_ch',109);
 
         fpga.write_int('fft_f1_fft_shift',65535);
@@ -233,4 +233,7 @@ for roach2 in (roach_array):
 	#fpga.write_int('enable', 1)
 	print 'done'
         i=i+1
+
+	if i==6:
+		i=i+1
 
