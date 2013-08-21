@@ -92,6 +92,10 @@ def onMessage(ledavis, message, clientsocket, address):
 		logMsg(1, DL, "Request to update")
 		ledavis.update()
 		clientsocket.send('ok')
+	elif 'exit' in args:
+		logMsg(1, DL, "Exit requested")
+		clientsocket.send('ok')
+		return True
 	elif 'stand' in args:
 		i = int(args['i'])
 		logMsg(1, DL, "Stand %i data requested" % (i))

@@ -21,6 +21,8 @@ class LEDARemoteHeadNodeVis(LEDAClient):
 		return self._sendcmd('open=1')
 	def update(self):
 		return self._sendcmd('update=1')
+	def exit(self):
+		return self._sendcmd('exit=1')
 	def getStand(self, idx):
 		imgdata = receive_image(self._sendmsg('stand=1&i=%i' % idx))
 		return imgdata
@@ -41,7 +43,7 @@ if __name__ == "__main__":
 	import sys
 	
 	if len(sys.argv) <= 1:
-		print "Usage: %s [stand i | fringes i j | matrix | spectra ]" % sys.argv[0]
+		print "Usage: %s [stand i | fringes i j | matrix | spectra | exit ]" % sys.argv[0]
 		sys.exit(-1)
 	
 	configfile = getenv('LEDA_CONFIG')
@@ -92,6 +94,10 @@ if __name__ == "__main__":
 		outfilename = "spectra.png"
 		open(outfilename, 'w').write(ledavis.getAllSpectra())
 		print "Output written to", outfilename
+		
+	elif cmd == "exit":
+		ledavis.exit()
+		print "servervis processes commanded to exit"
 		
 	else:
 		print "Unknown command '%s'" % cmd

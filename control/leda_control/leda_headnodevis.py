@@ -85,6 +85,9 @@ class LEDARemoteVisServer(LEDAClient):
 		data = metadata['data']
 		powspectra_x, powspectra_y = data
 		return powspectra_x, powspectra_y
+	def exit(self):
+		self.log.write("Requesting server vis script to exit", 2)
+		self._sendcmd("exit=1")
 
 # TODO: Should probably just have one LEDARoach class that includes everything and is
 #         in its own file, to be included here and in leda_headnodecontrol.
@@ -179,6 +182,9 @@ class LEDARemoteVisManager(object):
 			async(server.update)()
 		async.wait()
 			#server.update()
+	def exit(self):
+		for server in self.servers:
+			server.exit()
 	#def sortByFreq(self, values):
 	#	cfreqs = [server.center_freq for server in self.servers]
 	#	cfreqs, values = zip(*sorted(zip(cfreqs, values)))
@@ -347,6 +353,9 @@ def onMessage(ledavis, message, clientsocket, address):
 		clientsocket.send('ok')
 	elif 'update' in args:
 		ledavis.update()
+		clientsocket.send('ok')
+	elif "exit" in args:
+		ledavis.exit()
 		clientsocket.send('ok')
 	elif 'stand' in args:
 		# TODO: Should probably move most of this code into plot_* methods
