@@ -234,6 +234,7 @@ for roach2 in (roach_array):
 	print 'done'
         i=i+1
 
-	if i==6:
+	if (i==6):
 		i=i+1
+
 

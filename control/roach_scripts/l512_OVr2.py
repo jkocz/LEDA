@@ -19,13 +19,10 @@ roach14    = 'rofl14'
 roach15    = 'rofl15'
 roach16    = 'rofl16'
 
-#roach_array = ('rofl1', 'rofl2','rofl3','rofl4','rofl5','rofl6','rofl7'
-#	       'rofl8', 'rofl9','rofl10','rofl11','rofl12','rofl13','rofl14'
-#	       'rofl15','rofl16')
+roach_array = ('rofl1', 'rofl2','rofl3','rofl4','rofl5','rofl6',
+	       'rofl8', 'rofl9','rofl10','rofl11','rofl12','rofl13','rofl14',
+              'rofl15','rofl16')
 
-roach_array = ('rofl1','rofl2', 'rofl3','rofl4','rofl5', 'rofl6',
-	       'rofl8', 'rofl9','rofl10','rofl11','rofl13','rofl14',
-	       'rofl15', 'rofl16')
 dest_ip0   = 192*(2**24) + 168*(2**16) + 40*(2**8) + 10 
 dest_ip1   = 192*(2**24) + 168*(2**16) + 40*(2**8) + 11
 dest_ip2   = 192*(2**24) + 168*(2**16) + 40*(2**8) + 12
@@ -112,7 +109,6 @@ for roach2 in (roach_array):
 	fpga.write_int('tenge_stop_count',1464);
 	fpga.write_int('tenge_high_ch',109);
 
-
 	fpga.write_int('fft_f1_fft_shift',65535);
 	fpga.write_int('fft_f2_fft_shift',65535);
 	fpga.write_int('fft_f3_fft_shift',65535);
@@ -135,15 +131,15 @@ for roach2 in (roach_array):
 	print '------------------------\n'
 	print 'Resetting counter...\n',
 	fpga.write_int('tenge_enable', 0)
-	#fpga.write_int('fft_rst', 3)
 	fpga.write_int('adc_rst', 3)
+	#fpga.write_int('adc_rst', 0)
 	#fpga.write_int('enable', 1)
 	print 'done'
         i=i+1
 
-
 	if i==6:
 	   i=i+1
+
 #print '--------------------------'
 #print 'Stopping counter...',
 #fpga.write_int('pkt_sim2_enable',0)
