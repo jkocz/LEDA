@@ -196,8 +196,8 @@ fpga.write_int('tenge_ips_ip22',dest_ip10)
 
 fpga.write_int('tenge_header_fid',i)
 
-fpga.write_int('tenge_start_count',1252);
-fpga.write_int('tenge_stop_count',1470);
+fpga.write_int('tenge_start_count',1246);
+fpga.write_int('tenge_stop_count',1464);
 fpga.write_int('tenge_high_ch',109);
 
 fpga.write_int('fft_f1_fft_shift',65535);
