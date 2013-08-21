@@ -23,9 +23,9 @@ roach16    = 'rofl16'
 #	       'rofl8', 'rofl9','rofl10','rofl11','rofl12','rofl13','rofl14'
 #	       'rofl15','rofl16')
 
-roach_array = ('rofl1','rofl3','rofl4','rofl6','rofl7',
+roach_array = ('rofl1','rofl2', 'rofl3','rofl4','rofl5', 'rofl6',
 	       'rofl8', 'rofl9','rofl10','rofl11','rofl13','rofl14',
-	       )
+	       'rofl15', 'rofl16')
 dest_ip0   = 192*(2**24) + 168*(2**16) + 40*(2**8) + 10 
 dest_ip1   = 192*(2**24) + 168*(2**16) + 40*(2**8) + 11
 dest_ip2   = 192*(2**24) + 168*(2**16) + 40*(2**8) + 12
@@ -67,7 +67,7 @@ for roach2 in (roach_array):
 	else:
 		print 'ERROR\n'
 	
-	fpga.progdev('l512_dev_20130717.bof')
+	#fpga.progdev('l512_dev_20130717.bof')
 
 	print '------------------------'
 	print 'Staring tgtap server...\n',   
@@ -112,7 +112,7 @@ for roach2 in (roach_array):
 	fpga.write_int('tenge_stop_count',1470);
 	fpga.write_int('tenge_high_ch',109);
 
-	#fpga.write_int('fft_fft_shift',65535);
+	fpga.write_int('fft_fft_shift',65535);
 
 	odata = numpy.ones(4096,'l')*(1500<<7)
 	cstr = struct.pack('>4096l',*odata)
@@ -131,11 +131,15 @@ for roach2 in (roach_array):
 	print '------------------------\n'
 	print 'Resetting counter...\n',
 	fpga.write_int('tenge_enable', 0)
-	fpga.write_int('fft_rst', 3)
-	#fpga.write_int('adc_rst', 0)
+	#fpga.write_int('fft_rst', 3)
+	fpga.write_int('adc_rst', 3)
 	#fpga.write_int('enable', 1)
 	print 'done'
         i=i+1
+
+
+	if i==6:
+	   i=i+1
 #print '--------------------------'
 #print 'Stopping counter...',
 #fpga.write_int('pkt_sim2_enable',0)
