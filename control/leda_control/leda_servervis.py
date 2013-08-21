@@ -16,6 +16,7 @@ import StringIO
 import numpy as np
 from SimpleSocket import SimpleSocket
 from leda_correlator_dump import correlator_dump
+from leda_logger import LEDALogger
 
 port = 3142
 
@@ -39,10 +40,11 @@ def logMsg(lvl, dlvl, message):
         sys.stderr.write("[" + time + "] " + message + "\n")
 
 class LEDAVis(object):
-	def __init__(self, datapaths, nchan_reduced):
+	def __init__(self, datapaths, nchan_reduced, log=LEDALogger()):
 		self.datapaths = datapaths
 		self.data = correlator_dump()
 		self.nchan_reduced = nchan_reduced
+		self.log = log
 		self.visibilities = None
 		
 	def open_latest(self):
@@ -50,6 +52,7 @@ class LEDAVis(object):
 		"""
 		datestamps = [self._getLatestDatestamp(path) \
 			              for path in self.datapaths]
+		self.log.write("Opening data with datestamps: %s" % ', '.join(datestamps))
 		self.data.open(datestamps)
 		
 	def _getLatestDatestamp(self, path, rank=0):
@@ -59,6 +62,7 @@ class LEDAVis(object):
 		return datestamp
 	
 	def update(self):
+		self.log.write("Updating to latest data")
 		self.visibilities = self.data.read_last()
 		
 	def get_visibilities(self):
