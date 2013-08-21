@@ -25,6 +25,7 @@ import matplotlib
 matplotlib.use('Agg') # Prevent it from trying to use Xwindows backend
 import matplotlib.pyplot as plt
 import time
+from async import AsyncCaller
 
 g_port = 6283
 
@@ -158,8 +159,10 @@ class LEDARemoteVisManager(object):
 		self.roaches = [LEDARoachVis(host,roachport,log) \
 			                for host in roachhosts]
 	def open(self):
+		async = AsyncCaller()
 		for server in self.servers:
-			server.open()
+			async(server.open)()
+		async.wait()
 		self.nchan = sum([server.nchan for server in self.servers])
 		self.ndim = self.servers[0].ndim
 		self.npol = self.servers[0].npol
@@ -171,8 +174,11 @@ class LEDARemoteVisManager(object):
 		# Sort servers by frequency
 		self.servers.sort(key=lambda s: s.center_freq)
 	def update(self):
+		async = AsyncCaller()
 		for server in self.servers:
-			server.update()
+			async(server.update)()
+		async.wait()
+			#server.update()
 	#def sortByFreq(self, values):
 	#	cfreqs = [server.center_freq for server in self.servers]
 	#	cfreqs, values = zip(*sorted(zip(cfreqs, values)))
@@ -183,8 +189,12 @@ class LEDARemoteVisManager(object):
 		
 		powspec_subbands_x = []
 		powspec_subbands_y = []
+		async = AsyncCaller()
 		for server in self.servers:
-			ret = server.getStand(idx)
+			async(server.getStand)(idx)
+		rets = async.wait()
+		for ret in rets:
+			#ret = server.getStand(idx)
 			if ret is None:
 				return None
 			powspec_x, powspec_y = ret
@@ -201,8 +211,12 @@ class LEDARemoteVisManager(object):
 		
 		fringes_subbands_xx = []
 		fringes_subbands_yy = []
+		async = AsyncCaller()
 		for server in self.servers:
-			ret = server.getFringes(idx_i, idx_j)
+			async(server.getFringes)(idx_i, idx_j)
+		rets = async.wait()
+		for ret in rets:
+			#ret = server.getFringes(idx_i, idx_j)
 			if ret is None:
 				return None
 			fringes_xx, fringes_yy = ret
@@ -218,8 +232,12 @@ class LEDARemoteVisManager(object):
 		amp_yy_subbands   = []
 		phase_xx_subbands = []
 		phase_yy_subbands = []
+		async = AsyncCaller()
 		for server in self.servers:
-			ret = server.getMatrices()
+			async(server.getMatrices)()
+		rets = async.wait()
+		for ret in rets:
+			#ret = server.getMatrices()
 			if ret is None:
 				return None
 			amp_xx, amp_yy, phase_xx, phase_yy = ret
@@ -242,8 +260,12 @@ class LEDARemoteVisManager(object):
 	def getAllSpectra(self):
 		powspectra_subbands_x = []
 		powspectra_subbands_y = []
+		async = AsyncCaller()
 		for server in self.servers:
-			ret = server.getAllSpectra()
+			async(server.getAllSpectra)()
+		rets = async.wait()
+		for ret in rets:
+			#ret = server.getAllSpectra()
 			if ret is None:
 				return None
 			powspectra_x, powspectra_y = ret
@@ -262,8 +284,12 @@ class LEDARemoteVisManager(object):
 	def getADCAllTimeSeries(self):
 		timeseries_substands_x = []
 		timeseries_substands_y = []
+		async = AsyncCaller()
 		for roach in self.roaches:
-			ret = roach.getSamples()
+			async(roach.getSamples)()
+		rets = async.wait()
+		for ret in rets:
+			#ret = roach.getSamples()
 			if ret is None:
 				return None
 			timeseries_x, timeseries_y = ret
@@ -281,8 +307,12 @@ class LEDARemoteVisManager(object):
 	def getADCAllSpectra(self):
 		powspectra_substands_x = []
 		powspectra_substands_y = []
+		async = AsyncCaller()
 		for roach in self.roaches:
-			ret = roach.getPowerSpectra()
+			async(roach.getPowerSpectra)()
+		rets = async.wait()
+		for ret in rets:
+			#ret = roach.getPowerSpectra()
 			if ret is None:
 				return None
 			powspectra_x, powspectra_y = ret
