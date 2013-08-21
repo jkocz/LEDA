@@ -222,7 +222,7 @@ class LEDARoach(object):
 		self.fft_shift_mask = fft_shift_mask
 		self.reset_cmd = 'adc_rst' if have_adcs else 'fft_rst'
 		self.log  = log
-		self.connect()
+		#self.connect()
 	def connect(self):
 		self.log.write("Connecting to ROACH %s:%i" % (self.host,self.port))
 		self.fpga = corr.katcp_wrapper.FpgaClient(self.host, self.port)
@@ -314,6 +314,10 @@ class LEDARemoteManager(object):
 		                          log) \
 			                for host,fids,src_ips \
 			                in zip(roachhosts,all_fids,all_src_ips)]
+		async = AsyncCaller()
+		for roach in self.roaches:
+			async(roach.connect)()
+		async.wait()
 	
 	def programRoaches(self):
 		self.log.write("Programming roaches; wait 3 mins to take effect", 0)
@@ -323,12 +327,16 @@ class LEDARemoteManager(object):
 		#time.sleep(180)
 	def createBuffers(self):
 		self.log.write("Creating buffers", 0)
+		async = AsyncCaller()
 		for server in self.servers:
-			server.control.createBuffers()
+			async(server.control.createBuffers)()
+		async.wait()
 	def setTotalPowerRecording(self, ncycles):
 		self.log.write("Setting total power recording param", 0)
+		async = AsyncCaller()
 		for server in self.servers:
-			server.control.setTotalPowerRecording(ncycles)
+			async(server.control.setTotalPowerRecording)(ncycles)
+		async.wait()
 	def exit(self):
 		for server in self.servers:
 			server.control.exit()
@@ -353,14 +361,20 @@ class LEDARemoteManager(object):
 		start_delay = 10 # seconds
 		roach_start_delay = 2
 		
+		async = AsyncCaller()
 		for server in self.servers:
-			server.control.armPipeline()
+			async(server.control.armPipeline)()
+		async.wait()
 		for roach in self.roaches:
-			roach.armFlow()
-		for server in self.servers:
+			async(roach.armFlow)()
+		async.wait()
+		def start_server_pipeline(server):
 			server.control.startPipeline()
 			for process in server.capture.processes:
 				process.connect()
+		for server in self.servers:
+			async(start_server_pipeline)(server)
+		async.wait()
 		#time.sleep(10)
 		#for roach in self.roaches:
 		#	roach.startFlow()
@@ -378,20 +392,26 @@ class LEDARemoteManager(object):
 		roach_start_time = (utc - delta).strftime("%Y-%m-%d-%H:%M:%S")
 		
 		self.log.write("Scheduling capture procs to start at "+utcstr)
-		for server in self.servers:
+		def start_capture_processes(server, utcstr):
 			for process in server.capture.processes:
 				process.start(utcstr)
+		for server in self.servers:
+			async(start_capture_processes)(server, utcstr)
+		async.wait()
 		self.log.write("Waiting for start time")
 		wait_until_utc_sec(roach_start_time)
 		time.sleep(0.5)
 		self.log.write("Starting flow from ROACHes")
 		for roach in self.roaches:
-			roach.startFlow()
+			async(roach.startFlow)()
+		async.wait()
 		
 	def stopObservation(self):
 		self.log.write("Stopping observation", 0)
+		async = AsyncCaller()
 		for roach in self.roaches:
-			roach.stopFlow()
+			async(roach.stopFlow)()
+		async.wait()
 	def killObservation(self):
 		self.log.write("Killing observation", 0)
 		self.stopObservation()
@@ -409,14 +429,23 @@ def onMessage(leda, message, clientsocket, address):
 	args = dict([x.split('=') for x in message.split('&')])
 	
 	if "status" in args:
-		control_status = [(server.host,server.control.getStatus()) for server in leda.servers]
+		async = AsyncCaller()
+		for server in leda.servers:
+			async(server.control.getStatus)()
+		statuses = async.wait()
+		control_status = [(server.host,status) \
+			                  for (server,status) in zip(leda.servers,statuses)]
+		#control_status = [(server.host,server.control.getStatus()) for server in leda.servers]
 		"""
 		capture_status = [[(server.host,process.getStatus()) \
 			                   for process in server.capture.processes] \
 			                  for server in leda.servers]
         """
-		roach_status = [roach.getStatus() for roach in leda.roaches]
-		#roach_status = [{"flowing": str(roach.isFlowing())} for roach in leda.roaches]
+		for roach in leda.roaches:
+			async(roach.getStatus)()
+		roach_status = async.wait()
+		#roach_status = [roach.getStatus() for roach in leda.roaches]
+		##roach_status = [{"flowing": str(roach.isFlowing())} for roach in leda.roaches]
 		status = {"control": control_status,
 		          #"capture": capture_status,
 		          "roach":   roach_status}

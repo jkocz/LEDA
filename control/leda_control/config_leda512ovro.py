@@ -21,8 +21,8 @@ site_stands_file = getenv_warn('SITE_STANDS_FILE',
 leda_stands_file = getenv_warn('LEDA_STANDS_FILE',
                                "leda_stands_ovro512.txt")
 
-headnodehost    = "ledagpu0"
-webserverhost   = "ledagpu0"
+headnodehost    = "ledaovro"
+webserverhost   = "ledaovro"
 serverhosts     = ["ledaovro%i" % (i+1) for i in xrange(11)]
 #serverhosts     = ["ledaovro1"]
 #serverhosts     = ["ledaovro2"]
