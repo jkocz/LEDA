@@ -40,7 +40,7 @@ int main(int argc, char** argv) {
   int i;
   struct timespec start, stop;
   double total, per_call, max_bw;
-  int slicePerFile = 35;
+  int slicePerFile = 60;
   int fullMatLength = 814*16*16*2*2; // nfrequency*nstation*nstation*npol*npol;
   int strideLength;
   char* header[4096];
@@ -53,24 +53,37 @@ int main(int argc, char** argv) {
   int outerL,innerL;
   FILE * inputFile = fopen(input_file, "rb");
   fprintf(stdout,"Input File: %s\n",input_file);
-  
+   
+
+ 
   bytes_read = fread(header,sizeof(char),4096,inputFile);
   fprintf(stdout,"Header Read (%d bytes)\n",bytes_read);
+
+  //fprintf(stdout,"%s\n",header);
 
   Complex *full_matrix_h = (Complex *) malloc(fullMatLength*sizeof(Complex));
   Complex *cuda_matrix_h = (Complex *) malloc(matrix_len*sizeof(Complex));
   fprintf(stdout,"Memory allocated\n");
   
+  char output_fileA[100]; 
+  char output_fileC[100];
+
+  int bytes_printed = 0;
+  int acount = 0;
+  int aflip = 0;
+  int ccount = 2;
+  int cflip = 1;
+  int oflip = 0;
+
   for (outerL=0;outerL<sliceToRead/slicePerFile;outerL++)
   {
 	fprintf(stdout,"Will read %d slices\n",sliceToRead/slicePerFile);
-  	char output_fileA[100]; 
 	sprintf(output_fileA,"Test_%d.LA",outerL);
-	char output_fileC[100];
 	sprintf(output_fileC,"Test_%d.LC",outerL);
   	FILE * outputFileA = fopen(output_fileA, "a");
         FILE * outputFileC = fopen(output_fileC,"a");
         fprintf(stdout,"Output files open\n");
+
 
 	//for (int zz=0;zz<100;zz++)
 	//{
@@ -81,10 +94,10 @@ int main(int argc, char** argv) {
         //for (int innerL=0;innerL=innerL+1;innerL<slicePerFile);
         for (innerL=0;innerL<slicePerFile;innerL++)
 	{
-		fprintf(stdout,"In inner loop...%d\n",innerL);
+		//fprintf(stdout,"In inner loop...%d\n",innerL);
 		bytes_read = fread(cuda_matrix_h,sizeof(Complex),matrix_len,inputFile);
 
-		fprintf(stdout, "Expected %d bytes, Read %d bytes\n",matrix_len,bytes_read);
+		//fprintf(stdout, "Expected %d bytes, Read %d bytes\n",matrix_len,bytes_read);
 		if (bytes_read < matrix_len)
 		{
 			fprintf(stdout, "EOF Reached\n");
@@ -94,15 +107,20 @@ int main(int argc, char** argv) {
 			free(cuda_matrix_h);
 			return 0;
 		}  
-		fprintf(stdout,"Reordering stage 1.... \n");	
+		//fprintf(stdout,"Reordering stage 1.... \n");	
 		xgpuReorderMatrix(cuda_matrix_h,matrix_len);
   		// convert from packed triangular to full matrix
-		fprintf(stdout,"Reordering stage 2.... \n");
+		//fprintf(stdout,"Reordering stage 2.... \n");
   		xgpuExtractMatrix(full_matrix_h, cuda_matrix_h);
-		fprintf(stdout,"Reordering complete\n");
+		//fprintf(stdout,"Reordering complete\n");
 		// write to output
 		strideLength= 528+496;
-		int bytes_printed = 0;
+		bytes_printed = 0;
+		acount = 0;
+		aflip = 0;
+		ccount = 2;
+		cflip = 1;
+		oflip = 0;
                	for (int acIndex=0;acIndex<nstation*2;acIndex++)
 		{
 			for (int freqCh=0;freqCh<nfrequency;freqCh++)
@@ -110,20 +128,71 @@ int main(int argc, char** argv) {
 
 				//fprintf(stdout,"Printing AC channel: 4 bytes, %d\n",sizeof(full_matrix_h[acIndex*814+strideLength*freqCh].real));
 				bytes_printed = bytes_printed+4;	
-				fprintf(outputFileA,"%I32f",full_matrix_h[acIndex*814+strideLength*freqCh].real);
-				//fprintf(outputFileA,"%f",full_matrix_h[acIndex*814+strideLength*freqCh].imag);
+				//fprintf(stdout,"%d\n",acount+strideLength*freqCh);
+				//fprintf(stdout,"%I32f\n",full_matrix_h[acIndex*814+strideLength*freqCh].real);
+				//fprintf(outputFileA,"%f",full_matrix_h[acIndex*814+strideLength*freqCh].real);
+				//fwrite(&full_matrix_h[acIndex*814+strideLength*freqCh].real,1,4,outputFileA);
+				fwrite(&full_matrix_h[acount+strideLength*freqCh].real,1,4,outputFileA);
 			}
-		}
-		fprintf (stdout, "AC writen, bytes printed: %d\n",bytes_printed);
-		for (int ccIndex=0;ccIndex<496;ccIndex++)
-		{
-			for (int freqCh=0;freqCh<nfrequency;freqCh++)
+			//acount += (nstation*2+1);
+			if (aflip == 0)
 			{
-				fprintf(outputFileC,"%I32f",full_matrix_h[ccIndex*814+strideLength*freqCh].real);
-				fprintf(outputFileC,"%I32f",full_matrix_h[ccIndex*814+strideLength*freqCh].imag);
+				acount += 3;
+				aflip = 1;
 			}
+			else
+			{
+				acount +=65;
+				aflip = 0;
+			}
+
+			
 		}
-	        fprintf(stdout, "CC written\n");
+		//fprintf (stdout, "AC writen, bytes printed: %d\n",bytes_printed);
+		//for (int ccIndex=0;ccIndex<496;ccIndex++)
+		for (int ccIndex=0;ccIndex<32;ccIndex++)
+		{
+			for (int xcount=ccIndex;xcount<31;xcount++)
+			{
+				// need to reset start count after each column of the matrix...
+	
+				for (int freqCh=0;freqCh<nfrequency;freqCh++)
+				{
+					fwrite(&full_matrix_h[ccount+strideLength*freqCh].real,1,4,outputFileC);
+					fwrite(&full_matrix_h[ccount+strideLength*freqCh].imag,1,4,outputFileC);
+				}
+				if (cflip == 0)
+				{
+					ccount += 2;
+					cflip = 1;
+				}
+				else
+				{
+					ccount +=62;
+					cflip = 0;
+				}
+			}
+			ccount = 2;
+			//cflip = 0;	
+			oflip = 0;
+			for (int xcount=0;xcount<=ccIndex;xcount++)
+			{
+				if (oflip == 0)
+				{
+					ccount +=63;
+					oflip = 1;
+					cflip = 0;
+				}
+				else
+				{
+					ccount += 5;
+					oflip = 0;
+					cflip = 1;
+				}	
+			}
+
+		}
+	        //fprintf(stdout, "CC written\n");
 	}
 	fclose(outputFileA);
 	fclose(outputFileC);
@@ -176,6 +245,9 @@ void xgpuReorderMatrix(Complex *matrix, size_t matLength) {
 }
 
 // Extracts the full matrix from the packed Hermitian form
+
+// changed order of upper/lower matrix from default xgpu for lfile writeout
+
 void xgpuExtractMatrix(Complex *matrix, Complex *packed) {
 
   int f, i, j, pol1, pol2;
@@ -187,10 +259,12 @@ void xgpuExtractMatrix(Complex *matrix, Complex *packed) {
 	  for (pol2=0; pol2<npol; pol2++) {
 	    int index = (k*npol+pol1)*npol+pol2;
 	    matrix[(((f*nstation + i)*nstation + j)*npol + pol1)*npol+pol2].real = packed[index].real;
-	    matrix[(((f*nstation + i)*nstation + j)*npol + pol1)*npol+pol2].imag = packed[index].imag;
+	    matrix[(((f*nstation + i)*nstation + j)*npol + pol1)*npol+pol2].imag = -packed[index].imag;
 	    matrix[(((f*nstation + j)*nstation + i)*npol + pol2)*npol+pol1].real =  packed[index].real;
-	    matrix[(((f*nstation + j)*nstation + i)*npol + pol2)*npol+pol1].imag = -packed[index].imag;
+	    matrix[(((f*nstation + j)*nstation + i)*npol + pol2)*npol+pol1].imag = packed[index].imag;
 	    //printf("%d %d %d %d %d %d %d\n",f,i,j,k,pol1,pol2,index);
+	    //printf("Mat1: %d\n",(((f*nstation + i)*nstation + j)*npol + pol1)*npol+pol2);
+	    //printf("Mat2: %d\n",(((f*nstation + j)*nstation + i)*npol + pol2)*npol+pol1);
 	  }
 	}
       }
