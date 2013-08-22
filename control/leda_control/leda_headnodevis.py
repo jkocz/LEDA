@@ -188,7 +188,8 @@ class LEDARemoteVisManager(object):
 		self.center_freq = sum([server.center_freq for server in self.servers]) \
 		    / float(len(self.servers))
 		# Sort servers by frequency
-		self.servers.sort(key=lambda s: s.center_freq)
+		# HACK TESTING disabled
+		#self.servers.sort(key=lambda s: s.center_freq)
 	def update(self):
 		async = AsyncCaller()
 		for server in self.servers:
