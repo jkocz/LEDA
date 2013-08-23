@@ -39,8 +39,8 @@ def logMsg(lvl, dlvl, message):
         sys.stderr.write("[" + time + "] " + message + "\n")
 
 class LEDAVis(object):
-	def __init__(self, datapaths, nchan_reduced, log=LEDALogger()):
-		self.datapaths = datapaths
+	def __init__(self, datapath, nchan_reduced, log=LEDALogger()):
+		self.datapath = datapath
 		self.data = correlator_dump()
 		self.nchan_reduced = nchan_reduced
 		self.log = log
@@ -49,8 +49,9 @@ class LEDAVis(object):
 	def open_latest(self):
 		""" 'Opens' latest correlator dump
 		"""
-		datestamps = [self._getLatestDatestamp(path) \
-			              for path in self.datapaths]
+		#datestamps = [self._getLatestDatestamp(path) \
+		#	              for path in self.datapaths]
+		datestamp = self._getLatestDatestamp(self.datapath)
 		self.log.write("Opening data with datestamps: %s" % ', '.join(datestamps))
 		self.data.open(datestamps)
 		
@@ -168,8 +169,8 @@ def onMessage(ledavis, message, clientsocket, address):
 	else:
 		logMsg(1, DL, "Ignoring unknown message: %s" % message)
 
-def start_vis_listener(port, disk_outpaths, nchan_reduced_stream):
-	ledavis = LEDAVis(disk_outpaths, nchan_reduced_stream)
+def start_vis_listener(port, disk_outpath, nchan_reduced_stream):
+	ledavis = LEDAVis(disk_outpath, nchan_reduced_stream)
 	
 	print "Listening for client requests on port %i..." % port
 	sock = SimpleSocket()
