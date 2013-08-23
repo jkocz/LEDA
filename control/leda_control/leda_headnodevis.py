@@ -732,8 +732,8 @@ def onMessage(ledavis, message, clientsocket, address):
 					hist_y[hist_y > ymax] = ymax
 					
 					stand_i = ledavis.adc2stand[i]
-					plt.plot(bins + u*du, hist_x + v*dv, color='r', linewidth=0.2)
-					plt.plot(bins + u*du, hist_y + v*dv, color='b', linewidth=0.2)
+					plt.plot(bins + u*du, hist_x + v*dv, color='r', linewidth=0.5)
+					plt.plot(bins + u*du, hist_y + v*dv, color='b', linewidth=0.5)
 					plt.text(xmin + (u+0.25)*du, ymin + (v+0.1)*dv,
 					         # Note: i here is (0-based) real stand index
 							 stand_i + 1,
