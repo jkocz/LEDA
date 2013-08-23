@@ -400,7 +400,10 @@ class LEDARemoteManager(object):
 		async.wait()
 		self.log.write("Waiting for start time")
 		wait_until_utc_sec(roach_start_time)
-		time.sleep(0.5)
+		# Note: This needs to be long enough to ensure all roaches are in the
+		#         same second, but not so long that there is not enough time
+		#         left in the second to command them all to start.
+		time.sleep(0.1)
 		self.log.write("Starting flow from ROACHes")
 		for roach in self.roaches:
 			async(roach.startFlow)()
