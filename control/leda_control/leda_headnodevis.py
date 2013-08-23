@@ -124,8 +124,11 @@ class LEDARoachVis(object):
 		                      stdout=subprocess.PIPE)
 		output = sp.communicate()[0]
 		# Parse into numpy array
-		data = np.fromstring(output, sep=' ', dtype=np.int8)
-		data = data.reshape((nperframe,self.ninputs/self.npol,self.npol))
+		data = np.fromstring(output, sep=' ', dtype=np.int32)
+		try:
+			data = data.reshape((nperframe,self.ninputs/self.npol,self.npol))
+		except ValueError:
+			data = np.zeros((nperframe,self.ninputs/self.npol,self.npol))
 		data_x, data_y = data[...,0], data[...,1]
 		return data_x, data_y
 	def getPowerSpectra(self):
@@ -134,6 +137,16 @@ class LEDARoachVis(object):
 		fdata_y = np.fft.rfft(tdata_y, axis=0) / tdata_y.shape[0]
 		powspectra_x = np.real(fdata_x*np.conj(fdata_x)).astype(np.float32)
 		powspectra_y = np.real(fdata_y*np.conj(fdata_y)).astype(np.float32)
+		# Crop off the Nyquist sample
+		powspectra_x = powspectra_x[:-1,...]
+		powspectra_y = powspectra_y[:-1,...]
+		# Downsample a bit
+		powspectra_x = powspectra_x.reshape((powspectra_x.shape[0]/8,
+		                                     8,
+		                                     powspectra_x.shape[1])).mean(axis=1)
+		powspectra_y = powspectra_y.reshape((powspectra_y.shape[0]/8,
+		                                     8,
+		                                     powspectra_y.shape[1])).mean(axis=1)
 		powspectra_x = 10*np.log10(powspectra_x)
 		powspectra_y = 10*np.log10(powspectra_y)
 		return powspectra_x, powspectra_y
@@ -572,8 +585,8 @@ def onMessage(ledavis, message, clientsocket, address):
 					
 			#plt.xlim([-du*18, du*15])
 			#plt.ylim([-dv*11, dv*22])
-			plt.xlim([-du*12, du*10])
-			plt.ylim([-dv*8, dv*16])
+			plt.xlim([-du*7, du*9])
+			plt.ylim([-dv*5, dv*14])
 			
 		imgfile = StringIO.StringIO()
 		plt.savefig(imgfile, format='png', bbox_inches='tight')
@@ -590,8 +603,8 @@ def onMessage(ledavis, message, clientsocket, address):
 			
 			xmin = ledavis.lowfreq
 			xmax = ledavis.highfreq
-			ymin = 75
-			ymax = 95
+			ymin = -30
+			ymax = 10
 			
 			du = 1.1 * (xmax-xmin)
 			dv = 1.1 * (ymax-ymin)
@@ -615,7 +628,52 @@ def onMessage(ledavis, message, clientsocket, address):
 					stand_i = ledavis.adc2stand[i]
 					plt.plot(freqs + u*du, powspec_x + v*dv, color='r', linewidth=0.5)
 					plt.plot(freqs + u*du, powspec_y + v*dv, color='b', linewidth=0.5)
-					plt.text(xmin + u*du, ymin + v*dv,
+					plt.text(xmin + (u+0.4)*du, ymin + (v+0.1)*dv,
+					         # Note: i here is (0-based) real stand index
+							 stand_i + 1,
+							 fontsize=6, color='black')
+					
+		imgfile = StringIO.StringIO()
+		plt.savefig(imgfile, format='png', bbox_inches='tight')
+		plt.close()
+		imgdata = imgfile.getvalue()
+		send_image(clientsocket, imgdata)
+		
+	elif 'adc_all_time' in args:
+		ret = ledavis.getADCAllTimeSeries()
+		if ret is None:
+			plot_none()
+		else:
+			timeseries_x, timeseries_y = ret
+			
+			xmin = 0
+			xmax = 1024
+			ymin = -127
+			ymax = 127
+			
+			du = 1.1 * (xmax-xmin)
+			dv = 1.1 * (ymax-ymin)
+			
+			plt.figure(figsize=(10.24, 7.68), dpi=100)
+			plt.axis('off')
+			
+			nsamp_reduced = timeseries_x.shape[0]
+			times = np.linspace(0, 1024, nsamp_reduced)
+			
+			ntile = 16
+			for v in range(ledavis.nstation / ntile):
+				for u in range(ntile):
+					i = u + v*ntile
+					time_x = timeseries_x[:,i]
+					time_y = timeseries_y[:,i]
+					# Saturate values to visible range for better visualisation
+					#time_x[time_x < ymin] = ymin
+					#time_y[time_y < ymin] = ymin
+					
+					stand_i = ledavis.adc2stand[i]
+					plt.plot(times + u*du, time_x + v*dv, color='r', linewidth=0.5)
+					plt.plot(times + u*du, time_y + v*dv, color='b', linewidth=0.5)
+					plt.text(xmin + (u+0.4)*du, ymin + (v+0.0)*dv,
 					         # Note: i here is (0-based) real stand index
 							 stand_i + 1,
 							 fontsize=6, color='black')
@@ -641,7 +699,7 @@ if __name__ == "__main__":
 	df       = corr_clockfreq / float(corr_nfft)
 	highfreq = lowfreq + df*nchan*len(serverhosts)*nstream
 	
-	print "Loading stands file", site_stands_file
+	print "Loading site stands file", site_stands_file
 	stands, stands_x, stands_y = \
 	    np.loadtxt(site_stands_file, usecols=[0,1,2], unpack=True)
 	# Sort into proper stand order
@@ -650,6 +708,7 @@ if __name__ == "__main__":
 	stands_x = stands_x[inds]
 	stands_y = stands_y[inds]
 	
+	print "Loading correlator stands file", leda_stands_file
 	stands, roaches, adcs, adc_inds, leda_inds = \
 	    np.loadtxt(leda_stands_file, usecols=[0,1,2,3,4], unpack=True)
 	# Convert from 1-based to 0-based indexing

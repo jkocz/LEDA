@@ -180,6 +180,7 @@ def start_vis_listener(port, disk_outpath, nchan_reduced_stream):
 if __name__ == "__main__":
 	import functools
 	from configtools import *
+	from multiprocessing import Process
 	
 	configfile = getenv('LEDA_CONFIG')
 	# Dynamically execute config script
@@ -190,8 +191,17 @@ if __name__ == "__main__":
 	nchan_reduced_stream = nchan_reduced_max // (len(serverhosts) * nstream)
 	
 	# (Asynchronously) start a vis listener for each stream in the server
+	"""
 	async = AsyncCaller()
 	for port, diskpath in zip(visports, disk_outpaths):
 		async(start_vis_listener)(port, diskpath, nchan_reduced_stream)
 	async.wait()
-	
+	"""
+	procs = []
+	for port, diskpath in zip(visports, disk_outpaths):
+		procs.append( Process(target=start_vis_listener,
+		                      args=(port, diskpath, nchan_reduced_stream)) )
+	for proc in procs:
+		proc.start()
+	for proc in procs:
+		proc.join()
