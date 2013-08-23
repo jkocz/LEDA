@@ -7,7 +7,7 @@ class LEDAClient(object):
 		self.host = host
 		self.port = port
 		self.log  = log
-		self.connect()
+		#self.connect()
 	def connect(self):
 		self.log.write("Connecting to remote server %s:%i" \
 			               % (self.host,self.port))
@@ -26,7 +26,7 @@ class LEDAClient(object):
 		return self.sock is not None
 	def _sendmsg(self, msg):
 		if self.sock is None:
-			self.log.write("Not connected", -2)
+			self.log.write("send: Not connected (%s:%i)" % (self.host,self.port), -2)
 			return None
 		if len(msg) <= 256:
 			self.log.write("Sending message "+msg, 4)
@@ -36,7 +36,7 @@ class LEDAClient(object):
 			self.sock.send(msg)
 			ret = self.sock.receive()
 		except:
-			self.log.write("Not connected", -2)
+			self.log.write("recv: Not connected (%s:%i)" % (self.host,self.port), -2)
 			self.sock = None
 			return None
 		if len(ret) < 256:

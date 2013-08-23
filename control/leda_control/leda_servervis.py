@@ -54,6 +54,7 @@ class LEDAVis(object):
 		datestamps = [self._getLatestDatestamp(self.datapath)]
 		self.log.write("Opening data with datestamps: %s" % ', '.join(datestamps))
 		self.data.open(datestamps)
+		self.log.write("  Done")
 		
 	def _getLatestDatestamp(self, path, rank=0):
 		pathname = sorted(glob.glob(path + "/*.dada"),
