@@ -17,6 +17,7 @@ import numpy as np
 from SimpleSocket import SimpleSocket
 from leda_correlator_dump import correlator_dump
 from leda_logger import LEDALogger
+from async import AsyncCaller
 
 # Debug level
 DL = 1
