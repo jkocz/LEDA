@@ -51,7 +51,7 @@ class LEDAVis(object):
 		"""
 		#datestamps = [self._getLatestDatestamp(path) \
 		#	              for path in self.datapaths]
-		datestamp = self._getLatestDatestamp(self.datapath)
+		datestamps = [self._getLatestDatestamp(self.datapath)]
 		self.log.write("Opening data with datestamps: %s" % ', '.join(datestamps))
 		self.data.open(datestamps)
 		
