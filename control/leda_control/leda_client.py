@@ -8,10 +8,10 @@ class LEDAClient(object):
 		self.port = port
 		self.log  = log
 		#self.connect()
-	def connect(self):
+	def connect(self, timeout=10):
 		self.log.write("Connecting to remote server %s:%i" \
 			               % (self.host,self.port))
-		self.sock = SimpleSocket(timeout=10)
+		self.sock = SimpleSocket(timeout=timeout)
 		try:
 			self.sock.connect(self.host, self.port)
 		except SimpleSocket.timeout_error:

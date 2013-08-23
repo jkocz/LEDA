@@ -48,7 +48,7 @@ class LEDARemoteVisServer(LEDAClient):
 	def open(self):
 		# HACK: This increased timeout is a WAR for something in the open
 		#         operation being very slow (probably something in parse_header)
-		ret = self._sendmsg('open=1', timeout=20)
+		ret = self._sendmsg('open=1', timeout=30)
 		if ret is not None:
 			metadata = json.loads(ret)
 		else:
@@ -170,7 +170,7 @@ class LEDARemoteVisManager(object):
 			                for controlport in controlports \
 			                for host in serverhosts]
 		for server in self.servers:
-			async(server.connect)()
+			async(server.connect)(timeout=20)
 		async.wait()
 		self.roaches = [LEDARoachVis(host,roachport,log) \
 			                for host in roachhosts]
@@ -446,6 +446,7 @@ def onMessage(ledavis, message, clientsocket, address):
 			ax2.plot(stands_x, stands_y, '.', c='black', markersize=2)
 			ax2.plot([stands_x[stand_i],stands_x[stand_j]],
 			         [stands_y[stand_i],stands_y[stand_j]],
+			         '.', markersize=4,
 			         color='purple', lw=2)
 			ax2.set_xticklabels(())
 			ax2.set_yticklabels(())
@@ -570,8 +571,10 @@ def onMessage(ledavis, message, clientsocket, address):
 							 fontsize=6, color='black')
 							 #fontsize=8, fontweight='heavy', color='black')
 					
-			plt.xlim([-du*18, du*15])
-			plt.ylim([-dv*11, dv*22])
+			#plt.xlim([-du*18, du*15])
+			#plt.ylim([-dv*11, dv*22])
+			plt.xlim([-du*12, du*10])
+			plt.ylim([-dv*8, dv*16])
 			
 		imgfile = StringIO.StringIO()
 		plt.savefig(imgfile, format='png', bbox_inches='tight')
