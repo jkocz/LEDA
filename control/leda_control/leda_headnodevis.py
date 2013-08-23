@@ -46,7 +46,9 @@ class LEDARemoteVisServer(LEDAClient):
 		super(LEDARemoteVisServer, self).__init__(host, port, log)
 		#self.connect()
 	def open(self):
-		ret = self._sendmsg('open=1')
+		# HACK: This increased timeout is a WAR for something in the open
+		#         operation being very slow (probably something in parse_header)
+		ret = self._sendmsg('open=1', timeout=20)
 		if ret is not None:
 			metadata = json.loads(ret)
 		else:

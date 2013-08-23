@@ -24,7 +24,7 @@ class LEDAClient(object):
 			self.log.write("Connection successful")
 	def isConnected(self):
 		return self.sock is not None
-	def _sendmsg(self, msg):
+	def _sendmsg(self, msg, timeout="default"):
 		if self.sock is None:
 			self.log.write("send: Not connected (%s:%i)" % (self.host,self.port), -2)
 			return None
@@ -34,7 +34,7 @@ class LEDAClient(object):
 			self.log.write("Sending long message of length %i bytes"%(len(msg)), 4)
 		try:
 			self.sock.send(msg)
-			ret = self.sock.receive()
+			ret = self.sock.receive(timeout=timeout)
 		except:
 			self.log.write("recv: Not connected (%s:%i)" % (self.host,self.port), -2)
 			self.sock = None
