@@ -435,8 +435,8 @@ def onMessage(ledavis, message, clientsocket, address):
 			stands_y[-5:] *= 0.5
 			
 			plt.figure(figsize=(10.24, 7.68), dpi=100)
-			plt.plot(freqs, fringes_xx, color='r')
-			plt.plot(freqs, fringes_yy, color='b')
+			plt.plot(freqs, fringes_xx, '.', markersize=4, color='r')
+			plt.plot(freqs, fringes_yy, '.', markersize=4, color='b')
 			plt.xlabel('Frequency [MHz]')
 			plt.ylabel('Phase [radians]')
 			plt.title('LEDA fringes for baseline %i - %i' % \
@@ -446,7 +446,6 @@ def onMessage(ledavis, message, clientsocket, address):
 			ax2.plot(stands_x, stands_y, '.', c='black', markersize=2)
 			ax2.plot([stands_x[stand_i],stands_x[stand_j]],
 			         [stands_y[stand_i],stands_y[stand_j]],
-			         '.', markersize=4,
 			         color='purple', lw=2)
 			ax2.set_xticklabels(())
 			ax2.set_yticklabels(())
@@ -642,6 +641,7 @@ if __name__ == "__main__":
 	df       = corr_clockfreq / float(corr_nfft)
 	highfreq = lowfreq + df*nchan*len(serverhosts)*nstream
 	
+	print "Loading stands file", site_stands_file
 	stands, stands_x, stands_y = \
 	    np.loadtxt(site_stands_file, usecols=[0,1,2], unpack=True)
 	# Sort into proper stand order
