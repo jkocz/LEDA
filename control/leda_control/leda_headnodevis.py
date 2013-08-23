@@ -152,10 +152,8 @@ class LEDARoachVis(object):
 		return powspectra_x, powspectra_y
 	def getSampleHists(self):
 		all_samples_x, all_samples_y = self.getSamples()
-		all_samples_x = all_samples_x.T
-		all_samples_y = all_samples_y.T
-		hists_x = [np.histogram(s, bins=15)[0] for s in all_samples_x]
-		hists_y = [np.histogram(s, bins=15)[0] for s in all_samples_y]
+		hists_x = np.array([np.histogram(s, bins=255)[0] for s in all_samples_x.T]).T
+		hists_y = np.array([np.histogram(s, bins=255)[0] for s in all_samples_y.T]).T
 		return hists_x, hists_y
 
 class LEDARemoteVisManager(object):
@@ -363,6 +361,24 @@ class LEDARemoteVisManager(object):
 		powspectra_y = powspectra_y[..., self.stand2adc]
 		"""
 		return powspectra_x, powspectra_y
+	def getADCAllHists(self):
+		hists_substands_x = []
+		hists_substands_y = []
+		async = AsyncCaller()
+		for roach in self.roaches:
+			async(roach.getSampleHists)()
+		rets = async.wait()
+		for ret in rets:
+			#ret = roach.getSampleHists()
+			if ret is None:
+				return None
+			hists_x, hists_y = ret
+			hists_substands_x.append(hists_x)
+			hists_substands_y.append(hists_y)
+		# Note: This assumes the roaches and ADCs are already ordered logically
+		hists_x = np.concatenate(hists_substands_x, axis=1)
+		hists_y = np.concatenate(hists_substands_y, axis=1)
+		return hists_x, hists_y
 
 def plot_none():
 	plt.figure(figsize=(10.24, 7.68), dpi=100)
@@ -671,9 +687,54 @@ def onMessage(ledavis, message, clientsocket, address):
 					#time_y[time_y < ymin] = ymin
 					
 					stand_i = ledavis.adc2stand[i]
-					plt.plot(times + u*du, time_x + v*dv, color='r', linewidth=0.5)
-					plt.plot(times + u*du, time_y + v*dv, color='b', linewidth=0.5)
-					plt.text(xmin + (u+0.4)*du, ymin + (v+0.0)*dv,
+					plt.plot(times + u*du, time_x + v*dv, color='r', linewidth=0.1)
+					plt.plot(times + u*du, time_y + v*dv, color='b', linewidth=0.1)
+					plt.text(xmin + (u+0.4)*du, ymin + (v-0.1)*dv,
+					         # Note: i here is (0-based) real stand index
+							 stand_i + 1,
+							 fontsize=6, color='black')
+					
+		imgfile = StringIO.StringIO()
+		plt.savefig(imgfile, format='png', bbox_inches='tight')
+		plt.close()
+		imgdata = imgfile.getvalue()
+		send_image(clientsocket, imgdata)
+		
+	elif 'adc_all_hists' in args:
+		ret = ledavis.getADCAllHists()
+		if ret is None:
+			plot_none()
+		else:
+			hists_x, hists_y = ret
+			
+			xmin = -128
+			xmax = 127
+			ymin = 0
+			ymax = 50
+			
+			du = 1.1 * (xmax-xmin)
+			dv = 1.1 * (ymax-ymin)
+			
+			plt.figure(figsize=(10.24, 7.68), dpi=100)
+			plt.axis('off')
+			
+			nbin_reduced = hists_x.shape[0]
+			bins = np.linspace(-128, 127, nsamp_reduced)
+			
+			ntile = 16
+			for v in range(ledavis.nstation / ntile):
+				for u in range(ntile):
+					i = u + v*ntile
+					hist_x = hists_x[:,i]
+					hist_y = hists_y[:,i]
+					# Saturate values to visible range for better visualisation
+					#time_x[time_x < ymin] = ymin
+					#time_y[time_y < ymin] = ymin
+					
+					stand_i = ledavis.adc2stand[i]
+					plt.plot(bins + u*du, hist_x + v*dv, color='r', linewidth=0.5)
+					plt.plot(bins + u*du, hist_y + v*dv, color='b', linewidth=0.5)
+					plt.text(xmin + (u+0.4)*du, ymin + (v+0.1)*dv,
 					         # Note: i here is (0-based) real stand index
 							 stand_i + 1,
 							 fontsize=6, color='black')
