@@ -152,8 +152,8 @@ class LEDARoachVis(object):
 		return powspectra_x, powspectra_y
 	def getSampleHists(self):
 		all_samples_x, all_samples_y = self.getSamples()
-		hists_x = np.array([np.histogram(s, bins=255)[0] for s in all_samples_x.T]).T
-		hists_y = np.array([np.histogram(s, bins=255)[0] for s in all_samples_y.T]).T
+		hists_x = np.array([np.histogram(s, bins=16, range=(-128,127))[0] for s in all_samples_x.T]).T
+		hists_y = np.array([np.histogram(s, bins=16, range=(-128,127))[0] for s in all_samples_y.T]).T
 		return hists_x, hists_y
 
 class LEDARemoteVisManager(object):
@@ -710,7 +710,7 @@ def onMessage(ledavis, message, clientsocket, address):
 			xmin = -128
 			xmax = 127
 			ymin = 0
-			ymax = 50
+			ymax = 275
 			
 			du = 1.1 * (xmax-xmin)
 			dv = 1.1 * (ymax-ymin)
@@ -719,7 +719,7 @@ def onMessage(ledavis, message, clientsocket, address):
 			plt.axis('off')
 			
 			nbin_reduced = hists_x.shape[0]
-			bins = np.linspace(-128, 127, nsamp_reduced)
+			bins = np.linspace(-128, 127, nbin_reduced)
 			
 			ntile = 16
 			for v in range(ledavis.nstation / ntile):
@@ -728,13 +728,13 @@ def onMessage(ledavis, message, clientsocket, address):
 					hist_x = hists_x[:,i]
 					hist_y = hists_y[:,i]
 					# Saturate values to visible range for better visualisation
-					#time_x[time_x < ymin] = ymin
-					#time_y[time_y < ymin] = ymin
+					hist_x[hist_x > ymax] = ymax
+					hist_y[hist_y > ymax] = ymax
 					
 					stand_i = ledavis.adc2stand[i]
-					plt.plot(bins + u*du, hist_x + v*dv, color='r', linewidth=0.5)
-					plt.plot(bins + u*du, hist_y + v*dv, color='b', linewidth=0.5)
-					plt.text(xmin + (u+0.4)*du, ymin + (v+0.1)*dv,
+					plt.plot(bins + u*du, hist_x + v*dv, color='r', linewidth=0.2)
+					plt.plot(bins + u*du, hist_y + v*dv, color='b', linewidth=0.2)
+					plt.text(xmin + (u+0.25)*du, ymin + (v+0.1)*dv,
 					         # Note: i here is (0-based) real stand index
 							 stand_i + 1,
 							 fontsize=6, color='black')
