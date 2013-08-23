@@ -66,6 +66,15 @@ class correlator_dump(object):
 			return None
 		fullmatrix = np.concatenate(subbands, axis=1)
 		return fullmatrix
+	"""
+	def get_freqs(self):
+		sb_freqs = []
+		for sb in self.subbands:
+			flo = sb.center_freq - sb.bandwidth/2.
+			fhi = sb.center_freq - sb.bandwidth/2.
+			sb_freqs += [np.linspace(flo, fhi, sb.nchan)
+		np.concatenate(...
+	 """
 
 # Represents one sub-band of a correlator dump
 class correlator_subband_dump(object):
@@ -101,7 +110,7 @@ class correlator_subband_dump(object):
 			header[key] = value
 		self.header = header
 		self.center_freq = float(lookup_warn(header, 'CFREQ', 0.))
-		#self.bandwidth   = float(lookup_warn(header, 'BW', 14.4))
+		self.bandwidth   = float(lookup_warn(header, 'BW', 1.))
 		self.nchan = int(header['NCHAN'])
 		self.npol = int(header['NPOL'])
 		try:

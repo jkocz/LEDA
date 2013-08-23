@@ -145,7 +145,7 @@ class LEDARoachVis(object):
 
 class LEDARemoteVisManager(object):
 	def __init__(self,
-	             serverhosts, controlport,
+	             serverhosts, controlports,
 	             roachhosts, roachport,
 	             lowfreq, highfreq,
 	             stands_x, stands_y,
@@ -165,6 +165,7 @@ class LEDARemoteVisManager(object):
 		self.log = log
 		async = AsyncCaller()
 		self.servers = [LEDARemoteVisServer(host,controlport,log) \
+			                for controlport in controlports \
 			                for host in serverhosts]
 		for server in self.servers:
 			async(server.connect)()
@@ -188,8 +189,8 @@ class LEDARemoteVisManager(object):
 		self.center_freq = sum([server.center_freq for server in self.servers]) \
 		    / float(len(self.servers))
 		# Sort servers by frequency
-		# HACK TESTING disabled
-		#self.servers.sort(key=lambda s: s.center_freq)
+		## HACK TESTING disabled
+		self.servers.sort(key=lambda s: s.center_freq)
 	def update(self):
 		async = AsyncCaller()
 		for server in self.servers:
@@ -630,7 +631,6 @@ if __name__ == "__main__":
 	# Dynamically execute config script
 	execfile(configfile, globals())
 	
-	controlport = 3142
 	logstream   = sys.stderr
 	debuglevel  = 1
 	
@@ -685,7 +685,7 @@ if __name__ == "__main__":
 	stands_x  = stands_x[inds]
 	stands_y  = stands_y[inds]
 	"""
-	ledavis = LEDARemoteVisManager(serverhosts, controlport,
+	ledavis = LEDARemoteVisManager(serverhosts, visports,
 	                               roachhosts, roachport,
 	                               lowfreq, highfreq,
 	                               stands_x, stands_y,

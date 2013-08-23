@@ -18,8 +18,6 @@ from SimpleSocket import SimpleSocket
 from leda_correlator_dump import correlator_dump
 from leda_logger import LEDALogger
 
-port = 3142
-
 # Debug level
 DL = 1
 
@@ -168,6 +166,13 @@ def onMessage(ledavis, message, clientsocket, address):
 			send_array(clientsocket, data)
 	else:
 		logMsg(1, DL, "Ignoring unknown message: %s" % message)
+
+def start_vis_listener(port, disk_outpaths, nchan_reduced_stream):
+	ledavis = LEDAVis(disk_outpaths, nchan_reduced_stream)
+	
+	print "Listening for client requests on port %i..." % port
+	sock = SimpleSocket()
+	sock.listen(functools.partial(onMessage, ledavis), port)
 		
 if __name__ == "__main__":
 	import functools
@@ -179,9 +184,11 @@ if __name__ == "__main__":
 	
 	# TODO: This display parameter could be put into the config file
 	nchan_reduced_max = 128
-	nchan_reduced_server = nchan_reduced_max // len(serverhosts)
-	ledavis = LEDAVis(disk_outpaths, nchan_reduced_server)
+	nchan_reduced_stream = nchan_reduced_max // (len(serverhosts) * nstream)
 	
-	print "Listening for client requests on port %i..." % port
-	sock = SimpleSocket()
-	sock.listen(functools.partial(onMessage, ledavis), port)
+	# (Asynchronously) start a vis listener for each stream in the server
+	async = AsyncCaller()
+	for port, diskpath in zip(visports, disk_outpaths):
+		async(start_vis_listener)(port, diskpath, nchan_reduced_stream)
+	async.wait()
+	
