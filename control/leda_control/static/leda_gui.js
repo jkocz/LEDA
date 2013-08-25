@@ -122,18 +122,20 @@ function onStatusUpdate(response) {
 			
 			val = leda.control[i][1][j].gpu_info.name;
 			document.getElementById("gpu_name"+i+"_"+j).innerHTML = val;
-			val = leda.control[i][1][j].gpu_info.gpu_util;
+			val = leda.control[i][1][j].gpu_info.gpu_util + "%";
 			document.getElementById("gpu_util"+i+"_"+j).innerHTML = val;
-			val = leda.control[i][1][j].gpu_info.mem_util;
+			val = leda.control[i][1][j].gpu_info.mem_util + "%";
 			document.getElementById("gpu_mem_usage"+i+"_"+j).innerHTML = val;
 			val = leda.control[i][1][j].gpu_info.temp;
 			document.getElementById("gpu_temp"+i+"_"+j).innerHTML = val;
 			val = leda.control[i][1][j].gpu_info.power;
 			document.getElementById("gpu_power"+i+"_"+j).innerHTML = val;
+			/*
 			val = leda.control[i][1][j].gpu_info.gfx_clock;
 			document.getElementById("gpu_gfx_clock"+i+"_"+j).innerHTML = val;
 			val = leda.control[i][1][j].gpu_info.mem_clock;
 			document.getElementById("gpu_mem_clock"+i+"_"+j).innerHTML = val;
+			*/
 			val = leda.control[i][1][j].gpu_info.processes;
 			document.getElementById("gpu_apps"+i+"_"+j).innerHTML = val;
 		}

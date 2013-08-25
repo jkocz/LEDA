@@ -120,15 +120,15 @@
 	  <td>Mem use</td>
 	  <td>Temp C</td>
 	  <td>Power W</td>
-	  <td>G-Clk MHz</td>
-	  <td>M-Clk MHz</td>
+	  <!-<td>G-Clk MHz</td>-->
+	  <!-<td>M-Clk MHz</td>-->
 	  <td>App</td>
 	  <!--<td class="message_col">Messages</td>-->
 	</tr>
 	{% for i,(name,server) in enumerate(status['control']) %}
-	{% block server %}
+	{% block gpu_host %}
 	{% for j, stream in enumerate(server) %}
-    {% block stream %}
+    {% block gpu %}
     <tr>
       <td>{{name}}</td>
 	  <td>{{j}}</td>
@@ -137,8 +137,8 @@
 	  <td><span id="gpu_mem_usage{{i}}_{{j}}"></span></td>
 	  <td><span id="gpu_temp{{i}}_{{j}}"></span></td>
 	  <td><span id="gpu_power{{i}}_{{j}}"></span></td>
-	  <td><span id="gpu_gfx_clock{{i}}_{{j}}"></span></td>
-	  <td><span id="gpu_mem_clock{{i}}_{{j}}"></span></td>
+	  <!-<td><span id="gpu_gfx_clock{{i}}_{{j}}"></span></td>-->
+	  <!-<td><span id="gpu_mem_clock{{i}}_{{j}}"></span></td>-->
 	  <td><span id="gpu_apps{{i}}_{{j}}"></span></td>
 	  <!--<td class="message_col"></td>-->
     </tr>

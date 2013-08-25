@@ -115,7 +115,7 @@ def getDiskInfo(path):
 	        "mountpoint": mountpoint}
 
 def getGPUInfo(gpu_idx):
-	df = subprocess.Popen(["nvidia-smi", "-a", "-i", gpu_idx],
+	df = subprocess.Popen(["nvidia-smi", "-a", "-i", str(gpu_idx)],
 	                      stdout=subprocess.PIPE)
 	output = df.communicate()[0]
 	lines = output.split("\n")
@@ -139,7 +139,7 @@ def getGPUInfo(gpu_idx):
 			line = lines.pop(0)
 			line = lines.pop(0)
 			info['power'] = float(line.split(':')[1].strip()[:-1].strip())
-		elif "Application Clocks" in line:
+		elif "Applications Clocks" in line:
 			line = lines.pop(0)
 			info['gfx_clock'] = float(line.split(':')[1].strip()[:-3].strip())
 			line = lines.pop(0)
