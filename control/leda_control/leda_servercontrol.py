@@ -126,20 +126,20 @@ def getGPUInfo(gpu_idx):
 		line = lines.pop(0).strip()
 		if "Product Name" in line:
 			info['name'] = line.split(':')[1].strip()
-		elif "Utilization" in line:
+		elif line.strip() == "Utilization":
 			line = lines.pop(0)
 			# Note: We crop off the final units characters (%, C, W, MHz)
 			info['gpu_util'] = float(line.split(':')[1].strip()[:-1].strip())
 			line = lines.pop(0)
 			info['mem_util'] = float(line.split(':')[1].strip()[:-1].strip())
-		elif "Temperature" in line:
+		elif line.strip() == "Temperature":
 			line = lines.pop(0)
 			info['temp'] = float(line.split(':')[1].strip()[:-1].strip())
-		elif "Power Readings" in line:
+		elif line.strip() == "Power Readings":
 			line = lines.pop(0)
 			line = lines.pop(0)
 			info['power'] = float(line.split(':')[1].strip()[:-1].strip())
-		elif "Applications Clocks" in line:
+		elif line.strip() == "Applications Clocks":
 			line = lines.pop(0)
 			info['gfx_clock'] = float(line.split(':')[1].strip()[:-3].strip())
 			line = lines.pop(0)
