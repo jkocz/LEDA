@@ -14,8 +14,25 @@ On ajax msg "get_vis=visname&i=0&j=1":
     imgdata = ledavis.get(msg)
     save imgdata to visname+".png"
 
+key = ""
+for 1 to 65536 do
+  key = hash(key + password + salt)
+
+TODO: Add email alerts
+        Register recipients with desired alerts
+
 """
 
+import hashlib
+
+def key_stretch(password, salt):
+	key = ""
+	for i in xrange(65536):
+		h = hashlib.sha512()
+		h.update(key + password + salt)
+		key = h.hexdigest()
+	return key
+	
 import os
 import sys
 import tornado
@@ -25,13 +42,28 @@ from tornado import websocket
 from tornado.options import define, options
 from uuid import uuid4
 import json
+import base64
 import time
-
+import datetime
 import random
+import smtplib
+from email.mime.text import MIMEText
 
 from leda_logger import LEDALogger
 from leda_remotecontrol import LEDARemoteHeadNodeControl
 from leda_remotevis import LEDARemoteHeadNodeVis
+
+def send_email(recipients, frm, subject, msg):
+	msg = MIMEText(msg)
+	msg['To']      = ', '.join(recipients)
+	msg['From']    = frm
+	msg['Subject'] = subject
+	
+	# Send the message via our own SMTP server, but don't include the
+	# envelope header.
+	s = smtplib.SMTP('localhost')
+	s.sendmail(frm, recipients, msg.as_string())
+	s.quit()
 
 # Command line options
 define("port", default=8888, help="Run on the given port", type=int)
@@ -62,6 +94,15 @@ class Application(tornado.web.Application):
 		self.min_vis_refresh_time = 10
 		self.last_vis_get_time    = 0
 		self.min_vis_get_time     = 0.1
+		self.viserror_imgdata = open("static/images/viserror.png", 'rb').read()
+		
+		self.alerts = {'gpu_temp': False,
+		               'disk_use': False}
+		self.alert_subscribers = {'bbarsdel@gmail.com': ['gpu_temp',
+		                                                 'disk_full']}
+		# Note: First is rising threshold, second is falling
+		self.gpu_temp_thresh = (50, 40)
+		self.disk_use_thresh = (90, 80)
 		
 		self.updateStatus()
 		handlers = [
@@ -75,6 +116,39 @@ class Application(tornado.web.Application):
 			autoescape="xhtml_escape",
 			)
 		tornado.web.Application.__init__(self, handlers, **settings)
+		
+	def checkAlerts(self):
+		status = self.status['control']
+		if 'gpu_info' in status:
+			gpu_info = status['gpu_info']
+			if 'temp' in gpu_info:
+				gpu_temp = float(gpu_info['temp'])
+				self.checkAlert('gpu_temp', gpu_temp, self.gpu_temp_thresh)
+		if 'disk_info' in status:
+			disk_info = status['disk_info']
+			if 'percent' in disk_info:
+				disk_use = int(disk_info['percent'])
+				self.checkAlert('disk_use', disk_use, self.disk_use_thresh)
+						
+	def checkAlert(self, name, value, thresholds):
+		if not self.alerts[name]:
+			if value > thresholds[0]:
+				self.alerts[name] = True
+				self.raiseAlert(name, thresholds[0])
+		else:
+			if value <= thresholds[1]:
+				self.alerts[name] = False
+				
+	def raiseAlert(self, alert_name, threshold):
+		recipients = []
+		for subsriber, subscribed_alerts in self.alert_subscribers.items():
+			if alert_name in subscribed_alerts:
+				recipients += [subscriber]
+		utc = datetime.datetime.utcnow().strftime("%Y-%m-%d-%H:%M:%S")
+		send_email(recipients, "noreply@ledaovro.lwa.ovro.caltech.edu",
+		           "LEDA OVRO alert",
+		           "The value of %s exceeded the threshold of %s at UTC %s" \
+			           % (alert_name, str(threshold), utc))
 	    
 	def updateStatus(self):
 		print "Status request"
@@ -109,6 +183,11 @@ class Application(tornado.web.Application):
 				self.status['headnode'] = {'host':self.remote_host,
 										   'alive':'ok',
 										   'control':'ok'}
+				# TODO: This needs to be re-done to check for any server/stream
+				#         breaking (or all satisfying) the threshold conditions.
+				#       Also need to allow simple events (e.g., corr_start)
+				#self.checkAlerts()
+				
 	def updateVis(self):
 		print "Vis update request"
 		if time.time() - self.last_vis_update_time >= self.min_vis_refresh_time:
@@ -121,13 +200,15 @@ class Application(tornado.web.Application):
 				self.ledavis.connect()
 	def getVis(self, visname, i, j):
 		print "Request for vis '%s' (i=%i j=%i)" % (visname,i,j)
-		if time.time() - self.last_vis_get_time >= self.min_vis_get_time:
-			imgdata = self.ledavis.get("%s=1&i=%i&j=%i" % (visname,i,j))
-			if imgdata is None:
-				print "Vis connection down, cannot get data"
-			else:
-				filename = "static/images/latest_vis.png"
-				open(filename, 'wb').write(imgdata)
+		#if time.time() - self.last_vis_get_time >= self.min_vis_get_time:
+		imgdata = self.ledavis.get("%s=1&i=%i&j=%i" % (visname,i,j))
+		if imgdata is None:
+			print "Vis connection down, cannot get data"
+			imgdata = self.viserror_imgdata
+		#else:
+			#filename = "static/images/latest_vis.png"
+			#open(filename, 'wb').write(imgdata)
+		return imgdata
 	"""
 	def updateADCImages(self):
 		print "ADC image update request"
@@ -217,7 +298,11 @@ class AJAXHandler(tornado.web.RequestHandler):
 			# Note: Web interface uses 1-based indexing
 			i = int(self.get_argument("i")) - 1
 			j = int(self.get_argument("j")) - 1
-			self.application.getVis(visname, i, j)
+			# TODO: Work out how to prevent flooding here
+			#         Need something like per-session entries in a cache
+			imgdata = self.application.getVis(visname, i, j)
+			encoded_image = base64.standard_b64encode(imgdata)
+			self.write(encoded_image)
 
 if __name__ == "__main__":
 	from configtools import *

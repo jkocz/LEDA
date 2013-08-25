@@ -42,6 +42,11 @@ img {
 	display: inline-block;
 	/*float: left;*/
 }
+#gpu_status_panel {
+	width:   600px;
+	display: inline-block;
+	/*float: left;*/
+}
 #vis_panel {
 	width: 850px;
 	/*float: left;*/

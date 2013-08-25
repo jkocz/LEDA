@@ -1,4 +1,41 @@
 
+function swipeProcessingRoutine() {
+	var swipedElement = document.getElementById(triggerElementID);
+	
+	var container = document.getElementById("tabContainer");
+	var npages = container.querySelectorAll(".tabpage").length;
+	var navitem = container.querySelector(".tabs ul li");
+	var current = parseInt(navitem.parentNode.getAttribute("data-current"));
+	
+	if ( swipeDirection == 'right' ) {
+		var next = current - 1;
+		if( next < 1 ) {
+			next = 1;
+		}
+		//var tabs = container.querySelectorAll(".tabs ul li");
+		//var tab = tabs[next-1];
+		var tab = document.getElementById("tabHeader_" + next);
+		tab.onclick.apply(tab);
+		
+		//swipedElement.style.backgroundColor = 'orange';
+	} else if ( swipeDirection == 'left' ) {
+		var next = current + 1;
+		if( next > npages ) {
+			next = npages;
+		}
+		//var tabs = container.querySelectorAll(".tabs ul li");
+		//tabs[next-1].onclick();
+		var tab = document.getElementById("tabHeader_" + next);
+		tab.onclick.apply(tab);
+		
+		//swipedElement.style.backgroundColor = 'green';
+	} else if ( swipeDirection == 'up' ) {
+		//swipedElement.style.backgroundColor = 'maroon';
+	} else if ( swipeDirection == 'down' ) {
+		//swipedElement.style.backgroundColor = 'purple';
+	}
+}
+
 var xmlhttp;
 function loadAJAXDoc(url, cfunc) {
 	if (window.XMLHttpRequest) {
@@ -82,6 +119,23 @@ function onStatusUpdate(response) {
 			document.getElementById("control_capture_dropping"+i+"_"+j).innerHTML = capture_dropping;
 			capture_dropped = leda.control[i][1][j].capture_info.dropped;
 			document.getElementById("control_capture_dropped"+i+"_"+j).innerHTML = capture_dropped;
+			
+			val = leda.control[i][1][j].gpu_info.name;
+			document.getElementById("gpu_name"+i+"_"+j).innerHTML = val;
+			val = leda.control[i][1][j].gpu_info.gpu_util;
+			document.getElementById("gpu_util"+i+"_"+j).innerHTML = val;
+			val = leda.control[i][1][j].gpu_info.mem_util;
+			document.getElementById("gpu_mem_usage"+i+"_"+j).innerHTML = val;
+			val = leda.control[i][1][j].gpu_info.temp;
+			document.getElementById("gpu_temp"+i+"_"+j).innerHTML = val;
+			val = leda.control[i][1][j].gpu_info.power;
+			document.getElementById("gpu_power"+i+"_"+j).innerHTML = val;
+			val = leda.control[i][1][j].gpu_info.gfx_clock;
+			document.getElementById("gpu_gfx_clock"+i+"_"+j).innerHTML = val;
+			val = leda.control[i][1][j].gpu_info.mem_clock;
+			document.getElementById("gpu_mem_clock"+i+"_"+j).innerHTML = val;
+			val = leda.control[i][1][j].gpu_info.processes;
+			document.getElementById("gpu_apps"+i+"_"+j).innerHTML = val;
 		}
 	}
 	
@@ -96,16 +150,23 @@ function onStatusUpdate(response) {
 		document.getElementById("total_power").disabled = false;
 	}
 }
+function onVisImage(response) {
+	var rawImageData = response;
+	var minivis = document.getElementById("minivis");
+	minivis.src = "data:image/png;base64," + rawImageData;
+}
 function setVisImage() {
 	i = document.getElementById("stand_i").value;
 	j = document.getElementById("stand_j").value;
-	send("get_vis=" + vis_mode + "&i=" + i + "&j=" + j);
-	
+	//send("get_vis=" + vis_mode + "&i=" + i + "&j=" + j);
+	request("get_vis=" + vis_mode + "&i=" + i + "&j=" + j, onVisImage);
+	/*
 	img_src = "static/images/" + vis_image + ".png";
 	// Append date to prevent caching
 	img_src += "?" + new Date().getTime();
 	//img_src += "?" + vis_image_number;
 	document.getElementById("minivis").src = img_src;
+	*/
 }
 function onImageUpdate(response) {
 	if( response == "ok" ) {
@@ -241,7 +302,7 @@ function main() {
 	document.getElementById("vis_vismatrix_svr2_str3").onclick = onVisModeClick;
 	document.getElementById("vis_vismatrix_svr2_str4").onclick = onVisModeClick;
 	*/
-	/*document.getElementById("total_power_enabled").checked = false;*/
+	document.getElementById("total_power_enabled").checked = false;
 	
 	var container = document.getElementById("vis_panel");
 	var vismodebuttons = container.querySelectorAll(".vismodebutton");

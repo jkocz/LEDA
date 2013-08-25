@@ -15,6 +15,46 @@ ledagpu4
   Run schedule1.sh
   Run leda_reset_header.sh
 
+nvidia-smi status info to grab:
+GPU 0000:84:00.0
+    Product Name                    : Tesla K20Xm
+    Utilization
+        Gpu                         : 0 %
+        Memory                      : 0 %
+    Temperature
+        Gpu                         : 23 C
+    Power Readings
+        Power Draw                  : 17.84 W
+    Applications Clocks
+        Graphics                    : 1002 MHz
+    Compute Processes               : None
+
+ValonSynth status info to grab:
+from valon_synth import *
+synth = Synthesizer("/dev/ttyUSB0")
+print "Freq:    ", synth.get_frequency(SYNTH_A)
+print "Ref:     ", "external" if synth.get_ref_select()==1 else "internal"
+print "Ref freq:", synth.get_reference()
+
+ADC info to grab:
+adc_gain        = 1  # Multiplier 1-15
+adc_gain_bits   = adc_gain | (adc_gain << 4) | (adc_gain << 8) | (adc_gain << 12)
+adc_gain_reg    = 0x2a
+
+Web GUI tabs:
+Control
+  Start (engage?), stop, kill
+  Enable/disable/configure TP, BF, BDI, CB
+  Schedule manager
+Monitor
+  Status info on everything
+    Headnode
+    ROACHes
+    ADCs
+    Pipeline processes
+    GPUs
+Data
+  Visualise current or historical data
 """
 
 from SimpleSocket import SimpleSocket
@@ -73,6 +113,40 @@ def getDiskInfo(path):
 	        "available": available,
 	        "percent": percent,
 	        "mountpoint": mountpoint}
+
+def getGPUInfo(gpu_idx):
+	df = subprocess.Popen(["nvidia-smi", "-a", "-i", gpu_idx],
+	                      stdout=subprocess.PIPE)
+	output = df.communicate()[0]
+	lines = output.split("\n")
+	info = {}
+	# TODO: This parsing could be made more robust in case NVIDIA change
+	#         the output ordering.
+	while len(lines) != 0:
+		line = lines.pop(0).strip()
+		if "Product Name" in line:
+			info['name'] = line.split(':')[1].strip()
+		elif "Utilization" in line:
+			line = lines.pop(0)
+			# Note: We crop off the final units characters (%, C, W, MHz)
+			info['gpu_util'] = float(line.split(':')[1].strip()[:-1].strip())
+			line = lines.pop(0)
+			info['mem_util'] = float(line.split(':')[1].strip()[:-1].strip())
+		elif "Temperature" in line:
+			line = lines.pop(0)
+			info['temp'] = float(line.split(':')[1].strip()[:-1].strip())
+		elif "Power Readings" in line:
+			line = lines.pop(0)
+			line = lines.pop(0)
+			info['power'] = float(line.split(':')[1].strip()[:-1].strip())
+		elif "Application Clocks" in line:
+			line = lines.pop(0)
+			info['gfx_clock'] = float(line.split(':')[1].strip()[:-3].strip())
+			line = lines.pop(0)
+			info['mem_clock'] = float(line.split(':')[1].strip()[:-3].strip())
+		elif "Compute Processes" in line:
+			info['processes'] = line.split(':')[1].strip()
+	return info
 
 class LEDAProcess(object):
 	def __init__(self, logpath, path):
@@ -392,13 +466,15 @@ class LEDAServer(object):
 			buffers = 'ok' if all_buffers_exist        else 'down'
 			disk_info = getDiskInfo(disk_proc.outpath)
 			capture_info = capture_proc.status()
+			gpu_info = getGPUInfo(xengine_proc.gpu)
 			status.append({'capture':      capture,
 			               'unpack':       unpack,
 			               'xengine':      xengine,
 			               'disk':         disk,
 			               'disk_info':    disk_info,
 			               'capture_info': capture_info,
-			               'buffers':      buffers})
+			               'buffers':      buffers,
+			               'gpu_info':     gpu_info})
 		return status
 		#return (self.name, status)
 		#return 'capture=%s&unpack=%s&xengine=%s&disk=%s' \

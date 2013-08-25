@@ -1,14 +1,16 @@
 <!DOCTYPE html>
 <html>
 <head>
+<title>LEDA Control System</title>
 <link rel="stylesheet" type="text/css" media="screen" href="{{ static_url('leda_style.css') }}" />
-<!--<link rel="icon" type="img/png" href="favicon.png" />-->
+<link rel="icon" type="img/png" href="{{ static_url('images/favicon.png') }}" />
 <script type="text/javascript" src="{{ static_url('leda_gui.js') }}"></script>
+<script type="text/javascript" src="{{ static_url('swipesense.js') }}"></script>
 </head>
 <body onload="main();">
 
 <div id="wrapper">
-<div id="tabContainer">
+<div id="tabContainer" ontouchstart="touchStart(event,'tabContainer');" ontouchend="touchEnd(event);" ontouchmove="touchMove(event);" ontouchcancel="touchCancel(event);">
 <div class="tabs">
   <ul>
 	<li id="tabHeader_1">Control</li>
@@ -27,11 +29,11 @@
   <button id="start_obs"><img src="{{ static_url('icons/control_play_blue.png') }}" /> Start</button>
   <button id="stop_obs"><img src="{{ static_url('icons/control_stop_blue.png') }}" /> Stop</button>
   <button id="kill_obs"><img src="{{ static_url('icons/delete.png') }}" /> Kill</button>
-  <br />
+  <br /><br />
   <input id="total_power_enabled" type="checkbox" checked="false">Record total power
   (interval=<input id="total_power" type="text" value="100" size="4">)
   <br /><br />
-  <button id="program_roaches" title="Program roaches"><img src="{{ static_url('icons/drive_edit.png') }}" /><br>ROACHes</button>
+  <button id="program_roaches" title="Program roaches" disabled><img src="{{ static_url('icons/drive_edit.png') }}" /><br>ROACHes</button>
   <button id="create_buffers" title="(Re)create buffers"><img src="{{ static_url('icons/database_refresh.png') }}" /><br>Buffers</button>
   <br />
   <!--<input type="checkbox" disabled="disabled">Save logs-->
@@ -108,6 +110,44 @@
 	{% end %}
   </table>
 </div>
+<div id="gpu_status_panel">
+  <table border="0">
+	<tr class="title_row">
+	  <td>Server</td>
+	  <td>GPU</td>
+	  <td>Name</td>
+	  <td>Util</td>
+	  <td>Mem use</td>
+	  <td>Temp C</td>
+	  <td>Power W</td>
+	  <td>G-Clk MHz</td>
+	  <td>M-Clk MHz</td>
+	  <td>App</td>
+	  <!--<td class="message_col">Messages</td>-->
+	</tr>
+	{% for i,(name,server) in enumerate(status['control']) %}
+	{% block server %}
+	{% for j, stream in enumerate(server) %}
+    {% block stream %}
+    <tr>
+      <td>{{name}}</td>
+	  <td>{{j}}</td>
+	  <td><span id="gpu_name{{i}}_{{j}}"></span></td>
+	  <td><span id="gpu_util{{i}}_{{j}}"></span></td>
+	  <td><span id="gpu_mem_usage{{i}}_{{j}}"></span></td>
+	  <td><span id="gpu_temp{{i}}_{{j}}"></span></td>
+	  <td><span id="gpu_power{{i}}_{{j}}"></span></td>
+	  <td><span id="gpu_gfx_clock{{i}}_{{j}}"></span></td>
+	  <td><span id="gpu_mem_clock{{i}}_{{j}}"></span></td>
+	  <td><span id="gpu_apps{{i}}_{{j}}"></span></td>
+	  <!--<td class="message_col"></td>-->
+    </tr>
+    {% end %}
+	{% end %}
+	{% end %}
+	{% end %}
+  </table>
+</div>
 
   </div> <!-- end tab page 1 -->
   <div class="tabpage" id="tabpage_2">
@@ -128,7 +168,7 @@
 	<span class="visbuttons_label">X-engine:</span>
 	<button class="vismodebutton" id="stand">One stand</button>
 	<button class="vismodebutton" id="all_spectra">All spectra</button>
-	<button class="vismodebutton" id="matrices">Matrices</button>
+	<button class="vismodebutton" id="matrices" disabled>Matrices</button>
 	<button class="vismodebutton" id="fringes">Fringes</button>
 	<!--<button id=""></button>-->
 	<br>
