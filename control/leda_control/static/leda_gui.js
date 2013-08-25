@@ -166,6 +166,7 @@ function setVisImage() {
 	//request("get_vis=" + vis_mode + "&i=" + i + "&j=" + j, onVisImage);
 	
 	img_src = "vis?mode="+vis_mode+"&i="+i+"&j="+j;
+	img_src += "&time=" + new Date().getTime();
 	document.getElementById("minivis").src = img_src;
 	
 	/*
