@@ -152,16 +152,22 @@ function onStatusUpdate(response) {
 		document.getElementById("total_power").disabled = false;
 	}
 }
+/*
 function onVisImage(response) {
 	var rawImageData = response;
 	var minivis = document.getElementById("minivis");
 	minivis.src = "data:image/png;base64," + rawImageData;
 }
+*/
 function setVisImage() {
 	i = document.getElementById("stand_i").value;
 	j = document.getElementById("stand_j").value;
 	//send("get_vis=" + vis_mode + "&i=" + i + "&j=" + j);
-	request("get_vis=" + vis_mode + "&i=" + i + "&j=" + j, onVisImage);
+	//request("get_vis=" + vis_mode + "&i=" + i + "&j=" + j, onVisImage);
+	
+	img_src = "vis?mode="+vis_mode+"&i="+i+"&j="+j;
+	document.getElementById("minivis").src = img_src;
+	
 	/*
 	img_src = "static/images/" + vis_image + ".png";
 	// Append date to prevent caching

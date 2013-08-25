@@ -394,6 +394,9 @@ def send_image(socket, imgdata):
 def onMessage(ledavis, message, clientsocket, address):
 	args = dict([x.split('=') for x in message.split('&')])
 	
+	image_format = 'png'
+	#image_format = 'svg'
+	
 	if 'open' in args:
 		ledavis.open()
 		clientsocket.send('ok')
@@ -438,7 +441,7 @@ def onMessage(ledavis, message, clientsocket, address):
 			plt.title('LEDA output for stand %i' % (stand_i + 1))
 			plt.legend()
 		imgfile = StringIO.StringIO()
-		plt.savefig(imgfile, format='png', bbox_inches='tight')
+		plt.savefig(imgfile, format=image_format, bbox_inches='tight')
 		plt.close()
 		imgdata = imgfile.getvalue()
 		send_image(clientsocket, imgdata)
@@ -481,7 +484,7 @@ def onMessage(ledavis, message, clientsocket, address):
 			ax2.set_xticks(())
 			ax2.set_yticks(())
 		imgfile = StringIO.StringIO()
-		plt.savefig(imgfile, format='png', bbox_inches='tight')
+		plt.savefig(imgfile, format=image_format, bbox_inches='tight')
 		plt.close()
 		imgdata = imgfile.getvalue()
 		send_image(clientsocket, imgdata)
@@ -534,7 +537,7 @@ def onMessage(ledavis, message, clientsocket, address):
 			plt.axis([0.5,ledavis.nstation+0.5,0.5,ledavis.nstation+0.5])
 			
 		imgfile = StringIO.StringIO()
-		plt.savefig(imgfile, format='png', bbox_inches='tight')
+		plt.savefig(imgfile, format=image_format, bbox_inches='tight')
 		plt.close()
 		imgdata = imgfile.getvalue()
 		send_image(clientsocket, imgdata)
@@ -608,7 +611,7 @@ def onMessage(ledavis, message, clientsocket, address):
 			plt.ylim([dv*bottom, dv*(bottom+height)])
 			
 		imgfile = StringIO.StringIO()
-		plt.savefig(imgfile, format='png', bbox_inches='tight')
+		plt.savefig(imgfile, format=image_format, bbox_inches='tight')
 		plt.close()
 		imgdata = imgfile.getvalue()
 		send_image(clientsocket, imgdata)
@@ -653,7 +656,7 @@ def onMessage(ledavis, message, clientsocket, address):
 							 fontsize=6, color='black')
 					
 		imgfile = StringIO.StringIO()
-		plt.savefig(imgfile, format='png', bbox_inches='tight')
+		plt.savefig(imgfile, format=image_format, bbox_inches='tight')
 		plt.close()
 		imgdata = imgfile.getvalue()
 		send_image(clientsocket, imgdata)
@@ -698,7 +701,7 @@ def onMessage(ledavis, message, clientsocket, address):
 							 fontsize=6, color='black')
 					
 		imgfile = StringIO.StringIO()
-		plt.savefig(imgfile, format='png', bbox_inches='tight')
+		plt.savefig(imgfile, format=image_format, bbox_inches='tight')
 		plt.close()
 		imgdata = imgfile.getvalue()
 		send_image(clientsocket, imgdata)
@@ -743,7 +746,7 @@ def onMessage(ledavis, message, clientsocket, address):
 							 fontsize=6, color='black')
 					
 		imgfile = StringIO.StringIO()
-		plt.savefig(imgfile, format='png', bbox_inches='tight')
+		plt.savefig(imgfile, format=image_format, bbox_inches='tight')
 		plt.close()
 		imgdata = imgfile.getvalue()
 		send_image(clientsocket, imgdata)

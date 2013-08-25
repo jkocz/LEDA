@@ -107,7 +107,8 @@ class Application(tornado.web.Application):
 		self.updateStatus()
 		handlers = [
 			(r"/", MainHandler),
-			(r"/ajax", AJAXHandler)
+			(r"/ajax", AJAXHandler),
+			(r"/vis", VisHandler),
 			]
 		settings = dict(
 			template_path=os.path.join(os.path.dirname(__file__), "templates"),
@@ -258,6 +259,24 @@ class MainHandler(tornado.web.RequestHandler):
 		self.render("leda_index.html",
 		            session=session,
 		            status=self.application.status)
+class VisHandler(tornado.web.RequestHandler):
+	def get(self):
+		if ( self.get_argument("mode", default=None) is not None and
+		     self.get_argument("i", default=None) is not None and
+		     self.get_argument("j", default=None) is not None ):
+			
+			mode = self.get_argument("mode")
+			# Note: Web interface uses 1-based indexing
+			i = int(self.get_argument("i")) - 1
+			j = int(self.get_argument("j")) - 1
+			
+			# TODO: Work out how to prevent flooding here
+			#         Need something like per-session entries in a cache
+			imgdata = self.application.getVis(mode, i, j)
+			
+			self.set_header('Content-Type', 'image/png')
+			self.write(imgdata)
+		
 class AJAXHandler(tornado.web.RequestHandler):
 	def get(self):
 		if self.get_argument("status", default=None) is not None:
