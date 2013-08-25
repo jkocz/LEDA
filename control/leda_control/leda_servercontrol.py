@@ -122,6 +122,7 @@ def getGPUInfo(gpu_idx):
 	info = {}
 	# TODO: This parsing could be made more robust in case NVIDIA change
 	#         the output ordering.
+	#       Actually, the proper way to do this is to use NVML
 	while len(lines) != 0:
 		line = lines.pop(0).strip()
 		if "Product Name" in line:
@@ -144,8 +145,9 @@ def getGPUInfo(gpu_idx):
 			info['gfx_clock'] = float(line.split(':')[1].strip()[:-3].strip())
 			line = lines.pop(0)
 			info['mem_clock'] = float(line.split(':')[1].strip()[:-3].strip())
-		elif "Compute Processes" in line:
-			info['processes'] = line.split(':')[1].strip()
+		# TODO: This breaks when there is something running; haven't tracked down why yet
+		#elif "Compute Processes" in line:
+		#	info['processes'] = line.split(':')[1].strip()
 	return info
 
 class LEDAProcess(object):

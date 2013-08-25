@@ -136,8 +136,8 @@ function onStatusUpdate(response) {
 			val = leda.control[i][1][j].gpu_info.mem_clock;
 			document.getElementById("gpu_mem_clock"+i+"_"+j).innerHTML = val;
 			*/
-			val = leda.control[i][1][j].gpu_info.processes;
-			document.getElementById("gpu_apps"+i+"_"+j).innerHTML = val;
+			//val = leda.control[i][1][j].gpu_info.processes;
+			//document.getElementById("gpu_apps"+i+"_"+j).innerHTML = val;
 		}
 	}
 	
