@@ -46,7 +46,9 @@ class LEDARemoteVisServer(LEDAClient):
 		super(LEDARemoteVisServer, self).__init__(host, port, log)
 		#self.connect()
 	def open(self):
-		ret = self._sendmsg('open=1')
+		# HACK: This increased timeout is a WAR for something in the open
+		#         operation being very slow (probably something in parse_header)
+		ret = self._sendmsg('open=1', timeout=30)
 		if ret is not None:
 			metadata = json.loads(ret)
 		else:
@@ -122,8 +124,11 @@ class LEDARoachVis(object):
 		                      stdout=subprocess.PIPE)
 		output = sp.communicate()[0]
 		# Parse into numpy array
-		data = np.fromstring(output, sep=' ', dtype=np.int8)
-		data = data.reshape((nperframe,self.ninputs/self.npol,self.npol))
+		data = np.fromstring(output, sep=' ', dtype=np.int32)
+		try:
+			data = data.reshape((nperframe,self.ninputs/self.npol,self.npol))
+		except ValueError:
+			data = np.zeros((nperframe,self.ninputs/self.npol,self.npol))
 		data_x, data_y = data[...,0], data[...,1]
 		return data_x, data_y
 	def getPowerSpectra(self):
@@ -132,20 +137,28 @@ class LEDARoachVis(object):
 		fdata_y = np.fft.rfft(tdata_y, axis=0) / tdata_y.shape[0]
 		powspectra_x = np.real(fdata_x*np.conj(fdata_x)).astype(np.float32)
 		powspectra_y = np.real(fdata_y*np.conj(fdata_y)).astype(np.float32)
+		# Crop off the Nyquist sample
+		powspectra_x = powspectra_x[:-1,...]
+		powspectra_y = powspectra_y[:-1,...]
+		# Downsample a bit
+		powspectra_x = powspectra_x.reshape((powspectra_x.shape[0]/8,
+		                                     8,
+		                                     powspectra_x.shape[1])).mean(axis=1)
+		powspectra_y = powspectra_y.reshape((powspectra_y.shape[0]/8,
+		                                     8,
+		                                     powspectra_y.shape[1])).mean(axis=1)
 		powspectra_x = 10*np.log10(powspectra_x)
 		powspectra_y = 10*np.log10(powspectra_y)
 		return powspectra_x, powspectra_y
 	def getSampleHists(self):
 		all_samples_x, all_samples_y = self.getSamples()
-		all_samples_x = all_samples_x.T
-		all_samples_y = all_samples_y.T
-		hists_x = [np.histogram(s, bins=15)[0] for s in all_samples_x]
-		hists_y = [np.histogram(s, bins=15)[0] for s in all_samples_y]
+		hists_x = np.array([np.histogram(s, bins=16, range=(-128,127))[0] for s in all_samples_x.T]).T
+		hists_y = np.array([np.histogram(s, bins=16, range=(-128,127))[0] for s in all_samples_y.T]).T
 		return hists_x, hists_y
 
 class LEDARemoteVisManager(object):
 	def __init__(self,
-	             serverhosts, controlport,
+	             serverhosts, controlports,
 	             roachhosts, roachport,
 	             lowfreq, highfreq,
 	             stands_x, stands_y,
@@ -165,9 +178,10 @@ class LEDARemoteVisManager(object):
 		self.log = log
 		async = AsyncCaller()
 		self.servers = [LEDARemoteVisServer(host,controlport,log) \
+			                for controlport in controlports \
 			                for host in serverhosts]
 		for server in self.servers:
-			async(server.connect)()
+			async(server.connect)(timeout=20)
 		async.wait()
 		self.roaches = [LEDARoachVis(host,roachport,log) \
 			                for host in roachhosts]
@@ -188,8 +202,8 @@ class LEDARemoteVisManager(object):
 		self.center_freq = sum([server.center_freq for server in self.servers]) \
 		    / float(len(self.servers))
 		# Sort servers by frequency
-		# HACK TESTING disabled
-		#self.servers.sort(key=lambda s: s.center_freq)
+		## HACK TESTING disabled
+		self.servers.sort(key=lambda s: s.center_freq)
 	def update(self):
 		async = AsyncCaller()
 		for server in self.servers:
@@ -347,6 +361,24 @@ class LEDARemoteVisManager(object):
 		powspectra_y = powspectra_y[..., self.stand2adc]
 		"""
 		return powspectra_x, powspectra_y
+	def getADCAllHists(self):
+		hists_substands_x = []
+		hists_substands_y = []
+		async = AsyncCaller()
+		for roach in self.roaches:
+			async(roach.getSampleHists)()
+		rets = async.wait()
+		for ret in rets:
+			#ret = roach.getSampleHists()
+			if ret is None:
+				return None
+			hists_x, hists_y = ret
+			hists_substands_x.append(hists_x)
+			hists_substands_y.append(hists_y)
+		# Note: This assumes the roaches and ADCs are already ordered logically
+		hists_x = np.concatenate(hists_substands_x, axis=1)
+		hists_y = np.concatenate(hists_substands_y, axis=1)
+		return hists_x, hists_y
 
 def plot_none():
 	plt.figure(figsize=(10.24, 7.68), dpi=100)
@@ -432,8 +464,8 @@ def onMessage(ledavis, message, clientsocket, address):
 			stands_y[-5:] *= 0.5
 			
 			plt.figure(figsize=(10.24, 7.68), dpi=100)
-			plt.plot(freqs, fringes_xx, color='r')
-			plt.plot(freqs, fringes_yy, color='b')
+			plt.plot(freqs, fringes_xx, '.', markersize=4, color='r')
+			plt.plot(freqs, fringes_yy, '.', markersize=4, color='b')
 			plt.xlabel('Frequency [MHz]')
 			plt.ylabel('Phase [radians]')
 			plt.title('LEDA fringes for baseline %i - %i' % \
@@ -567,8 +599,10 @@ def onMessage(ledavis, message, clientsocket, address):
 							 fontsize=6, color='black')
 							 #fontsize=8, fontweight='heavy', color='black')
 					
-			plt.xlim([-du*18, du*15])
-			plt.ylim([-dv*11, dv*22])
+			#plt.xlim([-du*18, du*15])
+			#plt.ylim([-dv*11, dv*22])
+			plt.xlim([-du*7, du*9])
+			plt.ylim([-dv*5, dv*14])
 			
 		imgfile = StringIO.StringIO()
 		plt.savefig(imgfile, format='png', bbox_inches='tight')
@@ -585,8 +619,8 @@ def onMessage(ledavis, message, clientsocket, address):
 			
 			xmin = ledavis.lowfreq
 			xmax = ledavis.highfreq
-			ymin = 75
-			ymax = 95
+			ymin = -30
+			ymax = 10
 			
 			du = 1.1 * (xmax-xmin)
 			dv = 1.1 * (ymax-ymin)
@@ -610,7 +644,97 @@ def onMessage(ledavis, message, clientsocket, address):
 					stand_i = ledavis.adc2stand[i]
 					plt.plot(freqs + u*du, powspec_x + v*dv, color='r', linewidth=0.5)
 					plt.plot(freqs + u*du, powspec_y + v*dv, color='b', linewidth=0.5)
-					plt.text(xmin + u*du, ymin + v*dv,
+					plt.text(xmin + (u+0.4)*du, ymin + (v+0.1)*dv,
+					         # Note: i here is (0-based) real stand index
+							 stand_i + 1,
+							 fontsize=6, color='black')
+					
+		imgfile = StringIO.StringIO()
+		plt.savefig(imgfile, format='png', bbox_inches='tight')
+		plt.close()
+		imgdata = imgfile.getvalue()
+		send_image(clientsocket, imgdata)
+		
+	elif 'adc_all_time' in args:
+		ret = ledavis.getADCAllTimeSeries()
+		if ret is None:
+			plot_none()
+		else:
+			timeseries_x, timeseries_y = ret
+			
+			xmin = 0
+			xmax = 1024
+			ymin = -127
+			ymax = 127
+			
+			du = 1.1 * (xmax-xmin)
+			dv = 1.1 * (ymax-ymin)
+			
+			plt.figure(figsize=(10.24, 7.68), dpi=100)
+			plt.axis('off')
+			
+			nsamp_reduced = timeseries_x.shape[0]
+			times = np.linspace(0, 1024, nsamp_reduced)
+			
+			ntile = 16
+			for v in range(ledavis.nstation / ntile):
+				for u in range(ntile):
+					i = u + v*ntile
+					time_x = timeseries_x[:,i]
+					time_y = timeseries_y[:,i]
+					# Saturate values to visible range for better visualisation
+					#time_x[time_x < ymin] = ymin
+					#time_y[time_y < ymin] = ymin
+					
+					stand_i = ledavis.adc2stand[i]
+					plt.plot(times + u*du, time_x + v*dv, color='r', linewidth=0.1)
+					plt.plot(times + u*du, time_y + v*dv, color='b', linewidth=0.1)
+					plt.text(xmin + (u+0.4)*du, ymin + (v-0.1)*dv,
+					         # Note: i here is (0-based) real stand index
+							 stand_i + 1,
+							 fontsize=6, color='black')
+					
+		imgfile = StringIO.StringIO()
+		plt.savefig(imgfile, format='png', bbox_inches='tight')
+		plt.close()
+		imgdata = imgfile.getvalue()
+		send_image(clientsocket, imgdata)
+		
+	elif 'adc_all_hists' in args:
+		ret = ledavis.getADCAllHists()
+		if ret is None:
+			plot_none()
+		else:
+			hists_x, hists_y = ret
+			
+			xmin = -128
+			xmax = 127
+			ymin = 0
+			ymax = 275
+			
+			du = 1.1 * (xmax-xmin)
+			dv = 1.1 * (ymax-ymin)
+			
+			plt.figure(figsize=(10.24, 7.68), dpi=100)
+			plt.axis('off')
+			
+			nbin_reduced = hists_x.shape[0]
+			bins = np.linspace(-128, 127, nbin_reduced)
+			
+			ntile = 16
+			for v in range(ledavis.nstation / ntile):
+				for u in range(ntile):
+					i = u + v*ntile
+					hist_x = hists_x[:,i]
+					hist_y = hists_y[:,i]
+					# Saturate values to visible range for better visualisation
+					hist_x[hist_x > ymax] = ymax
+					hist_y[hist_y > ymax] = ymax
+					
+					stand_i = ledavis.adc2stand[i]
+					plt.plot(bins + u*du, hist_x + v*dv, color='r', linewidth=0.5)
+					plt.plot(bins + u*du, hist_y + v*dv, color='b', linewidth=0.5)
+					plt.text(xmin + (u+0.25)*du, ymin + (v+0.1)*dv,
 					         # Note: i here is (0-based) real stand index
 							 stand_i + 1,
 							 fontsize=6, color='black')
@@ -630,13 +754,13 @@ if __name__ == "__main__":
 	# Dynamically execute config script
 	execfile(configfile, globals())
 	
-	controlport = 3142
 	logstream   = sys.stderr
 	debuglevel  = 1
 	
 	df       = corr_clockfreq / float(corr_nfft)
 	highfreq = lowfreq + df*nchan*len(serverhosts)*nstream
 	
+	print "Loading site stands file", site_stands_file
 	stands, stands_x, stands_y = \
 	    np.loadtxt(site_stands_file, usecols=[0,1,2], unpack=True)
 	# Sort into proper stand order
@@ -645,6 +769,7 @@ if __name__ == "__main__":
 	stands_x = stands_x[inds]
 	stands_y = stands_y[inds]
 	
+	print "Loading correlator stands file", leda_stands_file
 	stands, roaches, adcs, adc_inds, leda_inds = \
 	    np.loadtxt(leda_stands_file, usecols=[0,1,2,3,4], unpack=True)
 	# Convert from 1-based to 0-based indexing
@@ -685,7 +810,7 @@ if __name__ == "__main__":
 	stands_x  = stands_x[inds]
 	stands_y  = stands_y[inds]
 	"""
-	ledavis = LEDARemoteVisManager(serverhosts, controlport,
+	ledavis = LEDARemoteVisManager(serverhosts, visports,
 	                               roachhosts, roachport,
 	                               lowfreq, highfreq,
 	                               stands_x, stands_y,

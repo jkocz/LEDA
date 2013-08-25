@@ -7,11 +7,11 @@ class LEDAClient(object):
 		self.host = host
 		self.port = port
 		self.log  = log
-		self.connect()
-	def connect(self):
+		#self.connect()
+	def connect(self, timeout=10):
 		self.log.write("Connecting to remote server %s:%i" \
 			               % (self.host,self.port))
-		self.sock = SimpleSocket(timeout=10)
+		self.sock = SimpleSocket(timeout=timeout)
 		try:
 			self.sock.connect(self.host, self.port)
 		except SimpleSocket.timeout_error:
@@ -24,9 +24,9 @@ class LEDAClient(object):
 			self.log.write("Connection successful")
 	def isConnected(self):
 		return self.sock is not None
-	def _sendmsg(self, msg):
+	def _sendmsg(self, msg, timeout="default"):
 		if self.sock is None:
-			self.log.write("Not connected", -2)
+			self.log.write("send: Not connected (%s:%i)" % (self.host,self.port), -2)
 			return None
 		if len(msg) <= 256:
 			self.log.write("Sending message "+msg, 4)
@@ -34,9 +34,9 @@ class LEDAClient(object):
 			self.log.write("Sending long message of length %i bytes"%(len(msg)), 4)
 		try:
 			self.sock.send(msg)
-			ret = self.sock.receive()
+			ret = self.sock.receive(timeout=timeout)
 		except:
-			self.log.write("Not connected", -2)
+			self.log.write("recv: Not connected (%s:%i)" % (self.host,self.port), -2)
 			self.sock = None
 			return None
 		if len(ret) < 256:

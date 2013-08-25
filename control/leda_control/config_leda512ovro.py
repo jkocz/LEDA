@@ -62,6 +62,8 @@ bufsize = ninput*nchan*ntime
 upsize  = bufsize * 2
 outsize = reg_tile_triangular_size(ninput, nchan)
 
+visports = [3142 + i for i in xrange(nstream)]
+
 dadapath = getenv_warn('PSRDADA_DIR', "/home/leda/software/psrdada/src")
 bufkeys  = ["dada", "eada", # Captured
             "aada", "bada", # Unpacked
@@ -89,7 +91,11 @@ elif servername in serverhosts:
 	capture_ips   = [capture_ip, capture_ip]
 	#capture_ports = [4000 + 2*server_id-1, 4000 + 2*server_id-0]
 	capture_ports = [4015, 4016]
-	subbands      = [server_id*2+0, server_id*2+1]
+	#subbands      = [server_id*2+0, server_id*2+1]
+	if server_id % 2 == 0:
+		subbands = [server_id, server_id+len(serverhosts)]
+	else:
+		subbands = [server_id+len(serverhosts), server_id]
 else:
 	#raise NameError("This server (%s) is not in the config file" % servername)
 	print "WARNING: This server (%s) is not recognised in the config file" % servername

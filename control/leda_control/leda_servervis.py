@@ -17,8 +17,7 @@ import numpy as np
 from SimpleSocket import SimpleSocket
 from leda_correlator_dump import correlator_dump
 from leda_logger import LEDALogger
-
-port = 3142
+from async import AsyncCaller
 
 # Debug level
 DL = 1
@@ -40,8 +39,8 @@ def logMsg(lvl, dlvl, message):
         sys.stderr.write("[" + time + "] " + message + "\n")
 
 class LEDAVis(object):
-	def __init__(self, datapaths, nchan_reduced, log=LEDALogger()):
-		self.datapaths = datapaths
+	def __init__(self, datapath, nchan_reduced, log=LEDALogger()):
+		self.datapath = datapath
 		self.data = correlator_dump()
 		self.nchan_reduced = nchan_reduced
 		self.log = log
@@ -50,10 +49,12 @@ class LEDAVis(object):
 	def open_latest(self):
 		""" 'Opens' latest correlator dump
 		"""
-		datestamps = [self._getLatestDatestamp(path) \
-			              for path in self.datapaths]
+		#datestamps = [self._getLatestDatestamp(path) \
+		#	              for path in self.datapaths]
+		datestamps = [self._getLatestDatestamp(self.datapath)]
 		self.log.write("Opening data with datestamps: %s" % ', '.join(datestamps))
 		self.data.open(datestamps)
+		self.log.write("  Done")
 		
 	def _getLatestDatestamp(self, path, rank=0):
 		pathname = sorted(glob.glob(path + "/*.dada"),
@@ -168,10 +169,18 @@ def onMessage(ledavis, message, clientsocket, address):
 			send_array(clientsocket, data)
 	else:
 		logMsg(1, DL, "Ignoring unknown message: %s" % message)
+
+def start_vis_listener(port, disk_outpath, nchan_reduced_stream):
+	ledavis = LEDAVis(disk_outpath, nchan_reduced_stream)
+	
+	print "Listening for client requests on port %i..." % port
+	sock = SimpleSocket()
+	sock.listen(functools.partial(onMessage, ledavis), port)
 		
 if __name__ == "__main__":
 	import functools
 	from configtools import *
+	from multiprocessing import Process
 	
 	configfile = getenv('LEDA_CONFIG')
 	# Dynamically execute config script
@@ -179,9 +188,20 @@ if __name__ == "__main__":
 	
 	# TODO: This display parameter could be put into the config file
 	nchan_reduced_max = 128
-	nchan_reduced_server = nchan_reduced_max // len(serverhosts)
-	ledavis = LEDAVis(disk_outpaths, nchan_reduced_server)
+	nchan_reduced_stream = nchan_reduced_max // (len(serverhosts) * nstream)
 	
-	print "Listening for client requests on port %i..." % port
-	sock = SimpleSocket()
-	sock.listen(functools.partial(onMessage, ledavis), port)
+	# (Asynchronously) start a vis listener for each stream in the server
+	"""
+	async = AsyncCaller()
+	for port, diskpath in zip(visports, disk_outpaths):
+		async(start_vis_listener)(port, diskpath, nchan_reduced_stream)
+	async.wait()
+	"""
+	procs = []
+	for port, diskpath in zip(visports, disk_outpaths):
+		procs.append( Process(target=start_vis_listener,
+		                      args=(port, diskpath, nchan_reduced_stream)) )
+	for proc in procs:
+		proc.start()
+	for proc in procs:
+		proc.join()

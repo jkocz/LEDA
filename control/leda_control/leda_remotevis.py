@@ -41,6 +41,7 @@ class LEDARemoteHeadNodeVis(LEDAClient):
 
 if __name__ == "__main__":
 	import sys
+	from configtools import *
 	
 	if len(sys.argv) <= 1:
 		print "Usage: %s [stand i | fringes i j | matrix | spectra | exit ]" % sys.argv[0]
@@ -59,10 +60,13 @@ if __name__ == "__main__":
 	print "Connecting to headnode vis service"
 	ledavis = LEDARemoteHeadNodeVis(host, port,
 	                                LEDALogger(logstream, debuglevel))
-	print "Opening latest snapshot"
-	ledavis.open()
 	
 	cmd = sys.argv[1]
+	
+	if cmd != "exit":
+		print "Opening latest snapshot"
+		ledavis.open()
+	
 	print "Requesting '%s' visualisation" % cmd
 	if cmd == "stand":
 		try:
