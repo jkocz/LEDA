@@ -110,7 +110,7 @@ class LEDARoachVis(object):
 	def connect(self):
 		self.log.write("Connecting to ROACH %s:%i" % (self.host,self.port))
 		self.fpga = corr.katcp_wrapper.FpgaClient(self.host, self.port)
-		time.sleep(2)
+		time.sleep(1)
 		if not self.fpga.is_connected():
 			self.log.write("Failed to connect", -2)
 			self.fpga = None
@@ -553,8 +553,8 @@ def onMessage(ledavis, message, clientsocket, address):
 			ymin = 75
 			ymax = 95
 			
-			du = 1.1 * (xmax-xmin)
-			dv = 1.1 * (ymax-ymin)
+			du = 2.0 * (xmax-xmin)
+			dv = 2.0 * (ymax-ymin)
 			
 			#stands = ledavis.stands
 			stands_x, stands_y = ledavis.stands_x.copy(), ledavis.stands_y.copy()
@@ -599,10 +599,13 @@ def onMessage(ledavis, message, clientsocket, address):
 							 fontsize=6, color='black')
 							 #fontsize=8, fontweight='heavy', color='black')
 					
-			#plt.xlim([-du*18, du*15])
-			#plt.ylim([-dv*11, dv*22])
-			plt.xlim([-du*7, du*9])
-			plt.ylim([-dv*5, dv*14])
+			#aspect = 1024./768.
+			left   = -8
+			bottom = -5
+			height = 17
+			width  = height
+			plt.xlim([du*left,   du*(left+width)])
+			plt.ylim([dv*bottom, dv*(bottom+height)])
 			
 		imgfile = StringIO.StringIO()
 		plt.savefig(imgfile, format='png', bbox_inches='tight')
