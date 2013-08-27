@@ -437,7 +437,8 @@ int load_stands(std::string          filename,
 
 void print_usage() {
 	cout << 
-		"dbbeam [options] in_key out_key\n"
+		"dbbeam [options] lat lon in_key out_key\n"
+		" lat/lon      Observatory latitude and longitude as decimals\n"
 		" -s standfile Stand data file to use [stands.txt]\n"
 		" -a aperture  Max aperture (dist. from centre of array) [1e99]\n"
 		" -b           Maintain circular aperture (at cost of area)\n"
@@ -455,6 +456,8 @@ int main(int argc, char* argv[])
 	int         circular     = 0;
 	int         core         = -1;
 	int         verbose      = 0;
+	float       lat          = 0;
+	float       lon          = 0;
 	key_t       in_key       = 0;
 	key_t       out_key      = 0;
 	multilog_t* log          = 0;
@@ -473,28 +476,40 @@ int main(int argc, char* argv[])
 		}
 	}
 	int num_args = argc - optind;
-	if( num_args != 2 ) {
-		cerr << "ERROR: Expected exactly 2 required args, got " << num_args << endl;
+	if( num_args != 4 ) {
+		cerr << "ERROR: Expected exactly 4 required args, got " << num_args << endl;
 		print_usage();
 		return -1;
 	}
-	unsigned int tmp;
-	if( sscanf(argv[optind+0], "%x", &tmp) != 1 ) {
-		cerr << "ERROR: Could not parse buffer key from "
+	if( sscanf(argv[optind+0], "%f", &lat) != 1 ) {
+		cerr << "ERROR: Could not parse latitude from "
 		     << argv[optind+0] << endl;
 		return -1;
 	}
-	in_key = tmp;
-	if( sscanf(argv[optind+1], "%x", &tmp) != 1 ) {
-		cerr << "ERROR: Could not parse buffer key from "
+	if( sscanf(argv[optind+1], "%f", &lon) != 1 ) {
+		cerr << "ERROR: Could not parse longitude from "
 		     << argv[optind+1] << endl;
+		return -1;
+	}
+	unsigned int tmp;
+	if( sscanf(argv[optind+2], "%x", &tmp) != 1 ) {
+		cerr << "ERROR: Could not parse buffer key from "
+		     << argv[optind+2] << endl;
+		return -1;
+	}
+	in_key = tmp;
+	if( sscanf(argv[optind+3], "%x", &tmp) != 1 ) {
+		cerr << "ERROR: Could not parse buffer key from "
+		     << argv[optind+3] << endl;
 		return -1;
 	}
 	out_key = tmp;
 	
 	if( verbose >= 1 ) {
-		cout << "In key  = " << std::hex << in_key << std::dec << endl;
-		cout << "Out key = " << std::hex << out_key << std::dec << endl;
+		cout << "Latitude  = " << lat << endl;
+		cout << "Longitude = " << lon << endl;
+		cout << "In key    = " << std::hex << in_key << std::dec << endl;
+		cout << "Out key   = " << std::hex << out_key << std::dec << endl;
 	}
 	
 	log = multilog_open("dbbeam", 0);
@@ -529,7 +544,7 @@ int main(int argc, char* argv[])
 		}
 	}
 	
-	dbbeam ctx(log, verbose, max_aperture, circular);
+	dbbeam ctx(log, verbose, lat, lon, max_aperture, circular);
 	if( verbose >= 1 ) {
 		cout << "Initialising from station data" << endl;
 	}

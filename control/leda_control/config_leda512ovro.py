@@ -21,6 +21,9 @@ site_stands_file = getenv_warn('SITE_STANDS_FILE',
 leda_stands_file = getenv_warn('LEDA_STANDS_FILE',
                                "leda_stands_ovro512.txt")
 
+site_lat = 37.240391
+site_lon = -118.28247
+
 headnodehost    = "ledaovro"
 webserverhost   = "ledaovro"
 serverhosts     = ["ledaovro%i" % (i+1) for i in xrange(11)]

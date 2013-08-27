@@ -266,11 +266,14 @@ class LEDAXEngineProcess(LEDAProcess):
 
 class LEDABeamProcess(LEDAProcess):
 	def __init__(self, logpath, path, in_bufkey, out_bufkey,
-	             standfile, circular=False, aperture=None,
+	             lat, lon, standfile,
+	             circular=False, aperture=None,
 	             core=None, verbosity=0):
 		LEDAProcess.__init__(self, logpath, path)
 		self.in_bufkey  = in_bufkey
 		self.out_bufkey = out_bufkey
+		self.lat        = lat
+		self.lon        = lon
 		self.standfile  = standfile
 		self.circular   = circular
 		self.aperture   = aperture
@@ -291,8 +294,9 @@ class LEDABeamProcess(LEDAProcess):
 		while verbosity < 0:
 			args += " -q"
 			verbosity += 1
-		args += " -s %s %s %s" \
+		args += " -s %s %f %f %s %s" \
 		    % (self.standfile,
+		       self.lat, self.lon,
 		       self.in_bufkey, self.out_bufkey)
 		self._startProc(args)
 
@@ -461,7 +465,7 @@ class LEDAServer(object):
 	             disk_logfiles, disk_path, disk_outpaths, disk_cores,
 	             
 	             beam_logfiles, beam_path, beam_bufkeys, beam_cores,
-	             standfile,
+	             lat, lon, standfile,
 	             
 	             debuglevel=1):
 		self.name = name
@@ -499,7 +503,7 @@ class LEDAServer(object):
 			                    disk_cores)]
 		
 		self.beam = [LEDABeamProcess(logfile,beam_path,in_bufkey,out_bufkey,
-		                             standfile,core=core,verbosity=2) \
+		                             lat,lon,standfile,core=core,verbosity=2) \
 			             for logfile,in_bufkey,out_bufkey,core \
 			             in zip(beam_logfiles,unpack_bufkeys,beam_bufkeys,
 			                    beam_cores)]
@@ -789,6 +793,8 @@ if __name__ == "__main__":
 		                        beam_path,
 		                        beam_bufkeys,
 		                        beam_cores,
+		                        site_lat,
+		                        site_lon,
 		                        site_stands_file)
 		
 		# TESTING
