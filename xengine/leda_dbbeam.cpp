@@ -209,6 +209,23 @@ protected:
 		                            m_lat, m_lon,
 		                            utc_start_jd + quarter_turn);
 		
+		// Update (some) parameter(s) in the header
+		uint64_t outsize      = this->bufsize_out();//m_ntime*m_nchan*m_npol*sizeof(outtype);
+		uint64_t max_filesize = 2ull*1024*1024*1024;
+		uint64_t bytes_per_second = (max_filesize-header_size) / (outsize * 10) * outsize;
+		if( ascii_header_set(header_out, "BYTES_PER_SECOND", "%i", bytes_per_second) < 0 ) {
+			logInfo("dbbeam: Failed to set BYTES_PER_SECOND in header_out");
+		}
+		if( ascii_header_set(header_out, "DATA_ORDER", "%s", "time_chan_pol_cpx_f32") < 0 ) {
+			logInfo("dbbeam: Failed to set DATA_ORDER in header_out");
+		}
+		if( ascii_header_set(header_out, "SOURCE", "%s", "TARGET") < 0 ) {
+			logInfo("dbbeam: Failed to set SOURCE in header_out");
+		}
+		if( ascii_header_set(header_out, "MODE", "%s", "SINGLE_BEAM") < 0 ) {
+			logInfo("dbbeam: Failed to set MODE in header_out");
+		}
+		
 		size_t bytes_per_read = m_ntime*m_nchan*m_nstation*m_npol*sizeof(intype);
 		return bytes_per_read;
 	}
@@ -392,7 +409,7 @@ void print_usage() {
 		"dbbeam [options] in_key out_key\n"
 		" -s standfile Stand data file to use [stands.txt]\n"
 		" -a aperture  Max aperture (dist. from centre of array) [1e99]\n"
-		" -b           Maintain circular aperture (at cost of area)"
+		" -b           Maintain circular aperture (at cost of area)\n"
 		" -c core      Bind process to CPU core\n"
 		" -v           Increase verbosity\n"
 		" -q           Decrease verbosity\n"

@@ -107,6 +107,8 @@ function onStatusUpdate(response) {
 			document.getElementById("control_unpack_status"+i+"_"+j).src = img_src;
 			img_src = status_img(leda.control[i][1][j].xengine);
 			document.getElementById("control_xengine_status"+i+"_"+j).src = img_src;
+			img_src = status_img(leda.control[i][1][j].beam);
+			document.getElementById("control_beam_status"+i+"_"+j).src = img_src;
 			img_src = status_img(leda.control[i][1][j].disk);
 			document.getElementById("control_disk_status"+i+"_"+j).src = img_src;
 			
@@ -146,10 +148,16 @@ function onStatusUpdate(response) {
 		/*document.getElementById("total_power").disabled = "disabled";*/
 		document.getElementById("total_power_enabled").disabled = true;
 		document.getElementById("total_power").disabled = true;
+		document.getElementById("obs_mode").disabled  = true;
+		//document.getElementById("obs_ra").disabled  = true;
+		//document.getElementById("obs_dec").disabled = true;
 	}
 	else {
 		document.getElementById("total_power_enabled").disabled = false;
 		document.getElementById("total_power").disabled = false;
+		document.getElementById("obs_mode").disabled  = false;
+		//document.getElementById("obs_ra").disabled  = false;
+		//document.getElementById("obs_dec").disabled = false;
 	}
 }
 /*
@@ -194,8 +202,13 @@ function onStartObsClick(event) {
 	else {
 		send("total_power=0");
 	}
+	
+	var selObsMode = document.getElementById("obs_mode");
+	var mode = selObsMode.options[selObsMode.selectedIndex].value;
+	var ra   = document.getElementById("obs_ra").value;
+	var dec  = document.getElementById("obs_dec").value;
 	// Wait a second to ensure the TP message gets through first
-	setTimeout(function() { send("start=1"); }, 1000);
+	setTimeout(function() { send("start=1&mode="+mode+"&ra="+ra+"&dec="+dec); }, 1000);
 }
 function onStopObsClick(event) { send("stop=1"); }
 function onKillObsClick(event) { send("kill=1"); }
@@ -294,6 +307,21 @@ function displayTabPage() {
 
 }
 
+function onObsModeChange(event) {
+	var mode = this.options[this.selectedIndex].value;
+	if( mode == "correlator" ) {
+		document.getElementById("obs_ra").disabled  = true;
+		document.getElementById("obs_dec").disabled = true;
+		// TODO: This interferes with the flow-based enablement above
+		//document.getElementById("total_power_enabled").disabled = false;
+	}
+	else {
+		document.getElementById("obs_ra").disabled  = false;
+		document.getElementById("obs_dec").disabled = false;
+		//document.getElementById("total_power_enabled").disabled = true;
+	}
+}
+
 function main() {
 	document.getElementById("start_obs").onclick = onStartObsClick;
 	document.getElementById("stop_obs").onclick  = onStopObsClick;
@@ -312,6 +340,10 @@ function main() {
 	document.getElementById("vis_vismatrix_svr2_str4").onclick = onVisModeClick;
 	*/
 	document.getElementById("total_power_enabled").checked = false;
+	
+	document.getElementById("obs_mode").onchange = onObsModeChange;
+	document.getElementById("obs_ra").disabled  = true;
+	document.getElementById("obs_dec").disabled = true;
 	
 	var container = document.getElementById("vis_panel");
 	var vismodebuttons = container.querySelectorAll(".vismodebutton");

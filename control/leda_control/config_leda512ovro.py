@@ -61,17 +61,21 @@ lowfreq   = 30.0
 bufsize = ninput*nchan*ntime
 upsize  = bufsize * 2
 outsize = reg_tile_triangular_size(ninput, nchan)
+beamoutsize = ntime*nchan*npol*2*4
 
 visports = [3142 + i for i in xrange(nstream)]
 
 dadapath = getenv_warn('PSRDADA_DIR', "/home/leda/software/psrdada/src")
 bufkeys  = ["dada", "eada", # Captured
             "aada", "bada", # Unpacked
-            "cada", "fada"] # Correlated
-bufsizes = [bufsize]*nstream + [upsize]*nstream + [outsize]*nstream
+            "cada", "fada", # Correlated
+            "abda", "ebda"] # Beamformed
+bufsizes = [bufsize]*nstream + [upsize]*nstream + [outsize]*nstream \
+    + [beamoutsize]*nstream
 bufcores = [1, 9,
 			1, 9,
-			1, 9]
+			1, 9,
+            1, 9]
 
 capture_bufkeys     = ["dada", "eada"]
 capture_logfiles    = [os.path.join(logpath,"udpdb."+bufkey) \
@@ -134,3 +138,11 @@ disk_path           = os.path.join(getenv_warn('PSRDADA_DIR',
 #disk_outpaths       = ["/data1/one", "/data1/two"]
 disk_outpaths       = ["/data1/one", "/data2/one"]
 disk_cores          = [5, 13]
+
+beam_bufkeys        = ["abda", "ebda"]
+beam_logfiles       = [os.path.join(logpath,"dbbeam."+bufkey) \
+	                       for bufkey in beam_bufkeys]
+beam_path           = os.path.join(getenv_warn('LEDA_XENGINE_DIR',
+                                               "/home/leda/LEDA/xengine"),
+                                   "leda_dbbeam")
+beam_cores          = [4, 12]

@@ -263,6 +263,38 @@ class LEDAXEngineProcess(LEDAProcess):
 		    
 		self._startProc(args)
 
+class LEDABeamProcess(LEDAProcess):
+	def __init__(self, logpath, path, in_bufkey, out_bufkey,
+	             standfile, circular=False, aperture=None,
+	             core=None, verbosity=0):
+		LEDAProcess.__init__(self, logpath, path)
+		self.in_bufkey  = in_bufkey
+		self.out_bufkey = out_bufkey
+		self.standfile  = standfile
+		self.circular   = circular
+		self.aperture   = aperture
+		self.core       = core
+		self.verbosity  = verbosity
+	def start(self):
+		args = ""
+		if self.core is not None:
+			args += " -c %i" % self.core
+		if self.circular:
+			args += " -b"
+		if self.aperture is not None:
+			args += " -a %f" % self.aperture
+		verbosity = self.verbosity
+		while verbosity > 0:
+			args += " -v"
+			verbosity -= 1
+		while verbosity < 0:
+			args += " -q"
+			verbosity += 1
+		args += " -s %s %s %s" \
+		    % (self.standfile,
+		       self.in_bufkey, self.out_bufkey)
+		self._startProc(args)
+
 class LEDAUnpackProcess(LEDAProcess):
 	def __init__(self, logpath, path, in_bufkey, out_bufkey,
 	             core=None, ncores=1):
@@ -304,14 +336,28 @@ class LEDACaptureProcess(LEDAProcess):
 		
 		## HACK TESTING
 		#self.start()
-	def _createUTCHeaderFile(self):
+	def _createUTCHeaderFile(self, mode='correlator', ra=None, dec=None):
+		if mode != 'beam' or ra is None or dec is None:
+			ra  = "00:00:00.0"
+			dec = "00:00:00.0"
+		
 		utc = datetime.datetime.utcnow().strftime("%Y-%m-%d-%H:%M:%S")
 		header = self.header
 		header += "CFREQ           %f\n" % self.centerfreq
 		header += "SUBBAND         %i\n" % self.subband
 		#header += "BW              %f\n" % self.bandwidth
+		header += "RA              %s\n" % ra
+		header += "DEC             %s\n" % dec
 		header += "UTC_START       " + utc + "\n"
-		
+		"""
+		if mode == 'beam':
+			header += "SOURCE          %s\n" % "TARGET"
+			header += "MODE            %s\n" % "SINGLE_BEAM" # What is this?
+		else:
+			header += "SOURCE          %s\n" % "DRIFT"
+			#header += "MODE            %s\n" % "TPS" # What is this?
+			header += "MODE            %s\n" % "CORRELATOR" # What is this?
+		"""
 		# Note: The header file is put in the log path for convenience
 		headerpath = os.path.join(os.path.dirname(self.logpath),
 		                          "header." + self.bufkey)
@@ -322,8 +368,8 @@ class LEDACaptureProcess(LEDAProcess):
 		headerfile.write(header)
 		headerfile.close()
 		return headerpath
-	def start(self):
-		utcheaderpath = self._createUTCHeaderFile()
+	def start(self, mode='correlator', ra=None, dec=None):
+		utcheaderpath = self._createUTCHeaderFile(mode, ra, dec)
 		args = ""
 		if self.controlport is not None:
 			args += " -c %i" % self.controlport
@@ -412,6 +458,10 @@ class LEDAServer(object):
 	             xengine_gpus, xengine_navg, xengine_cores,
 	             xengine_tp_ncycles,
 	             disk_logfiles, disk_path, disk_outpaths, disk_cores,
+	             
+	             beam_logfiles, beam_path, beam_bufkeys, beam_cores,
+	             standfile,
+	             
 	             debuglevel=1):
 		self.name = name
 		self.buffers = [LEDABuffer(dadapath,bufkey,size,core) \
@@ -447,6 +497,12 @@ class LEDAServer(object):
 			             in zip(disk_logfiles,xengine_bufkeys,disk_outpaths,
 			                    disk_cores)]
 		
+		self.beam = [LEDABeamProcess(logfile,beam_path,in_bufkey,out_bufkey,
+		                             standfile,core=core) \
+			             for logfile,in_bufkey,out_bufkey,core \
+			             in zip(beam_logfiles,unpack_bufkeys,beam_bufkeys,
+			                    beam_cores)]
+		
 		self.debuglevel = debuglevel
 		
 	"""
@@ -459,12 +515,13 @@ class LEDAServer(object):
 		all_buffers_exist = True
 		for buf in self.buffers:
 			all_buffers_exist = all_buffers_exist and buf.exists()
-		for capture_proc,unpack_proc,xengine_proc,disk_proc in \
-			    zip(self.capture,self.unpack,self.xengine,self.disk):
+		for capture_proc,unpack_proc,xengine_proc,disk_proc,beam_proc in \
+			    zip(self.capture,self.unpack,self.xengine,self.disk,self.beam):
 			capture = 'ok' if capture_proc.isRunning() else 'down'
 			unpack  = 'ok' if unpack_proc.isRunning()  else 'down'
 			xengine = 'ok' if xengine_proc.isRunning() else 'down'
 			disk    = 'ok' if disk_proc.isRunning()    else 'down'
+			beam    = 'ok' if beam_proc.isRunning()    else 'down'
 			buffers = 'ok' if all_buffers_exist        else 'down'
 			disk_info = getDiskInfo(disk_proc.outpath)
 			capture_info = capture_proc.status()
@@ -473,6 +530,7 @@ class LEDAServer(object):
 			               'unpack':       unpack,
 			               'xengine':      xengine,
 			               'disk':         disk,
+			               'beam':         beam,
 			               'disk_info':    disk_info,
 			               'capture_info': capture_info,
 			               'buffers':      buffers,
@@ -490,19 +548,32 @@ class LEDAServer(object):
 	def setTotalPowerRecording(self, ncycles):
 		for xengine_proc in self.xengine:
 			xengine_proc.tp_ncycles = ncycles
-	def armPipeline(self):
+	def armPipeline(self, mode='correlator'):
+		self.mode = mode
+		# Set which buffers to write to disk
+		if mode == 'beam':
+			for disk_proc,beam_proc in zip(self.disk,self.beam):
+				disk_proc.bufkey = beam_proc.out_bufkey
+		else:
+			for disk_proc,xengine_proc in zip(self.disk,self.xengine):
+				disk_proc.bufkey = xengine_proc.out_bufkey
+		
 		for disk_proc in self.disk:
 			disk_proc.start()
 		#time.sleep(1)
 		for unpack_proc in self.unpack:
 			unpack_proc.start()
 		#time.sleep(1)
-		for xengine_proc in self.xengine:
-			xengine_proc.start()
+		if mode == 'beam':
+			for beam_proc in self.beam:
+				beam_proc.start()
+		else:
+			for xengine_proc in self.xengine:
+				xengine_proc.start()
 		time.sleep(1)
-	def startPipeline(self):
+	def startPipeline(self, ra=None, dec=None):
 		for capture_proc in self.capture:
-			capture_proc.start()
+			capture_proc.start(self.mode, ra, dec)
 	def killPipeline(self):
 		for capture_proc in self.capture:
 			capture_proc.kill()
@@ -554,7 +625,10 @@ def onMessage(ledaserver, message, clientsocket, address):
 		clientsocket.send('ok')
 	if 'arm' in args:
 		logMsg(1, DL, "Arming pipeline")
-		ledaserver.armPipeline()
+		if 'mode' in args:
+			ledaserver.armPipeline(mode=args['mode'])
+		else:
+			ledaserver.armPipeline()
 		clientsocket.send('ok')
 	if 'total_power' in args:
 		tp_ncycles = int(args['total_power'])
@@ -563,7 +637,12 @@ def onMessage(ledaserver, message, clientsocket, address):
 		clientsocket.send('ok')
 	if 'start' in args:
 		logMsg(1, DL, "Starting pipeline")
-		ledaserver.startPipeline()
+		if 'ra' in args and 'dec' in args:
+			ra  = args['ra']
+			dec = args['dec']
+			ledaserver.startPipeline(ra, dec)
+		else:
+			ledaserver.startPipeline()
 		clientsocket.send('ok')
 	if 'kill' in args:
 		logMsg(1, DL, "Killing pipeline")
@@ -616,8 +695,8 @@ if __name__ == "__main__":
 		#capture_header += "CFREQ           %f\n" % corr_centerfreq
 		capture_header += "FREQ            %f\n" % corr_clockfreq
 		capture_header += "NFFT            %i\n" % corr_nfft
-		capture_header += "RA              %s\n" % "00:00:00.0"
-		capture_header += "DEC             %s\n" % "00:00:00.0"
+		#capture_header += "RA              %s\n" % "00:00:00.0"
+		#capture_header += "DEC             %s\n" % "00:00:00.0"
 		
 		capture_header += "HDR_SIZE        %i\n" % corr_headersize
 		capture_header += "HDR_VERSION     %s\n" % corr_headerversion
@@ -701,7 +780,13 @@ if __name__ == "__main__":
 		                        disk_logfiles,
 		                        disk_path,
 		                        disk_outpaths,
-		                        disk_cores)
+		                        disk_cores,
+		                        
+		                        beam_logfiles,
+		                        beam_path,
+		                        beam_bufkeys,
+		                        beam_cores,
+		                        site_stands_file)
 		
 		# TESTING
 		#port = int(sys.argv[1])

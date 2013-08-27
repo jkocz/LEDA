@@ -104,12 +104,15 @@ class LEDARemoteServerControl(object):
 	def setTotalPowerRecording(self, ncycles):
 		self.log.write("Setting total power recording param", 2)
 		self._sendcmd("total_power=%i" % ncycles)
-	def armPipeline(self):
-		self.log.write("Arming pipeline", 2)
-		self._sendcmd("arm=1")
-	def startPipeline(self):
+	def armPipeline(self, mode='correlator'):
+		self.log.write("Arming pipeline in %s mode" % mode, 2)
+		self._sendcmd("arm=1&mode=%s" % mode)
+	def startPipeline(self, ra=None, dec=None):
 		self.log.write("Starting pipeline", 2)
-		self._sendcmd("start=1")
+		if ra is not None and dec is not None:
+			self._sendcmd("start=1&ra=%s&dec=%s" % (ra,dec))
+		else:
+			self._sendcmd("start=1")
 	def killPipeline(self):
 		self.log.write("Killing pipeline", 2)
 		self._sendcmd("kill=1")
@@ -352,7 +355,7 @@ class LEDARemoteManager(object):
 		# Note: Very important, wait for ARP tables in ROACHes to update
 		time.sleep(180)
 		"""
-	def startObservation(self):
+	def startObservation(self, mode='correlator', ra=None, dec=None):
 		self.log.write("Starting observation", 0)
 		self.killObservation()
 		self.clearLogs()
@@ -363,17 +366,17 @@ class LEDARemoteManager(object):
 		
 		async = AsyncCaller()
 		for server in self.servers:
-			async(server.control.armPipeline)()
+			async(server.control.armPipeline)(mode)
 		async.wait()
 		for roach in self.roaches:
 			async(roach.armFlow)()
 		async.wait()
-		def start_server_pipeline(server):
-			server.control.startPipeline()
+		def start_server_pipeline(server, ra, dec):
+			server.control.startPipeline(ra, dec)
 			for process in server.capture.processes:
 				process.connect()
 		for server in self.servers:
-			async(start_server_pipeline)(server)
+			async(start_server_pipeline)(server, ra, dec)
 		async.wait()
 		#time.sleep(10)
 		#for roach in self.roaches:
@@ -488,7 +491,15 @@ def onMessage(leda, message, clientsocket, address):
 		leda.setTotalPowerRecording(tp_ncycles)
 		clientsocket.send('ok')
 	elif "start" in args:
-		leda.startObservation()
+		mode = 'correlator'
+		if 'mode' in args:
+			mode = args['mode']
+		ra  = None
+		dec = None
+		if 'ra' in args and 'dec' in args:
+			ra  = args['ra']
+			dec = args['dec']
+		leda.startObservation(mode, ra, dec)
 		clientsocket.send('ok')
 	elif "stop" in args:
 		leda.stopObservation()

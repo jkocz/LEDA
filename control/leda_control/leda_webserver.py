@@ -22,7 +22,7 @@ TODO: Add email alerts
         Register recipients with desired alerts
 
 """
-
+"""
 import hashlib
 
 def key_stretch(password, salt):
@@ -32,7 +32,7 @@ def key_stretch(password, salt):
 		h.update(key + password + salt)
 		key = h.hexdigest()
 	return key
-	
+"""	
 import os
 import sys
 import tornado
@@ -295,7 +295,10 @@ class AJAXHandler(tornado.web.RequestHandler):
 		"""
 		
 		if self.get_argument("start", default=None) is not None:
-			self.application.leda.startObservation()
+			mode = self.get_argument("mode")
+			ra   = self.get_argument("ra")
+			dec  = self.get_argument("dec")
+			self.application.leda.startObservation(mode, ra, dec)
 			# TODO: Make sure this works so quickly after starting
 			self.application.ledavis.open()
 		elif self.get_argument("stop", default=None) is not None:

@@ -123,9 +123,12 @@ class LEDARemoteHeadNodeControl(object):
 	def setTotalPowerRecording(self, ncycles):
 		self.log.write("Setting total power recording param", 2)
 		self._sendcmd("total_power=%i" % ncycles)
-	def startObservation(self):
+	def startObservation(self, mode='correlator', ra=None, dec=None):
 		self.log.write("Starting observation", 2)
-		self._sendcmd("start=1")
+		if ra is not None and dec is not None:
+			self._sendcmd("start=1&mode=%s&ra=%s&dec=%s" % (mode,ra,dec))
+		else:
+			self._sendcmd("start=1&mode=%s" % mode)
 	def stopObservation(self):
 		self.log.write("Stopping observation", 2)
 		self._sendcmd("stop=1")
@@ -216,6 +219,7 @@ if __name__ == "__main__":
 		ncycles = int(sys.argv[2])
 		leda.setTotalPowerRecording(ncycles)
 	elif cmd == "start":
+		# TODO: Allow passing mode/ra/dec in here
 		leda.startObservation()
 	elif cmd == "stop":
 		leda.stopObservation()
