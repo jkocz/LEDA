@@ -212,6 +212,18 @@ protected:
 		
 		m_ntime = this->bufsize_out() / (m_nchan*m_npol*sizeof(outtype));
 		
+		cout << "UTC      = " << utc_start_str << endl;
+		cout << "UTC JD   = " << utc_start_jd << endl;
+		cout << "dt       = " << m_dt << endl;
+		cout << "ntime    = " << m_ntime << endl;
+		cout << "nchan    = " << m_nchan << endl;
+		cout << "nstation = " << m_nstation << endl;
+		cout << "npol     = " << m_npol << endl;
+		cout << "lowfreq  = " << m_lowfreq << endl;
+		cout << "df       = " << m_df << endl;
+		cout << "ra       = " << ra << endl;
+		cout << "dec      = " << dec << endl;
+		
 		// Compute local direction vectors at start and 1/4 turn later
 		m_sample_offset = 0;
 		m_pointing0  = get_pointing(ra, dec,
@@ -226,6 +238,9 @@ protected:
 		uint64_t outsize      = this->bufsize_out();//m_ntime*m_nchan*m_npol*sizeof(outtype);
 		uint64_t max_filesize = 2ull*1024*1024*1024;
 		uint64_t bytes_per_second = (max_filesize-header_size) / (outsize * 10) * outsize;
+		if( ascii_header_set(header_out, "NBIT", "%d", 32) < 0 ) {
+			logInfo("dbbeam: Failed to set NBIT 32 in header_out");
+		}
 		if( ascii_header_set(header_out, "BYTES_PER_SECOND", "%i", bytes_per_second) < 0 ) {
 			logInfo("dbbeam: Failed to set BYTES_PER_SECOND in header_out");
 		}
@@ -240,6 +255,7 @@ protected:
 		}
 		
 		size_t bytes_per_read = m_ntime*m_nchan*m_nstation*m_npol*sizeof(intype);
+		cout << "bytes_per_read = " << bytes_per_read << endl;
 		return bytes_per_read;
 	}
 	// Return no. bytes written
@@ -274,7 +290,8 @@ protected:
 				float2 pol_sums[2]    = {float2(0,0), float2(0,0)};
 				float  pol_weights[2] = {0, 0};
 				
-				for( size_t s=0; s<m_nstation; ++s ) {
+				// HACK TESTING reduced nstations for increased speed
+				for( size_t s=0; s<16/*m_nstation*/; ++s ) {
 					float3 xyz        = m_stations_xyz[s];
 					float  path_diff  = dot(xyz, p);
 					// Note: Assumes free-space propagation
@@ -473,6 +490,11 @@ int main(int argc, char* argv[])
 		return -1;
 	}
 	out_key = tmp;
+	
+	if( verbose >= 1 ) {
+		cout << "In key  = " << std::hex << in_key << std::dec << endl;
+		cout << "Out key = " << std::hex << out_key << std::dec << endl;
+	}
 	
 	log = multilog_open("dbbeam", 0);
 	multilog_add(log, stderr);
