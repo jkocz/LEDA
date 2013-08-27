@@ -291,8 +291,8 @@ protected:
 				float2 pol_sums[2]    = {float2(0,0), float2(0,0)};
 				float  pol_weights[2] = {0, 0};
 				
-				// HACK TESTING reduced nstations for increased speed
-				for( size_t s=0; s<4/*m_nstation*/; ++s ) {
+				//// HACK TESTING reduced nstations for increased speed
+				for( size_t s=0; s</*4*/m_nstation; ++s ) {
 					float3 xyz        = m_stations_xyz[s];
 					float  path_diff  = dot(xyz, p);
 					// Note: Assumes free-space propagation
