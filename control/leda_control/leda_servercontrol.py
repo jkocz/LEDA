@@ -499,7 +499,7 @@ class LEDAServer(object):
 			                    disk_cores)]
 		
 		self.beam = [LEDABeamProcess(logfile,beam_path,in_bufkey,out_bufkey,
-		                             standfile,core=core) \
+		                             standfile,core=core,verbosity=2) \
 			             for logfile,in_bufkey,out_bufkey,core \
 			             in zip(beam_logfiles,unpack_bufkeys,beam_bufkeys,
 			                    beam_cores)]
