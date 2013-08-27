@@ -583,6 +583,8 @@ class LEDAServer(object):
 			unpack_proc.kill()
 		for xengine_proc in self.xengine:
 			xengine_proc.kill()
+		for beam_proc in self.beam:
+			beam_proc.kill()
 		time.sleep(2)
 	def clearLogs(self):
 		for capture_proc in self.capture:
