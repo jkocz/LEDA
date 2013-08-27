@@ -437,7 +437,7 @@ int load_stands(std::string          filename,
 
 void print_usage() {
 	cout << 
-		"dbbeam [options] lat lon in_key out_key\n"
+		"dbbeam [options] -- lat lon in_key out_key\n"
 		" lat/lon      Observatory latitude and longitude as decimals\n"
 		" -s standfile Stand data file to use [stands.txt]\n"
 		" -a aperture  Max aperture (dist. from centre of array) [1e99]\n"

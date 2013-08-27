@@ -294,7 +294,7 @@ class LEDABeamProcess(LEDAProcess):
 		while verbosity < 0:
 			args += " -q"
 			verbosity += 1
-		args += " -s %s %f %f %s %s" \
+		args += " -s %s -- %f %f %s %s" \
 		    % (self.standfile,
 		       self.lat, self.lon,
 		       self.in_bufkey, self.out_bufkey)
