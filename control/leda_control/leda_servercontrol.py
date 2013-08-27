@@ -162,7 +162,8 @@ class LEDAProcess(object):
 		args = cmdline
 		#args = shlex.split(cmdline)
 		#args = [self.path] + args
-		print "Executing:", cmdline
+		#print "Executing:", cmdline
+		logMsg(1, DL, "Executing: %s" % cmdline)
 		logfile = open(self.logpath, 'a')
 		self.process = subprocess.Popen(args, shell=True,
 		                                stdout=logfile, stderr=logfile)
