@@ -199,6 +199,7 @@ protected:
 		
 		ret = ascii_header_get(header_in, "TSAMP", "%f", &m_dt);
 		if( ret < 0 ) { throw std::runtime_error("Missing/invalid header entry TSAMP"); }
+		m_dt *= 1e-6; // TSAMP is in units of us, we want seconds
 		ret = ascii_header_get(header_in, "NCHAN", "%lu", &m_nchan);
 		if( ret < 0 ) { throw std::runtime_error("Missing/invalid header entry NCHAN"); }
 		ret = ascii_header_get(header_in, "NSTATION", "%lu", &m_nstation);
@@ -291,7 +292,7 @@ protected:
 				float  pol_weights[2] = {0, 0};
 				
 				// HACK TESTING reduced nstations for increased speed
-				for( size_t s=0; s<16/*m_nstation*/; ++s ) {
+				for( size_t s=0; s<4/*m_nstation*/; ++s ) {
 					float3 xyz        = m_stations_xyz[s];
 					float  path_diff  = dot(xyz, p);
 					// Note: Assumes free-space propagation
