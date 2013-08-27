@@ -153,12 +153,25 @@ protected:
 		}
 		int year, month, day, hour, minute;
 		float second;
-		ret = sscanf(utc_start_str, "%i-%i-%i-%i:%i:%f",
+		/*
+		ret = sscanf(utc_start_str, "%i-%02i-%02i-%02i:%02i:%f",
 		             &year, &month, &day, &hour, &minute, &second);
 		if( ret != 6 ) {
 			cerr << "UTC_START = " << utc_start_str << endl;
 			throw std::runtime_error("Could not parse UTC_START");
 		}
+		*/
+		tm time;
+		if( !strptime(utc_start_str, "%Y-%m-%d-%H:%M:%S", &time) ) {
+			cerr << "UTC_START = " << utc_start_str << endl;
+			throw std::runtime_error("Failed to parse UTC_START");
+		}
+		year   = time.tm_year+1900;
+		month  = time.tm_mon+1;
+		day    = time.tm_mday;
+		hour   = time.tm_hour;
+		minute = time.tm_min;
+		second = time.tm_sec;
 		double utc_start_jd = get_Julian_day(year, month, day, hour, minute, second);
 		
 		char ra_str[32];
