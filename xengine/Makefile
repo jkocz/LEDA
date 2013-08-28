@@ -30,7 +30,7 @@ aaplus/lib/libaaplus.so:
 	cd aaplus; cmake .; make; cd ..
 
 leda_dbbeam: leda_dbbeam.cpp dada_db2db.hpp dada_db2db.cpp aaplus/lib/libaaplus.so
-	$(CXX) -o leda_dbbeam $(CXX_FLAGS) $(DEBUG_FLAGS) $(DBBEAM_INC) leda_dbbeam.cpp dada_db2db.cpp $(DBBEAM_LIBS)
+	$(CXX) -o leda_dbbeam $(CXX_FLAGS) --fast-math $(DEBUG_FLAGS) $(DBBEAM_INC) leda_dbbeam.cpp dada_db2db.cpp $(DBBEAM_LIBS)
 
 hackhex: hackhex.cpp
 	$(CXX) -o hackhex hackhex.cpp

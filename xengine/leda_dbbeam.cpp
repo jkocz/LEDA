@@ -155,12 +155,12 @@ protected:
 		int year, month, day, hour, minute;
 		float second;
 		/*
-		ret = sscanf(utc_start_str, "%i-%02i-%02i-%02i:%02i:%f",
-		             &year, &month, &day, &hour, &minute, &second);
-		if( ret != 6 ) {
-			cerr << "UTC_START = " << utc_start_str << endl;
-			throw std::runtime_error("Could not parse UTC_START");
-		}
+		  ret = sscanf(utc_start_str, "%i-%02i-%02i-%02i:%02i:%f",
+		  &year, &month, &day, &hour, &minute, &second);
+		  if( ret != 6 ) {
+		  cerr << "UTC_START = " << utc_start_str << endl;
+		  throw std::runtime_error("Could not parse UTC_START");
+		  }
 		*/
 		tm time;
 		if( !strptime(utc_start_str, "%Y-%m-%d-%H:%M:%S", &time) ) {
@@ -261,7 +261,8 @@ protected:
 		return bytes_per_read;
 	}
 	
-	uint64_t beamform_incoherent(const intype* in, outtype* out) {
+	uint64_t beamform_incoherent(const intype*  __restrict__ in,
+	                             outtype* __restrict__ out) {
 		enum { NPOL = 2 };
 		for( size_t t=0; t<m_ntime; ++t ) {
 			for( size_t c=0; c<m_nchan; ++c ) {
@@ -299,7 +300,8 @@ protected:
 		return bytes_written;
 	}
 	
-	uint64_t beamform_coherent(const intype* in, outtype* out) {
+	uint64_t beamform_coherent(const intype*  __restrict__ in,
+	                           outtype* __restrict__ out) {
 		float max_dist     = m_max_aperture/2;
 		float max_dist_sqr = max_dist*max_dist;
 		
@@ -325,51 +327,55 @@ protected:
 				float2 pol_sums[2]    = {float2(0,0), float2(0,0)};
 				float  pol_weights[2] = {0, 0};
 				
-				//// HACK TESTING reduced nstations for increased speed
-				for( size_t s=0; s</*4*/m_nstation; ++s ) {
-					float3 xyz        = m_stations_xyz[s];
-					float  path_diff  = dot(xyz, p);
-					// Note: Assumes free-space propagation
-					float  path_turns = path_diff / 299792458 * freq_mhz*1e6f;
-					
-					float3 aperture_xyz;
-					if( m_maintain_circular_aperture ) {
-						float3 projected_xyz;
-						projected_xyz.x = xyz.x - p.x*path_diff;
-						projected_xyz.y = xyz.y - p.y*path_diff;
-						projected_xyz.z = xyz.z - p.z*path_diff;
-						aperture_xyz = projected_xyz;
-					}
-					else {
-						aperture_xyz = xyz;
-					}
-					// Note: Assumes array coords are centered on the origin
-					float dist_sqr = dot(aperture_xyz, aperture_xyz);
-					// Note: We simply crop stations that are outside the aperture
-					float aperture_weight = dist_sqr <= max_dist_sqr;
-					
-					for( size_t p=0; p<m_npol; ++p ) {
-						float  delay_low   = m_station_delays_low[s*m_npol+p];
-						float  delay_high  = m_station_delays_high[s*m_npol+p];
-						float  delay_ns    = (1-ff) * delay_low + ff * delay_high;
-						float  delay_turns = delay_ns*1e-9f * freq_mhz*1e6f;
+				//for( size_t s=0; s</*4*/m_nstation; ++s ) {
+				for( size_t sb=0; sb<m_nstation; sb+=16 ) {
+					for( size_t si=0; si<16; ++si ) { // Unroll by 16x
+						size_t s = sb + si;
 						
-						float  turns = delay_turns + path_turns;
-						float  radians = -2 * 3.1415926535897932f * turns;
-						float2 weight(cosf(radians), sinf(radians));
-						weight.x *= aperture_weight;
-						weight.y *= aperture_weight;
+						float3 xyz        = m_stations_xyz[s];
+						float  path_diff  = dot(xyz, p);
+						// Note: Assumes free-space propagation
+						float  path_turns = path_diff / 299792458 * freq_mhz*1e6f;
 						
-						size_t idx = p + m_npol*(s + m_nstation*(c + m_nchan*t));
-						intype sample_int = in[idx];
-						float2 sample(sample_int.x, sample_int.y);
-						// Complex multiply and accumulate
-						pol_sums[p].x += weight.x * sample.x;
-						pol_sums[p].x -= weight.y * sample.y;
-						pol_sums[p].y += weight.y * sample.x;
-						pol_sums[p].y += weight.x * sample.y;
+						float3 aperture_xyz;
+						if( m_maintain_circular_aperture ) {
+							float3 projected_xyz;
+							projected_xyz.x = xyz.x - p.x*path_diff;
+							projected_xyz.y = xyz.y - p.y*path_diff;
+							projected_xyz.z = xyz.z - p.z*path_diff;
+							aperture_xyz = projected_xyz;
+						}
+						else {
+							aperture_xyz = xyz;
+						}
+						// Note: Assumes array coords are centered on the origin
+						float dist_sqr = dot(aperture_xyz, aperture_xyz);
+						// Note: We simply crop stations that are outside the aperture
+						float aperture_weight = dist_sqr <= max_dist_sqr;
 						
-						pol_weights[p] += aperture_weight;
+						for( size_t p=0; p<m_npol; ++p ) {
+							float  delay_low   = m_station_delays_low[s*m_npol+p];
+							float  delay_high  = m_station_delays_high[s*m_npol+p];
+							float  delay_ns    = (1-ff) * delay_low + ff * delay_high;
+							float  delay_turns = delay_ns*1e-9f * freq_mhz*1e6f;
+							
+							float  turns = delay_turns + path_turns;
+							float  radians = -2 * 3.1415926535897932f * turns;
+							float2 weight(cosf(radians), sinf(radians));
+							weight.x *= aperture_weight;
+							weight.y *= aperture_weight;
+							
+							size_t idx = p + m_npol*(s + m_nstation*(c + m_nchan*t));
+							intype sample_int = in[idx];
+							float2 sample(sample_int.x, sample_int.y);
+							// Complex multiply and accumulate
+							pol_sums[p].x += weight.x * sample.x;
+							pol_sums[p].x -= weight.y * sample.y;
+							pol_sums[p].y += weight.y * sample.x;
+							pol_sums[p].y += weight.x * sample.y;
+							
+							pol_weights[p] += aperture_weight;
+						}
 					}
 				}
 				for( size_t p=0; p<m_npol; ++p ) {
@@ -391,8 +397,8 @@ protected:
 	virtual uint64_t onData(uint64_t    in_size,
 	                        const char* data_in,
 	                        char*       data_out) {
-		const intype* in  = (const intype*)data_in;
-		outtype*      out =      (outtype*)data_out;
+		const intype* __restrict__ in  = (const intype*)data_in;
+		outtype*      __restrict__ out =      (outtype*)data_out;
 		
 		switch( m_mode ) {
 		case BF_MODE_INCOHERENT: return beamform_incoherent(in, out);
