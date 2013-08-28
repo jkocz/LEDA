@@ -361,7 +361,7 @@ class LEDARemoteManager(object):
 		self.clearLogs()
 		## TODO: Replace this procedure with synchronised start method
 		
-		start_delay = 10 # seconds
+		start_delay = 6#10 # seconds
 		roach_start_delay = 2
 		
 		async = AsyncCaller()

@@ -561,10 +561,11 @@ int main(int argc, char* argv[])
 	out_key = tmp;
 	
 	if( verbose >= 1 ) {
-		cout << "Latitude  = " << lat << endl;
-		cout << "Longitude = " << lon << endl;
-		cout << "In key    = " << std::hex << in_key << std::dec << endl;
-		cout << "Out key   = " << std::hex << out_key << std::dec << endl;
+		cout << "Latitude   = " << lat << endl;
+		cout << "Longitude  = " << lon << endl;
+		cout << "In key     = " << std::hex << in_key << std::dec << endl;
+		cout << "Out key    = " << std::hex << out_key << std::dec << endl;
+		cout << "Incoherent = " << (incoherent ? "yes" : "no") << endl;
 	}
 	
 	log = multilog_open("dbbeam", 0);

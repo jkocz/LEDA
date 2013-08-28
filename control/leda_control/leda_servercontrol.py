@@ -560,7 +560,7 @@ class LEDAServer(object):
 	def armPipeline(self, mode='correlator'):
 		self.mode = mode
 		# Set which buffers to write to disk
-		if mode == 'beam':
+		if mode == 'beam' or mode == 'incoherent':
 			for disk_proc,beam_proc in zip(self.disk,self.beam):
 				disk_proc.bufkey = beam_proc.out_bufkey
 		else:
