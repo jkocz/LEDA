@@ -19,7 +19,7 @@ DEBUG_FLAGS += -g
 CXX  ?= g++
 NVCC ?= nvcc
 
-all: leda_dbxgpu hackhex leda_dbbdi leda_dbbeam
+all: leda_dbxgpu hackhex leda_dbbdi leda_dbbeam leda_dbbeam_gpu
 
 leda_dbxgpu: leda_dbxgpu.cpp dada_db2db.hpp dada_db2db.cpp
 	$(CXX) -o leda_dbxgpu $(CXX_FLAGS) $(DEBUG_FLAGS) $(DBXGPU_INC) leda_dbxgpu.cpp dada_db2db.cpp $(DBXGPU_LIBS)
