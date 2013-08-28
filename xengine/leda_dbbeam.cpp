@@ -263,36 +263,60 @@ protected:
 	
 	uint64_t beamform_incoherent(const intype*  __restrict__ in,
 	                             outtype* __restrict__ out) {
-		enum { NPOL = 2 };
-		for( size_t t=0; t<m_ntime; ++t ) {
+		enum { NPOL = 2, VECTOR_SIZE = 4 };
+		//for( size_t t=0; t<m_ntime; ++t ) {
+		// Note: Assumes m_ntime is a multiple of VECTOR_SIZE
+		for( size_t tb=0; tb<m_ntime; tb+=VECTOR_SIZE ) {
 			for( size_t c=0; c<m_nchan; ++c ) {
-				float stokes_I = 0.f;
-				float stokes_V = 0.f;
+				//float stokes_I = 0.f;
+				//float stokes_V = 0.f;
+				float stokes_I[VECTOR_SIZE] = {0.f};
+				float stokes_V[VECTOR_SIZE] = {0.f};
 				for( size_t sb=0; sb<m_nstation; sb+=16 ) {
 					for( size_t si=0; si<16; ++si ) { // Unroll by 16x
 						size_t s = sb + si;
-						intype sample_int;
-						size_t idx = NPOL*(s + m_nstation*(c + m_nchan*t));
 						
-						sample_int = in[idx+0];
-						float2 pola(sample_int.x, sample_int.y);
-						sample_int = in[idx+1];
-						float2 polb(sample_int.x, sample_int.y);
+						float2 pola[VECTOR_SIZE];
+						float2 polb[VECTOR_SIZE];
 						
-						stokes_I += pola.x*pola.x;
-						stokes_I += pola.y*pola.y;
-						stokes_I += polb.x*polb.x;
-						stokes_I += polb.y*polb.y;
+						for( int ti=0; ti<VECTOR_SIZE; ++ti ) {
+							size_t t = tb + ti;
+							size_t idx = NPOL*(s + m_nstation*(c + m_nchan*t));
+							intype sample_int_a = in[idx+0];
+							pola[ti] = float2(sample_int_a.x, sample_int_a.y);
+							intype sample_int_b = in[idx+1];
+							polb[ti] = float2(sample_int_b.x, sample_int_b.y);
+						}
 						
-						stokes_V -= pola.y*polb.x;
-						stokes_V += pola.x*polb.y;
+						for( int ti=0; ti<VECTOR_SIZE; ++ti ) {
+							stokes_I[ti] += pola[ti].x*pola[ti].x;
+						}
+						for( int ti=0; ti<VECTOR_SIZE; ++ti ) {
+							stokes_I[ti] += pola[ti].y*pola[ti].y;
+						}
+						for( int ti=0; ti<VECTOR_SIZE; ++ti ) {
+							stokes_I[ti] += polb[ti].x*polb[ti].x;
+						}
+						for( int ti=0; ti<VECTOR_SIZE; ++ti ) {
+							stokes_I[ti] += polb[ti].y*polb[ti].y;
+						}
+						for( int ti=0; ti<VECTOR_SIZE; ++ti ) {
+							stokes_V[ti] -= pola[ti].y*polb[ti].x;
+						}
+						for( int ti=0; ti<VECTOR_SIZE; ++ti ) {
+							stokes_V[ti] += pola[ti].x*polb[ti].y;
+						}
 					}
 				}
-				size_t out_idx = c + m_nchan*t;
-				// Normalise
-				stokes_I *= 1.f / m_nstation;
-				stokes_V *= 2.f / m_nstation;
-				out[out_idx] = float2(stokes_I, stokes_V);
+				for( int ti=0; ti<VECTOR_SIZE; ++ti ) {
+					size_t t = tb + ti;
+					
+					size_t out_idx = c + m_nchan*t;
+					// Normalise
+					stokes_I[ti] *= 1.f / m_nstation;
+					stokes_V[ti] *= 2.f / m_nstation;
+					out[out_idx] = float2(stokes_I[ti], stokes_V[ti]);
+				}
 			}
 		}
 		// TODO: This is only half as much data as in the coherent implementation
