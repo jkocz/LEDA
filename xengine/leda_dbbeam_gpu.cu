@@ -2,7 +2,7 @@
 /*
   By Ben Barsdell (2013)
   
-  A simple one-beam CPU beamformer.
+  A simple GPU incoherent sum implementation.
 */
 
 #include <cstdio>
@@ -25,8 +25,15 @@ using std::endl;
 
 #include <dada_def.h>
 #include <ascii_header.h>
+#include <dada_cuda.h>
 
-#include "aaplus/AA+.h" // Astronomical Algorithms C++ library (for coord conversions)
+#include <thrust/device_vector.h>
+#include <thrust/iterator/transform_iterator.h>
+#include <thrust/iterator/counting_iterator.h>
+#include <thrust/iterator/discard_iterator.h>
+#include <thrust/reduce.h>
+
+//#include "aaplus/AA+.h" // Astronomical Algorithms C++ library (for coord conversions)
 
 #include "dada_db2db.hpp"
 
@@ -59,64 +66,57 @@ int sgn(T val) {
     return (T(0) < val) - (val < T(0));
 }
 
-struct char2 {
-	char x, y;
-};
-
-struct float2 {
-	float x, y;
-	float2() : x(), y() {}
-	float2(float x_, float y_) : x(x_), y(y_) {}
-};
-struct float3 {
-	float x, y, z;
-	float3() : x(), y(), z() {}
-	float3(float x_, float y_, float z_) : x(x_), y(y_), z(z_) {}
-};
-/*
-struct float4 {
-	float x, y, z, w;
-	float4() : x(), y(), z(), w() {}
-	float4(float x_, float y_, float z_, float w_) : x(x_), y(y_), z(z_), w(w_) {}
-};
-*/
-inline float dot(float3 a, float3 b) {
-	return a.x*b.x + a.y*b.y + a.z*b.z;
+inline __host__ __device__
+float2 operator+(float2 a, float2 b) {
+	return make_float2(a.x+b.x, a.y+b.y);
 }
 
-double get_Julian_day(long year, long month, double day,
-                      double hour, double minute, double second) {
-	return CAADate(year, month, day, hour, minute, second, true).Julian();
-}
-float3 get_pointing(double ra, double dec, double lat, double lon, double jd) {
-	// Convert ra/dec --> alt/az
-	// If only this library used namespaces instead of classes :/
-	//using CAASidereal::ApparentGreenwichSiderealTime;
-	//using CAACoordinateTransformation::DegreesToHours;
-	//using CAACoordinateTransformation::Equatorial2Horizontal;
-	//using CAACoordinateTransformation::DegreesToRadians;
-	double  GST   = CAASidereal::ApparentGreenwichSiderealTime(jd);
-	double  lon_h = CAACoordinateTransformation::DegreesToHours(lon);
-	double  LHA   = GST - lon_h - ra;
-	CAA2DCoordinate horiz = CAACoordinateTransformation::Equatorial2Horizontal(LHA, dec, lat);
-	double  az    = horiz.X;
-	double  alt   = horiz.Y;
-	
-	// Convert to Cartesian direction vector
-	float3 pointing;
-	double az_rad  = CAACoordinateTransformation::DegreesToRadians(az);
-	double alt_rad = CAACoordinateTransformation::DegreesToRadians(alt);
-	pointing.x = cos(alt_rad) * sin(az_rad);
-	pointing.y = cos(alt_rad) * cos(az_rad);
-	pointing.z = sin(alt_rad);
-	
-	return pointing;
-}
+struct raw2stokesIV : public thrust::unary_function<char4,float2> {
+	inline __host__ __device__
+	float2 operator()(char4 val) const {
+		float stokes_I = 0.f;
+		stokes_I += val.x*val.x;
+		stokes_I += val.y*val.y;
+		stokes_I += val.z*val.z;
+		stokes_I += val.w*val.w;
+		
+		float stokes_V = 0.f;
+		stokes_V -= val.y*val.z;
+		stokes_V += val.x*val.w;
+		
+		return make_float2(stokes_I, stokes_V);
+	}
+};
+
+struct raw2XXYY : public thrust::unary_function<char4,float2> {
+	inline __host__ __device__
+	float2 operator()(char4 val) const {
+		float xx = 0.f;
+		xx += val.x*val.x;
+		xx += val.y*val.y;
+		float yy = 0.f;
+		yy += val.z*val.z;
+		yy += val.w*val.w;
+		
+		return make_float2(xx, yy);
+	}
+};
+
+template<typename T>
+struct divide_by : public thrust::unary_function<T,T> {
+	T divisor;
+	divide_by(T d) : divisor(d) {}
+	inline __host__ __device__
+	T operator()(T x) const {
+		return x / divisor;
+	}
+};
 
 class dbbeam : public dada_db2db {
-	typedef char2  intype;
+	typedef char4  intype;
 	typedef float2 outtype;
 	
+	int    m_gpu_device;
 	double m_lat, m_lon;
 	int    m_mode;
 	float  m_max_aperture;
@@ -126,16 +126,18 @@ class dbbeam : public dada_db2db {
 	float3 m_pointing0, m_pointing90;
 	float  m_lowfreq, m_df, m_dt;
 	
-	std::vector<float3> m_stations_xyz;
-	float m_delay_lowfreq, m_delay_highfreq;
-	std::vector<float>  m_station_delays_low;
-	std::vector<float>  m_station_delays_high;
-	
-	std::vector<outtype> m_data_out;
-	std::ostream*        m_outstream;
+	thrust::device_vector<intype>  m_d_in;
+	thrust::device_vector<outtype> m_d_out;
 	
 protected:
-	virtual void     onConnect(key_t in_key, key_t out_key) {}
+	virtual void     onConnect(key_t in_key, key_t out_key) {
+		// Register buffers as pinned memory
+		dada_cuda_select_device(m_gpu_device);
+		logInfo("dbbeam_gpu: Registering input buffer");
+		dada_cuda_dbregister(this->hdu_in());
+		logInfo("dbbeam_gpu: Registering output buffer");
+		dada_cuda_dbregister(this->hdu_out());
+	}
 	virtual void     onDisconnect() {}
 	// Return desired no. bytes per data read
 	virtual uint64_t onHeader(uint64_t    header_size,
@@ -152,8 +154,8 @@ protected:
 		if( ret < 0 ) {
 			throw std::runtime_error("Missing header entry UTC_START");
 		}
-		int year, month, day, hour, minute;
-		float second;
+		//int year, month, day, hour, minute;
+		//float second;
 		/*
 		  ret = sscanf(utc_start_str, "%i-%02i-%02i-%02i:%02i:%f",
 		  &year, &month, &day, &hour, &minute, &second);
@@ -167,6 +169,7 @@ protected:
 			cerr << "UTC_START = " << utc_start_str << endl;
 			throw std::runtime_error("Failed to parse UTC_START");
 		}
+		/*
 		year   = time.tm_year+1900;
 		month  = time.tm_mon+1;
 		day    = time.tm_mday;
@@ -174,10 +177,12 @@ protected:
 		minute = time.tm_min;
 		second = time.tm_sec;
 		double utc_start_jd = get_Julian_day(year, month, day, hour, minute, second);
-		
+		*/
 		char ra_str[32];
 		char dec_str[32];
-		int sign, deg;
+		int  sign, deg;
+		int   hour, minute;
+		float second;
 		ret = ascii_header_get(header_in, "RA", "%s", ra_str);
 		if( ret < 0 ) { throw std::runtime_error("Missing/invalid header entry RA"); }
 		ret = sscanf(ra_str, "%i:%i:%f", &hour, &minute, &second);
@@ -215,7 +220,7 @@ protected:
 		m_ntime = this->bufsize_out() / (m_nchan*m_npol*sizeof(outtype));
 		
 		cout << "UTC      = " << utc_start_str << endl;
-		cout << "UTC JD   = " << utc_start_jd << endl;
+		//cout << "UTC JD   = " << utc_start_jd << endl;
 		cout << "dt       = " << m_dt << endl;
 		cout << "ntime    = " << m_ntime << endl;
 		cout << "nchan    = " << m_nchan << endl;
@@ -225,16 +230,6 @@ protected:
 		cout << "df       = " << m_df << endl;
 		cout << "ra       = " << ra << endl;
 		cout << "dec      = " << dec << endl;
-		
-		// Compute local direction vectors at start and 1/4 turn later
-		m_sample_offset = 0;
-		m_pointing0  = get_pointing(ra, dec,
-		                            m_lat, m_lon,
-		                            utc_start_jd);
-		double quarter_turn = 0.25 * 86164.098903691 / 86400;
-		m_pointing90 = get_pointing(ra, dec,
-		                            m_lat, m_lon,
-		                            utc_start_jd + quarter_turn);
 		
 		// Update (some) parameter(s) in the header
 		uint64_t outsize      = this->bufsize_out();//m_ntime*m_nchan*m_npol*sizeof(outtype);
@@ -256,6 +251,9 @@ protected:
 			logInfo("dbbeam: Failed to set MODE in header_out");
 		}
 		
+		m_d_in.reserve(m_ntime*m_nchan*m_nstation);
+		m_d_out.resize(m_ntime*m_nchan);
+		
 		size_t bytes_per_read = m_ntime*m_nchan*m_nstation*m_npol*sizeof(intype);
 		cout << "bytes_per_read = " << bytes_per_read << endl;
 		return bytes_per_read;
@@ -263,204 +261,28 @@ protected:
 	
 	uint64_t beamform_incoherent(const intype*  __restrict__ in,
 	                             outtype* __restrict__ out) {
-		/*
-		  
-		  Copy ntime*nchan*nstation*(A,B)*2*8b data from host (dada in buf) to GPU mem
-		  Call GPU kernel to incoherently sum stations
-		  Copy ntime*nchan*(I,V)*32b array from GPU mem to host (dada out buf)
-		  
-		  thrust::device_vector<char4>  m_d_in;
-		  thrust::device_vector<float2> m_d_out;
-		  
-		  m_d_in.reserve(ntime*nchan*nstation);
-		  m_d_out.resize(ntime*nchan);
-		  
-		  m_d_in.assign(in, in + count);
-		  
-		  inline __host__ __device__
-		  float2 raw2stokesIV(char4 val) {
-		    float stokes_I = 0.f;
-		    stokes_I += val.x*val.x;
-		    stokes_I += val.y*val.y;
-		    stokes_I += val.z*val.z;
-		    stokes_I += val.w*val.w;
-		    
-		    float stokes_V = 0.f;
-		    stokes_V -= val.y*val.z;
-		    stokes_V += val.x*val.w;
-		    
-		    return make_float2(stokes_I, stokes_V);
-		  }
-		  
-		  inline __host__ __device__
-		  float2 operator+(float2 a, float2 b) {
-		    return make_float2(a.x+b.x, a.y+b.y);
-		  }
-		  
-		  thrust::reduce_by_key(make_transform_iterator(make_counting_iterator<uint>(0),
-		                                                divide_by<uint>(nstation)),
-		                        make_transform_iterator(make_counting_iterator<uint>(0),
-		                                                divide_by<uint>(nstation))+count,
-		                        make_transform_iterator(m_d_in.begin(),
-		                                                raw2stokesIV()),
-		                        thrust::make_discard_iterator(),
-		                        m_d_out.begin());
-		  
-		  
-		 */
+		size_t count = m_ntime*m_nchan*m_nstation;
+		m_d_in.assign(in, in + count);
 		
+		using thrust::make_transform_iterator;
+		using thrust::make_counting_iterator;
+		using thrust::make_discard_iterator;
 		
-		enum { NPOL = 2, VECTOR_SIZE = 4 };
-		//for( size_t t=0; t<m_ntime; ++t ) {
-		// Note: Assumes m_ntime is a multiple of VECTOR_SIZE
-		for( size_t tb=0; tb<m_ntime; tb+=VECTOR_SIZE ) {
-			for( size_t c=0; c<m_nchan; ++c ) {
-				//float stokes_I = 0.f;
-				//float stokes_V = 0.f;
-				float stokes_I[VECTOR_SIZE] = {0.f};
-				float stokes_V[VECTOR_SIZE] = {0.f};
-				for( size_t sb=0; sb<m_nstation; sb+=16 ) {
-					for( size_t si=0; si<16; ++si ) { // Unroll by 16x
-						size_t s = sb + si;
-						
-						float2 pola[VECTOR_SIZE];
-						float2 polb[VECTOR_SIZE];
-						
-						for( int ti=0; ti<VECTOR_SIZE; ++ti ) {
-							size_t t = tb + ti;
-							size_t idx = NPOL*(s + m_nstation*(c + m_nchan*t));
-							intype sample_int_a = in[idx+0];
-							pola[ti] = float2(sample_int_a.x, sample_int_a.y);
-							intype sample_int_b = in[idx+1];
-							polb[ti] = float2(sample_int_b.x, sample_int_b.y);
-						}
-						
-						for( int ti=0; ti<VECTOR_SIZE; ++ti ) {
-							stokes_I[ti] += pola[ti].x*pola[ti].x;
-						}
-						for( int ti=0; ti<VECTOR_SIZE; ++ti ) {
-							stokes_I[ti] += pola[ti].y*pola[ti].y;
-						}
-						for( int ti=0; ti<VECTOR_SIZE; ++ti ) {
-							stokes_I[ti] += polb[ti].x*polb[ti].x;
-						}
-						for( int ti=0; ti<VECTOR_SIZE; ++ti ) {
-							stokes_I[ti] += polb[ti].y*polb[ti].y;
-						}
-						for( int ti=0; ti<VECTOR_SIZE; ++ti ) {
-							stokes_V[ti] -= pola[ti].y*polb[ti].x;
-						}
-						for( int ti=0; ti<VECTOR_SIZE; ++ti ) {
-							stokes_V[ti] += pola[ti].x*polb[ti].y;
-						}
-					}
-				}
-				for( int ti=0; ti<VECTOR_SIZE; ++ti ) {
-					size_t t = tb + ti;
-					
-					size_t out_idx = c + m_nchan*t;
-					// Normalise
-					stokes_I[ti] *= 1.f / m_nstation;
-					stokes_V[ti] *= 2.f / m_nstation;
-					out[out_idx] = float2(stokes_I[ti], stokes_V[ti]);
-				}
-			}
-		}
+		thrust::reduce_by_key(make_transform_iterator(make_counting_iterator<uint>(0),
+		                                              divide_by<uint>(m_nstation)),
+		                      make_transform_iterator(make_counting_iterator<uint>(0),
+		                                              divide_by<uint>(m_nstation))+count,
+		                      make_transform_iterator(m_d_in.begin(),
+		                                              //raw2stokesIV()),
+		                                              raw2XXYY()),
+		                      make_discard_iterator(),
+		                      m_d_out.begin());
+		
+		thrust::copy(m_d_out.begin(), m_d_out.end(),
+		             out);
+		
 		// TODO: This is only half as much data as in the coherent implementation
 		size_t bytes_written = m_ntime*m_nchan*sizeof(outtype);
-		return bytes_written;
-	}
-	
-	uint64_t beamform_coherent(const intype*  __restrict__ in,
-	                           outtype* __restrict__ out) {
-		float max_dist     = m_max_aperture/2;
-		float max_dist_sqr = max_dist*max_dist;
-		
-		// Earth's rotation rate relative to fixed stars
-		const float radians_per_sec = 2*3.1415926535897932 / 86164.098903691;
-		
-		for( size_t t=0; t<m_ntime; ++t ) {
-			float time_offset = (m_sample_offset + t) * m_dt;
-			
-			// Interpolate pointing through time across the sky
-			float  theta = time_offset * radians_per_sec;
-			float  cos_theta = cos(theta);
-			float  sin_theta = sin(theta);
-			float3 p;
-			p.x = m_pointing0.x*cos_theta + m_pointing90.x*sin_theta;
-			p.y = m_pointing0.y*cos_theta + m_pointing90.y*sin_theta;
-			p.z = m_pointing0.z*cos_theta + m_pointing90.z*sin_theta;
-			
-			for( size_t c=0; c<m_nchan; ++c ) {
-				float freq_mhz = m_lowfreq + c*m_df;
-				float ff = (freq_mhz-m_delay_lowfreq)/(m_delay_highfreq-m_delay_lowfreq);
-				
-				float2 pol_sums[2]    = {float2(0,0), float2(0,0)};
-				float  pol_weights[2] = {0, 0};
-				
-				//for( size_t s=0; s</*4*/m_nstation; ++s ) {
-				for( size_t sb=0; sb<m_nstation; sb+=16 ) {
-					for( size_t si=0; si<16; ++si ) { // Unroll by 16x
-						size_t s = sb + si;
-						
-						float3 xyz        = m_stations_xyz[s];
-						float  path_diff  = dot(xyz, p);
-						// Note: Assumes free-space propagation
-						float  path_turns = path_diff / 299792458 * freq_mhz*1e6f;
-						
-						float3 aperture_xyz;
-						if( m_maintain_circular_aperture ) {
-							float3 projected_xyz;
-							projected_xyz.x = xyz.x - p.x*path_diff;
-							projected_xyz.y = xyz.y - p.y*path_diff;
-							projected_xyz.z = xyz.z - p.z*path_diff;
-							aperture_xyz = projected_xyz;
-						}
-						else {
-							aperture_xyz = xyz;
-						}
-						// Note: Assumes array coords are centered on the origin
-						float dist_sqr = dot(aperture_xyz, aperture_xyz);
-						// Note: We simply crop stations that are outside the aperture
-						float aperture_weight = dist_sqr <= max_dist_sqr;
-						
-						for( size_t p=0; p<m_npol; ++p ) {
-							float  delay_low   = m_station_delays_low[s*m_npol+p];
-							float  delay_high  = m_station_delays_high[s*m_npol+p];
-							float  delay_ns    = (1-ff) * delay_low + ff * delay_high;
-							float  delay_turns = delay_ns*1e-9f * freq_mhz*1e6f;
-							
-							float  turns = delay_turns + path_turns;
-							float  radians = -2 * 3.1415926535897932f * turns;
-							float2 weight(cosf(radians), sinf(radians));
-							weight.x *= aperture_weight;
-							weight.y *= aperture_weight;
-							
-							size_t idx = p + m_npol*(s + m_nstation*(c + m_nchan*t));
-							intype sample_int = in[idx];
-							float2 sample(sample_int.x, sample_int.y);
-							// Complex multiply and accumulate
-							pol_sums[p].x += weight.x * sample.x;
-							pol_sums[p].x -= weight.y * sample.y;
-							pol_sums[p].y += weight.y * sample.x;
-							pol_sums[p].y += weight.x * sample.y;
-							
-							pol_weights[p] += aperture_weight;
-						}
-					}
-				}
-				for( size_t p=0; p<m_npol; ++p ) {
-					size_t out_idx = p + m_npol*(c + m_nchan*t);
-					pol_sums[p].x /= pol_weights[p];
-					pol_sums[p].y /= pol_weights[p];
-					out[out_idx] = pol_sums[p];
-				}
-			}
-		}
-		
-		m_sample_offset += m_ntime;
-		
-		size_t bytes_written = m_ntime*m_nchan*m_npol*sizeof(outtype);
 		return bytes_written;
 	}
 	
@@ -473,7 +295,7 @@ protected:
 		
 		switch( m_mode ) {
 		case BF_MODE_INCOHERENT: return beamform_incoherent(in, out);
-		case BF_MODE_COHERENT:   return beamform_coherent(in, out);
+		//case BF_MODE_COHERENT:   return beamform_coherent(in, out);
 		default: throw std::runtime_error("Invalid beamforming mode");
 		}
 	}
@@ -481,33 +303,26 @@ protected:
 public:
 	enum { BF_MODE_INCOHERENT, BF_MODE_COHERENT };
 	
-	dbbeam(multilog_t* log, int verbose,
+	dbbeam(multilog_t* log, int verbose, int gpu_device,
 	       double lat, double lon,
 	       int mode=BF_MODE_COHERENT,
 	       float max_aperture=1e99, bool maintain_circular_aperture=false)
 		: dada_db2db(log, verbose),
+		  m_gpu_device(gpu_device),
 		  m_lat(lat), m_lon(lon),
 		  m_mode(mode),
 		  m_max_aperture(max_aperture),
-		  m_maintain_circular_aperture(maintain_circular_aperture) {}
-	virtual ~dbbeam() {}
-	
-	// Note: Expects pols interleaved in delay arrays
-	// TODO: Allow per-pol amplitude weights
-	void set_stations(size_t        nstation,
-	                  size_t        npol,
-	                  const float3* xyz_m,
-	                  float         lowfreq,
-	                  const float*  delays_low_ns,
-	                  float         highfreq,
-	                  const float*  delays_high_ns) {
-		size_t ninput = nstation * npol;
-		m_stations_xyz.assign(xyz_m, xyz_m + ninput);
-		m_delay_lowfreq = lowfreq;
-		m_station_delays_low.assign(delays_low_ns, delays_low_ns + ninput);
-		m_delay_highfreq = highfreq;
-		m_station_delays_high.assign(delays_high_ns, delays_high_ns + ninput);
+		  m_maintain_circular_aperture(maintain_circular_aperture) {
+		/*
+		cudaError_t error = cudaSetDevice(gpu_device);
+		if( error != cudaSuccess ) {
+			throw std::runtime_error(cudaGetErrorString(error));
+		}
+		*/
+		// Give the CPU a rest while the GPU kernel is running
+		cudaSetDeviceFlags(cudaDeviceScheduleYield);
 	}
+	virtual ~dbbeam() {}
 };
 
 bool parse_arg_typed(int& x)                { return sscanf(optarg, "%i", &x) == 1; }
@@ -530,7 +345,7 @@ bool parse_arg(char c, T& x) {
 		return true;
 	}
 }
-
+/*
 int load_stands(std::string          filename,
                 std::vector<float3>& stands_xyz,
                 std::vector<float>&  delays_low,
@@ -563,11 +378,12 @@ int load_stands(std::string          filename,
 	}
 	return 0;
 }
-
+*/
 void print_usage() {
 	cout << 
 		"dbbeam [options] -- lat lon in_key out_key\n"
 		" lat/lon      Observatory latitude and longitude as decimals\n"
+		" -d gpu_idx   Index of GPU to use\n"
 		" -s standfile Stand data file to use [stands.txt]\n"
 		" -i           Incoherent sum only\n"
 		" -a aperture  Max aperture (dist. from centre of array) [1e99]\n"
@@ -581,6 +397,7 @@ void print_usage() {
 int main(int argc, char* argv[])
 {
 	// TODO: Consider reading this (also low/highfreq) from an env var
+	int         gpu_idx      = 0;
 	std::string standfile    = "stands.txt";
 	bool        incoherent   = false;
 	float       max_aperture = 1e99;
@@ -594,8 +411,9 @@ int main(int argc, char* argv[])
 	multilog_t* log          = 0;
 	
 	int arg = 0;
-	while( (arg = getopt(argc,argv,"s:ia:bc:hvq")) != -1 ) {
+	while( (arg = getopt(argc,argv,"d:s:ia:bc:hvq")) != -1 ) {
 		switch( arg ) {
+		case 'd': if( !parse_arg('d', gpu_idx) ) return -1; break;
 		case 's': if( !parse_arg('s', standfile) ) return -1; break;
 		case 'i': incoherent = true; break;
 		case 'a': if( !parse_arg('a', max_aperture) ) return -1; break;
@@ -648,26 +466,6 @@ int main(int argc, char* argv[])
 	log = multilog_open("dbbeam", 0);
 	multilog_add(log, stderr);
 	
-	if( verbose >= 1 ) {
-		cout << "Loading station data from " << standfile << endl;
-	}
-	std::vector<float3> stands_xyz;
-	float               lowfreq;
-	std::vector<float>  delays_low;
-	float               highfreq;
-	std::vector<float>  delays_high;
-	// TODO: This assumes 2 pols and units of metres and ns
-	int ret = load_stands(standfile, stands_xyz, delays_low, delays_high);
-	if( ret < 0 ) {
-		return ret;
-	}
-	// TODO: These should be read from somewhere
-	lowfreq  = 10;
-	highfreq = 80;
-	if( verbose >= 1 ) {
-		cout << "  Done" << endl;
-	}
-	
 	if( core >= 0 ) {
 		if( dada_bind_thread_to_core(core) < 0 ) {
 			cerr << "WARNING: Failed to bind to core " << core << endl;
@@ -686,18 +484,6 @@ int main(int argc, char* argv[])
 	}
 	
 	dbbeam ctx(log, verbose, lat, lon, mode, max_aperture, circular);
-	if( verbose >= 1 ) {
-		cout << "Initialising from station data" << endl;
-	}
-	ctx.set_stations(stands_xyz.size(), 2,
-	                 &stands_xyz[0],
-	                 lowfreq,
-	                 &delays_low[0],
-	                 highfreq,
-	                 &delays_high[0]);
-	if( verbose >= 1 ) {
-		cout << "  Done" << endl;
-	}
 	ctx.connect(in_key, out_key);
 	ctx.run();
 	ctx.disconnect();

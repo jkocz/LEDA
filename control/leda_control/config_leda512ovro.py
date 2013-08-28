@@ -147,5 +147,7 @@ beam_logfiles       = [os.path.join(logpath,"dbbeam."+bufkey) \
 	                       for bufkey in beam_bufkeys]
 beam_path           = os.path.join(getenv_warn('LEDA_XENGINE_DIR',
                                                "/home/leda/LEDA/xengine"),
-                                   "leda_dbbeam")
+                                   "leda_dbbeam_gpu")
+                                   #"leda_dbbeam")
+beam_gpus           = [0, 1]
 beam_cores          = [4, 12]

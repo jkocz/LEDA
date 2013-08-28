@@ -268,7 +268,7 @@ class LEDABeamProcess(LEDAProcess):
 	def __init__(self, logpath, path, in_bufkey, out_bufkey,
 	             lat, lon, standfile,
 	             circular=False, aperture=None,
-	             core=None, verbosity=0):
+	             gpu=None, core=None, verbosity=0):
 		LEDAProcess.__init__(self, logpath, path)
 		self.in_bufkey  = in_bufkey
 		self.out_bufkey = out_bufkey
@@ -278,10 +278,13 @@ class LEDABeamProcess(LEDAProcess):
 		self.standfile  = standfile
 		self.circular   = circular
 		self.aperture   = aperture
+		self.gpu        = gpu
 		self.core       = core
 		self.verbosity  = verbosity
 	def start(self):
 		args = ""
+		if self.gpu is not None:
+			args += " -d %i" % self.gpu
 		if self.core is not None:
 			args += " -c %i" % self.core
 		if self.circular:
@@ -467,7 +470,8 @@ class LEDAServer(object):
 	             xengine_tp_ncycles,
 	             disk_logfiles, disk_path, disk_outpaths, disk_cores,
 	             
-	             beam_logfiles, beam_path, beam_bufkeys, beam_cores,
+	             beam_logfiles, beam_path, beam_bufkeys,
+	             beam_gpus, beam_cores,
 	             lat, lon, standfile,
 	             
 	             debuglevel=1):
@@ -507,10 +511,10 @@ class LEDAServer(object):
 		
 		self.beam = [LEDABeamProcess(logfile,beam_path,in_bufkey,out_bufkey,
 		                             lat,lon,standfile,
-		                             core=core,verbosity=2) \
-			             for logfile,in_bufkey,out_bufkey,core \
+		                             gpu=gpu,core=core,verbosity=2) \
+			             for logfile,in_bufkey,out_bufkey,gpu,core \
 			             in zip(beam_logfiles,unpack_bufkeys,beam_bufkeys,
-			                    beam_cores)]
+			                    beam_gpus,beam_cores)]
 		
 		self.debuglevel = debuglevel
 		
@@ -801,6 +805,7 @@ if __name__ == "__main__":
 		                        beam_logfiles,
 		                        beam_path,
 		                        beam_bufkeys,
+		                        beam_gpus,
 		                        beam_cores,
 		                        site_lat,
 		                        site_lon,
