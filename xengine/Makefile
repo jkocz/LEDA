@@ -14,6 +14,7 @@ DBBEAM_LIBS += $(PSRDADA_LIBS) -Laaplus/lib -laaplus
 DBBEAM_INC  += $(PSRDADA_INC)
 
 CXX_FLAGS   += -Wall -pedantic -O3 -Wno-long-long
+NVCC_FLAGS  += -Xcompiler "-Wall -Wno-long-long" -O3 -arch=sm_35
 DEBUG_FLAGS += -g
 
 CXX  ?= g++
