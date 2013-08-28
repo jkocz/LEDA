@@ -254,7 +254,7 @@ protected:
 		m_d_in.reserve(m_ntime*m_nchan*m_nstation);
 		m_d_out.resize(m_ntime*m_nchan);
 		
-		size_t bytes_per_read = m_ntime*m_nchan*m_nstation*m_npol*sizeof(intype);
+		size_t bytes_per_read = m_ntime*m_nchan*m_nstation*sizeof(intype);
 		cout << "bytes_per_read = " << bytes_per_read << endl;
 		return bytes_per_read;
 	}
@@ -313,14 +313,16 @@ public:
 		  m_mode(mode),
 		  m_max_aperture(max_aperture),
 		  m_maintain_circular_aperture(maintain_circular_aperture) {
+		
+		// Give the CPU a rest while the GPU kernel is running
+		cudaSetDeviceFlags(cudaDeviceScheduleYield);
+		
 		/*
 		cudaError_t error = cudaSetDevice(gpu_device);
 		if( error != cudaSuccess ) {
 			throw std::runtime_error(cudaGetErrorString(error));
 		}
 		*/
-		// Give the CPU a rest while the GPU kernel is running
-		cudaSetDeviceFlags(cudaDeviceScheduleYield);
 	}
 	virtual ~dbbeam() {}
 };
@@ -456,6 +458,7 @@ int main(int argc, char* argv[])
 	out_key = tmp;
 	
 	if( verbose >= 1 ) {
+		cout << "GPU idx    = " << gpu_idx << endl;
 		cout << "Latitude   = " << lat << endl;
 		cout << "Longitude  = " << lon << endl;
 		cout << "In key     = " << std::hex << in_key << std::dec << endl;
@@ -483,7 +486,7 @@ int main(int argc, char* argv[])
 		mode = dbbeam::BF_MODE_COHERENT;
 	}
 	
-	dbbeam ctx(log, verbose, lat, lon, mode, max_aperture, circular);
+	dbbeam ctx(log, verbose, gpu_idx, lat, lon, mode, max_aperture, circular);
 	ctx.connect(in_key, out_key);
 	ctx.run();
 	ctx.disconnect();
