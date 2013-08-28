@@ -274,6 +274,7 @@ class LEDABeamProcess(LEDAProcess):
 		self.out_bufkey = out_bufkey
 		self.lat        = lat
 		self.lon        = lon
+		self.incoherent = False
 		self.standfile  = standfile
 		self.circular   = circular
 		self.aperture   = aperture
@@ -287,6 +288,8 @@ class LEDABeamProcess(LEDAProcess):
 			args += " -b"
 		if self.aperture is not None:
 			args += " -a %f" % self.aperture
+		if self.incoherent:
+			args += " -i"
 		verbosity = self.verbosity
 		while verbosity > 0:
 			args += " -v"
@@ -503,7 +506,8 @@ class LEDAServer(object):
 			                    disk_cores)]
 		
 		self.beam = [LEDABeamProcess(logfile,beam_path,in_bufkey,out_bufkey,
-		                             lat,lon,standfile,core=core,verbosity=2) \
+		                             lat,lon,standfile,
+		                             core=core,verbosity=2) \
 			             for logfile,in_bufkey,out_bufkey,core \
 			             in zip(beam_logfiles,unpack_bufkeys,beam_bufkeys,
 			                    beam_cores)]
@@ -571,6 +575,11 @@ class LEDAServer(object):
 		#time.sleep(1)
 		if mode == 'beam':
 			for beam_proc in self.beam:
+				beam_proc.incoherent = False
+				beam_proc.start()
+		elif mode == 'incoherent':
+			for beam_proc in self.beam:
+				beam_proc.incoherent = True
 				beam_proc.start()
 		else:
 			for xengine_proc in self.xengine:

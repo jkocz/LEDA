@@ -309,7 +309,7 @@ function displayTabPage() {
 
 function onObsModeChange(event) {
 	var mode = this.options[this.selectedIndex].value;
-	if( mode == "correlator" ) {
+	if( mode != "beam" ) {
 		document.getElementById("obs_ra").disabled  = true;
 		document.getElementById("obs_dec").disabled = true;
 		// TODO: This interferes with the flow-based enablement above

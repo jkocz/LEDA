@@ -118,6 +118,7 @@ class dbbeam : public dada_db2db {
 	typedef float2 outtype;
 	
 	double m_lat, m_lon;
+	int    m_mode;
 	float  m_max_aperture;
 	bool   m_maintain_circular_aperture;
 	size_t m_ntime, m_nchan, m_nstation, m_npol;
@@ -259,13 +260,46 @@ protected:
 		cout << "bytes_per_read = " << bytes_per_read << endl;
 		return bytes_per_read;
 	}
-	// Return no. bytes written
-	virtual uint64_t onData(uint64_t    in_size,
-	                        const char* data_in,
-	                        char*       data_out) {
-		const intype* in  = (const intype*)data_in;
-		outtype*      out = (outtype*)data_out;
-		
+	
+	uint64_t beamform_incoherent(const intype* in, outtype* out) {
+		enum { NPOL = 2 };
+		for( size_t t=0; t<m_ntime; ++t ) {
+			for( size_t c=0; c<m_nchan; ++c ) {
+				float stokes_I = 0.f;
+				float stokes_V = 0.f;
+				for( size_t sb=0; sb<m_nstation; sb+=16 ) {
+					for( size_t si=0; si<16; ++si ) { // Unroll by 16x
+						size_t s = sb + si;
+						intype sample_int;
+						size_t idx = NPOL*(s + m_nstation*(c + m_nchan*t));
+						
+						sample_int = in[idx+0];
+						float2 pola(sample_int.x, sample_int.y);
+						sample_int = in[idx+1];
+						float2 polb(sample_int.x, sample_int.y);
+						
+						stokes_I += pola.x*pola.x;
+						stokes_I += pola.y*pola.y;
+						stokes_I += polb.x*polb.x;
+						stokes_I += polb.y*polb.y;
+						
+						stokes_V -= pola.y*polb.x;
+						stokes_V += pola.x*polb.y;
+					}
+				}
+				size_t out_idx = c + m_nchan*t;
+				// Normalise
+				stokes_I *= 1.f / m_nstation;
+				stokes_V *= 2.f / m_nstation;
+				out[out_idx] = float2(stokes_I, stokes_V);
+			}
+		}
+		// TODO: This is only half as much data as in the coherent implementation
+		size_t bytes_written = m_ntime*m_nchan*sizeof(outtype);
+		return bytes_written;
+	}
+	
+	uint64_t beamform_coherent(const intype* in, outtype* out) {
 		float max_dist     = m_max_aperture/2;
 		float max_dist_sqr = max_dist*max_dist;
 		
@@ -353,12 +387,30 @@ protected:
 		return bytes_written;
 	}
 	
+	// Return no. bytes written
+	virtual uint64_t onData(uint64_t    in_size,
+	                        const char* data_in,
+	                        char*       data_out) {
+		const intype* in  = (const intype*)data_in;
+		outtype*      out =      (outtype*)data_out;
+		
+		switch( m_mode ) {
+		case BF_MODE_INCOHERENT: return beamform_incoherent(in, out);
+		case BF_MODE_COHERENT:   return beamform_coherent(in, out);
+		default: throw std::runtime_error("Invalid beamforming mode");
+		}
+	}
+	
 public:
+	enum { BF_MODE_INCOHERENT, BF_MODE_COHERENT };
+	
 	dbbeam(multilog_t* log, int verbose,
 	       double lat, double lon,
+	       int mode=BF_MODE_COHERENT,
 	       float max_aperture=1e99, bool maintain_circular_aperture=false)
 		: dada_db2db(log, verbose),
 		  m_lat(lat), m_lon(lon),
+		  m_mode(mode),
 		  m_max_aperture(max_aperture),
 		  m_maintain_circular_aperture(maintain_circular_aperture) {}
 	virtual ~dbbeam() {}
@@ -440,6 +492,7 @@ void print_usage() {
 		"dbbeam [options] -- lat lon in_key out_key\n"
 		" lat/lon      Observatory latitude and longitude as decimals\n"
 		" -s standfile Stand data file to use [stands.txt]\n"
+		" -i           Incoherent sum only\n"
 		" -a aperture  Max aperture (dist. from centre of array) [1e99]\n"
 		" -b           Maintain circular aperture (at cost of area)\n"
 		" -c core      Bind process to CPU core\n"
@@ -452,6 +505,7 @@ int main(int argc, char* argv[])
 {
 	// TODO: Consider reading this (also low/highfreq) from an env var
 	std::string standfile    = "stands.txt";
+	bool        incoherent   = false;
 	float       max_aperture = 1e99;
 	int         circular     = 0;
 	int         core         = -1;
@@ -463,9 +517,10 @@ int main(int argc, char* argv[])
 	multilog_t* log          = 0;
 	
 	int arg = 0;
-	while( (arg = getopt(argc,argv,"s:a:bc:hvq")) != -1 ) {
+	while( (arg = getopt(argc,argv,"s:ia:bc:hvq")) != -1 ) {
 		switch( arg ) {
 		case 's': if( !parse_arg('s', standfile) ) return -1; break;
+		case 'i': incoherent = true; break;
 		case 'a': if( !parse_arg('a', max_aperture) ) return -1; break;
 		case 'b': ++circular; break;
 		case 'c': if( !parse_arg('c', core) ) return -1; break;
@@ -544,7 +599,15 @@ int main(int argc, char* argv[])
 		}
 	}
 	
-	dbbeam ctx(log, verbose, lat, lon, max_aperture, circular);
+	int mode;
+	if( incoherent ) {
+		mode = dbbeam::BF_MODE_INCOHERENT;
+	}
+	else {
+		mode = dbbeam::BF_MODE_COHERENT;
+	}
+	
+	dbbeam ctx(log, verbose, lat, lon, mode, max_aperture, circular);
 	if( verbose >= 1 ) {
 		cout << "Initialising from station data" << endl;
 	}
