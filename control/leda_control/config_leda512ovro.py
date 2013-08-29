@@ -64,7 +64,8 @@ lowfreq   = 30.0
 bufsize = ninput*nchan*ntime
 upsize  = bufsize * 2
 outsize = reg_tile_triangular_size(ninput, nchan)
-beamoutsize = ntime*nchan*npol*2*4
+#beamoutsize = ntime*nchan*npol*2*4
+beamoutsize = ntime*nchan*2*4
 
 visports = [3142 + i for i in xrange(nstream)]
 

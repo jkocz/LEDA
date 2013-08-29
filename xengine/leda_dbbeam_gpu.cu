@@ -217,7 +217,7 @@ protected:
 		ret = ascii_header_get(header_in, "CHAN_WIDTH", "%f", &m_df);
 		if( ret < 0 ) { throw std::runtime_error("Missing/invalid header entry CHAN_WIDTH"); }
 		
-		m_ntime = this->bufsize_out() / (m_nchan*m_npol*sizeof(outtype));
+		m_ntime = this->bufsize_out() / (m_nchan*sizeof(outtype));
 		
 		cout << "UTC      = " << utc_start_str << endl;
 		//cout << "UTC JD   = " << utc_start_jd << endl;
@@ -247,7 +247,17 @@ protected:
 		if( ascii_header_set(header_out, "SOURCE", "%s", "TARGET") < 0 ) {
 			logInfo("dbbeam: Failed to set SOURCE in header_out");
 		}
-		if( ascii_header_set(header_out, "MODE", "%s", "SINGLE_BEAM") < 0 ) {
+		switch( m_mode ) {
+		case BF_MODE_INCOHERENT:
+			ret = ascii_header_set(header_out, "MODE", "%s", "INCOHERENT_SUM");
+			break;
+		case BF_MODE_COHERENT:
+			ret = ascii_header_set(header_out, "MODE", "%s", "SINGLE_BEAM");
+			break;
+		default:
+			throw std::runtime_error("Invalid beamforming mode");
+		}
+		if( ret < 0 ) {
 			logInfo("dbbeam: Failed to set MODE in header_out");
 		}
 		
