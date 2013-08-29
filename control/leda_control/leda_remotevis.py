@@ -35,6 +35,7 @@ class LEDARemoteHeadNodeVis(LEDAClient):
 	def getAllSpectra(self):
 		imgdata = receive_image(self._sendmsg('all_spectra=1'))
 		return imgdata
+	# TODO: ...
 	def get(self, msg):
 		imgdata = receive_image(self._sendmsg(msg))
 		return imgdata

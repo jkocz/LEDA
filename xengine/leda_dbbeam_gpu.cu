@@ -238,6 +238,9 @@ protected:
 		if( ascii_header_set(header_out, "NBIT", "%d", 32) < 0 ) {
 			logInfo("dbbeam: Failed to set NBIT 32 in header_out");
 		}
+		if( ascii_header_set(header_out, "NDIM", "%d", 1) < 0 ) {
+			logInfo("dbbeam: Failed to set NDIM 1 in header_out");
+		}
 		if( ascii_header_set(header_out, "BYTES_PER_SECOND", "%i", bytes_per_second) < 0 ) {
 			logInfo("dbbeam: Failed to set BYTES_PER_SECOND in header_out");
 		}

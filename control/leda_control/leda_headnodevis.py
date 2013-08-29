@@ -315,6 +315,9 @@ class LEDARemoteVisManager(object):
 		powspectra_y = powspectra_y[:,self.stand2leda]
 		"""
 		return powspectra_x, powspectra_y
+	def getADCStand(self, idx):
+		x, y = self.getADCAllSpectra()
+		return x[:,idx], y[:,idx]
 	def getADCAllTimeSeries(self):
 		timeseries_substands_x = []
 		timeseries_substands_y = []
@@ -615,7 +618,44 @@ def onMessage(ledavis, message, clientsocket, address):
 		plt.close()
 		imgdata = imgfile.getvalue()
 		send_image(clientsocket, imgdata)
-	
+		
+	elif 'adc_stand' in args:
+		idx = int(args['i'])
+		ret = ledavis.getADCStand(idx)
+		if ret is None:
+			plot_none()
+		else:
+			powspec_x, powspec_y = ret
+			
+			#stand_i = ledavis.leda2stand[idx]
+			stand_i = idx
+			
+			nchan_reduced = powspec_x.shape[0]
+			freqs = np.linspace(ledavis.lowfreq, ledavis.highfreq, nchan_reduced)
+			
+			freq_axis_padding = 0.02
+			xmin = ledavis.lowfreq  * (1 - freq_axis_padding)
+			xmax = ledavis.highfreq * (1 + freq_axis_padding)
+			# TODO: How/where to decide these?
+			ymin = -30
+			ymax = 10
+			nchan = powspec_x.shape[0]
+			
+			plt.figure(figsize=(10.24, 7.68), dpi=100)
+			plt.plot(freqs, powspec_x, color='r', label="Pol A")
+			plt.plot(freqs, powspec_y, color='b', label="Pol B")
+			plt.xlim([xmin, xmax])
+			plt.ylim([ymin, ymax])
+			plt.xlabel('Frequency [MHz]')
+			plt.ylabel('Power [dB]')
+			plt.title('ADC spectrum for stand %i' % (stand_i + 1))
+			plt.legend()
+		imgfile = StringIO.StringIO()
+		plt.savefig(imgfile, format=image_format, bbox_inches='tight')
+		plt.close()
+		imgdata = imgfile.getvalue()
+		send_image(clientsocket, imgdata)
+		
 	elif 'adc_all_spectra' in args:
 		ret = ledavis.getADCAllSpectra()
 		if ret is None:
