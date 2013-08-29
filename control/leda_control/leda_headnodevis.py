@@ -316,8 +316,19 @@ class LEDARemoteVisManager(object):
 		"""
 		return powspectra_x, powspectra_y
 	def getADCStand(self, idx):
+		navg = 10
 		x, y = self.getADCAllSpectra()
-		return x[:,idx], y[:,idx]
+		x = x[:,idx]
+		y = y[:,idx]
+		for i in xrange(navg-1):
+			new_x, new_y = self.getADCAllSpectra()
+			new_x = new_x[:,idx]
+			new_y = new_y[:,idx]
+			x += new_x
+			y += new_y
+		x /= float(navg)
+		y /= float(navg)
+		return x, y
 	def getADCAllTimeSeries(self):
 		timeseries_substands_x = []
 		timeseries_substands_y = []
@@ -638,7 +649,7 @@ def onMessage(ledavis, message, clientsocket, address):
 			xmax = ledavis.highfreq * (1 + freq_axis_padding)
 			# TODO: How/where to decide these?
 			ymin = -30
-			ymax = 10
+			ymax = 20
 			nchan = powspec_x.shape[0]
 			
 			plt.figure(figsize=(10.24, 7.68), dpi=100)
