@@ -316,6 +316,8 @@ class LEDARemoteVisManager(object):
 		"""
 		return powspectra_x, powspectra_y
 	def getADCStand(self, idx):
+		# TODO: This should probably use the 'specific channel' option
+		#         to adc_dump_chans rather than requesting all inputs.
 		navg = 10
 		x, y = self.getADCAllSpectra()
 		x = x[:,idx]
@@ -641,12 +643,17 @@ def onMessage(ledavis, message, clientsocket, address):
 			#stand_i = ledavis.leda2stand[idx]
 			stand_i = idx
 			
+			# TODO: HACK: These freqs should be read/derived from somewhere
+			lofreq = 0.0
+			hifreq = 98.304
+			
 			nchan_reduced = powspec_x.shape[0]
-			freqs = np.linspace(ledavis.lowfreq, ledavis.highfreq, nchan_reduced)
+			#freqs = np.linspace(ledavis.lowfreq, ledavis.highfreq, nchan_reduced)
+			freqs = np.linspace(lofreq, hifreq, nchan_reduced)
 			
 			freq_axis_padding = 0.02
-			xmin = ledavis.lowfreq  * (1 - freq_axis_padding)
-			xmax = ledavis.highfreq * (1 + freq_axis_padding)
+			xmin = lofreq  * (1 - freq_axis_padding)
+			xmax = hifreq * (1 + freq_axis_padding)
 			# TODO: How/where to decide these?
 			ymin = -30
 			ymax = 20
@@ -705,6 +712,55 @@ def onMessage(ledavis, message, clientsocket, address):
 					         # Note: i here is (0-based) real stand index
 							 stand_i + 1,
 							 fontsize=6, color='black')
+					
+		imgfile = StringIO.StringIO()
+		plt.savefig(imgfile, format=image_format, bbox_inches='tight')
+		plt.close()
+		imgdata = imgfile.getvalue()
+		send_image(clientsocket, imgdata)
+		
+	elif 'adc_some_spectra' in args:
+		idx = int(args['i'])
+		ret = ledavis.getADCAllSpectra()
+		if ret is None:
+			plot_none()
+		else:
+			powspectra_x, powspectra_y = ret
+			
+			lofreq = 0.0
+			hifreq = 98.304
+			
+			xmin = lofreq
+			xmax = hifreq
+			ymin = -30
+			ymax = 10
+			
+			du = 1.1 * (xmax-xmin)
+			dv = 1.1 * (ymax-ymin)
+			
+			plt.figure(figsize=(20.48, 7.68), dpi=100)
+			
+			nchan_reduced = powspectra_x.shape[0]
+			freqs = np.linspace(lofreq, hifreq, nchan_reduced)
+			
+			ntile = 16
+			#for v in range(ledavis.nstation / ntile):
+			v = i
+			for u in range(ntile):
+				i = u + v*ntile
+				powspec_x = powspectra_x[:,i]
+				powspec_y = powspectra_y[:,i]
+				# Saturate values to visible range for better visualisation
+				powspec_x[powspec_x < ymin] = ymin
+				powspec_y[powspec_y < ymin] = ymin
+				
+				stand_i = ledavis.adc2stand[i]
+				plt.plot(freqs + u*du, powspec_x, color='r', linewidth=0.5)
+				plt.plot(freqs + u*du, powspec_y, color='b', linewidth=0.5)
+				plt.text(xmin + (u+0.4)*du, ymin,
+				         # Note: i here is (0-based) real stand index
+						 stand_i + 1,
+						 fontsize=6, color='black')
 					
 		imgfile = StringIO.StringIO()
 		plt.savefig(imgfile, format=image_format, bbox_inches='tight')
