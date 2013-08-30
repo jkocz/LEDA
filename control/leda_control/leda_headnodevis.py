@@ -655,7 +655,7 @@ def onMessage(ledavis, message, clientsocket, address):
 			xmin = lofreq  * (1 - freq_axis_padding)
 			xmax = hifreq * (1 + freq_axis_padding)
 			# TODO: How/where to decide these?
-			ymin = -30
+			ymin = -50
 			ymax = 20
 			nchan = powspec_x.shape[0]
 			
@@ -732,8 +732,8 @@ def onMessage(ledavis, message, clientsocket, address):
 			
 			xmin = lofreq
 			xmax = hifreq
-			ymin = -30
-			ymax = 10
+			ymin = -50
+			ymax = 20
 			
 			du = 1.1 * (xmax-xmin)
 			dv = 1.1 * (ymax-ymin)
