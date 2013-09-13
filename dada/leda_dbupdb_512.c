@@ -1339,7 +1339,7 @@ void * leda_dbudpdb_bitpromote_thread (void * arg)
 
       // increment input ptr to next packet
       in_dat += UDP_DATA_64 * npacket_per_resolution;// * ntime_per_packet;
-      out_dat += out_time_sample_stride;
+      out_dat += out_time_sample_stride * 4; // * 4 to account for the UDP_DATA_64 increment
 
       out_dat_16 = (uint16_t *) out_dat;
     }
