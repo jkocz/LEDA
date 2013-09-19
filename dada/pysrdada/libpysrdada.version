@@ -1,0 +1,24 @@
+VERS_1.1 {
+         global:
+                dada_create;
+                dada_destroy;
+                dada_connect;
+                dada_lock_read;
+                dada_lock_write;
+                dada_unlock;
+                dada_disconnect;
+                dada_read_header;
+                dada_write_header;
+                dada_read_buffer;
+                dada_write_buffer;
+                dada_is_eod;
+                dada_get_lock;
+                dada_get_key;
+                dada_get_hdu;
+                dada_get_log;
+                dada_get_header_size;
+                dada_get_buffer_size;
+                dada_get_error_string;
+         local:
+                *;
+};
