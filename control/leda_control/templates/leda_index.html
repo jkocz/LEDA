@@ -34,7 +34,10 @@
     <option value="correlator">Correlator</option>
     <option value="beam">Beamformer</option>
 	<option value="incoherent">Incoherent sum</option>
+	<option value="baseband">Narrow baseband</option>
   </select>
+  
+  
   
   Ra:<input id="obs_ra" type="text" value="00:00:00.0" size="11">
   
@@ -90,6 +93,7 @@
 	  <td>Unpack</td>
 	  <td>X-engine</td>
 	  <td>Beam</td>
+	  <td>Baseband</td>
 	  <td>Disk</td>
 	  <td>Disk use</td>
 	  <td>Recv Gb/s</td>
@@ -109,6 +113,7 @@
 	  <td><img id="control_unpack_status{{i}}_{{j}}" /></td>
 	  <td><img id="control_xengine_status{{i}}_{{j}}" /></td>
 	  <td><img id="control_beam_status{{i}}_{{j}}" /></td>
+	  <td><img id="control_baseband_status{{i}}_{{j}}" /></td>
 	  <td><img id="control_disk_status{{i}}_{{j}}" /></td>
 	  <td><span id="control_disk_usage{{i}}_{{j}}"></span></td>
 	  <td><span id="control_capture_receiving{{i}}_{{j}}"></span></td>

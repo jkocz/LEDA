@@ -3,6 +3,39 @@
   By Ben Barsdell (2013)
   
   A simple GPU incoherent sum implementation.
+  
+  Notes
+  -----
+  Complex weights vary as a function of:
+    time:  ionospheric temporal changes, O(10s)
+    freq:  non-linear effects in analogue path
+    stand: geometry, cable delays, gain pattern, analogue path
+    beam:  geometry, ionosphere spatial variations O(1 degree)
+    
+  Ways to increase SNR when observing pulsars:
+      Fold over period (scrunch to T/Nbins first?)
+      Coherently dedisperse
+      Incoherently dedisperse (sum over chans)
+  
+  Estimate weights for first NTIME
+  While running:
+    Apply weights and sum stands
+    Fold over pulsar period, find ratio of peak bin to rms --> SNR
+    Optimise weights for next NTIME
+  
+  Per-input cable delays
+  Per-input (and per-pointing?) gains
+    Interpolate over coarsely-sampled gain patterns?
+  Per-stand and per-pointing geometric delays
+  
+  One complex weight per freq, input, beam and NTIME
+    => 109*512*nbeam complex weights
+  Summing over stands
+    S_btc = sum_s f(w_bcs,t)*A_tcs
+  => Parallelise over b,t,c
+  => Iterate over s
+  => Broadcast w_bcs over t
+  
 */
 
 #include <cstdio>

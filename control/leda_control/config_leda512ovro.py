@@ -61,11 +61,13 @@ nchan     = 109
 ntime     = 8192
 nstream   = 2
 lowfreq   = 30.0
+baseband_noutchan = 3
 bufsize = ninput*nchan*ntime
 upsize  = bufsize * 2
 outsize = reg_tile_triangular_size(ninput, nchan)
 #beamoutsize = ntime*nchan*npol*2*4
 beamoutsize = ntime*nchan*2*4
+basebandoutsize = ntime*baseband_noutchan*ninput*1
 
 visports = [3142 + i for i in xrange(nstream)]
 
@@ -73,12 +75,14 @@ dadapath = getenv_warn('PSRDADA_DIR', "/home/leda/software/psrdada/src")
 bufkeys  = ["dada", "eada", # Captured
             "aada", "bada", # Unpacked
             "cada", "fada", # Correlated
-            "abda", "ebda"] # Beamformed
+            "abda", "ebda", # Beamformed
+            "acda", "ecda"] # Basebanded
 bufsizes = [bufsize]*nstream + [upsize]*nstream + [outsize]*nstream \
-    + [beamoutsize]*nstream
+    + [beamoutsize]*nstream + [basebandoutsize]*nstream
 bufcores = [1, 9,
 			1, 9,
 			1, 9,
+            1, 9,
             1, 9]
 
 capture_bufkeys     = ["dada", "eada"]
@@ -152,3 +156,11 @@ beam_path           = os.path.join(getenv_warn('LEDA_XENGINE_DIR',
                                    #"leda_dbbeam")
 beam_gpus           = [0, 1]
 beam_cores          = [4, 12]
+
+baseband_bufkeys    = ["acda", "ecda"]
+baseband_logfiles   = [os.path.join(logpath,"dbbaseband."+bufkey) \
+	                       for bufkey in baseband_bufkeys]
+baseband_path       = os.path.join(getenv_warn('LEDA_XENGINE_DIR',
+                                               "/home/leda/LEDA/xengine"),
+                                   "leda_dbbaseband")
+baseband_cores      = [4, 12]

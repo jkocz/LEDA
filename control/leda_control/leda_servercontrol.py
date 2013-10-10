@@ -306,6 +306,33 @@ class LEDABeamProcess(LEDAProcess):
 		       self.in_bufkey, self.out_bufkey)
 		self._startProc(args)
 
+class LEDABasebandProcess(LEDAProcess):
+	def __init__(self, logpath, path, in_bufkey, out_bufkey,
+	             noutchan=None,
+	             core=None, verbosity=0):
+		LEDAProcess.__init__(self, logpath, path)
+		self.in_bufkey  = in_bufkey
+		self.out_bufkey = out_bufkey
+		self.noutchan   = noutchan
+		self.core       = core
+		self.verbosity  = verbosity
+	def start(self):
+		args = ""
+		if self.core is not None:
+			args += " -c %i" % self.core
+		if self.noutchan is not None:
+			args += " -f %i" % self.noutchan
+		verbosity = self.verbosity
+		while verbosity > 0:
+			args += " -v"
+			verbosity -= 1
+		while verbosity < 0:
+			args += " -q"
+			verbosity += 1
+		args += " -- %s %s" \
+		    % (self.in_bufkey, self.out_bufkey)
+		self._startProc(args)
+
 class LEDAUnpackProcess(LEDAProcess):
 	def __init__(self, logpath, path, in_bufkey, out_bufkey,
 	             core=None, ncores=1):
@@ -474,6 +501,9 @@ class LEDAServer(object):
 	             beam_gpus, beam_cores,
 	             lat, lon, standfile,
 	             
+	             baseband_logfiles, baseband_path, baseband_bufkeys,
+	             baseband_noutchan, baseband_cores,
+	             
 	             debuglevel=1):
 		self.name = name
 		self.buffers = [LEDABuffer(dadapath,bufkey,size,core) \
@@ -516,6 +546,13 @@ class LEDAServer(object):
 			             in zip(beam_logfiles,unpack_bufkeys,beam_bufkeys,
 			                    beam_gpus,beam_cores)]
 		
+		self.baseband = [LEDABasebandProcess(logfile,baseband_path,in_bufkey,out_bufkey,
+		                                     baseband_noutchan,
+		                                     core=core,verbosity=2) \
+			                 for logfile,in_bufkey,out_bufkey,core \
+			                 in zip(baseband_logfiles,unpack_bufkeys,baseband_bufkeys,
+			                        baseband_cores)]
+		
 		self.debuglevel = debuglevel
 		
 	"""
@@ -528,13 +565,14 @@ class LEDAServer(object):
 		all_buffers_exist = True
 		for buf in self.buffers:
 			all_buffers_exist = all_buffers_exist and buf.exists()
-		for capture_proc,unpack_proc,xengine_proc,disk_proc,beam_proc in \
-			    zip(self.capture,self.unpack,self.xengine,self.disk,self.beam):
+		for capture_proc,unpack_proc,xengine_proc,disk_proc,beam_proc,baseband_proc in \
+			    zip(self.capture,self.unpack,self.xengine,self.disk,self.beam,self.baseband):
 			capture = 'ok' if capture_proc.isRunning() else 'down'
 			unpack  = 'ok' if unpack_proc.isRunning()  else 'down'
 			xengine = 'ok' if xengine_proc.isRunning() else 'down'
 			disk    = 'ok' if disk_proc.isRunning()    else 'down'
 			beam    = 'ok' if beam_proc.isRunning()    else 'down'
+			baseband= 'ok' if baseband_proc.isRunning()else 'down'
 			buffers = 'ok' if all_buffers_exist        else 'down'
 			disk_info = getDiskInfo(disk_proc.outpath)
 			capture_info = capture_proc.status()
@@ -544,6 +582,7 @@ class LEDAServer(object):
 			               'xengine':      xengine,
 			               'disk':         disk,
 			               'beam':         beam,
+			               'baseband':     baseband,
 			               'disk_info':    disk_info,
 			               'capture_info': capture_info,
 			               'buffers':      buffers,
@@ -567,6 +606,9 @@ class LEDAServer(object):
 		if mode == 'beam' or mode == 'incoherent':
 			for disk_proc,beam_proc in zip(self.disk,self.beam):
 				disk_proc.bufkey = beam_proc.out_bufkey
+		elif mode == 'baseband':
+			for disk_proc,baseband_proc in zip(self.disk,self.baseband):
+				disk_proc.bufkey = baseband_proc.out_bufkey
 		else:
 			for disk_proc,xengine_proc in zip(self.disk,self.xengine):
 				disk_proc.bufkey = xengine_proc.out_bufkey
@@ -585,6 +627,9 @@ class LEDAServer(object):
 			for beam_proc in self.beam:
 				beam_proc.incoherent = True
 				beam_proc.start()
+		elif mode == 'baseband':
+			for proc in self.baseband:
+				proc.start()
 		else:
 			for xengine_proc in self.xengine:
 				xengine_proc.start()
@@ -603,6 +648,8 @@ class LEDAServer(object):
 			xengine_proc.kill()
 		for beam_proc in self.beam:
 			beam_proc.kill()
+		for baseband_proc in self.baseband:
+			baseband_proc.kill()
 		time.sleep(2)
 	def clearLogs(self):
 		for capture_proc in self.capture:
@@ -809,7 +856,13 @@ if __name__ == "__main__":
 		                        beam_cores,
 		                        site_lat,
 		                        site_lon,
-		                        site_stands_file)
+		                        site_stands_file,
+		                        
+		                        baseband_logfiles,
+		                        baseband_path,
+		                        baseband_bufkeys,
+		                        baseband_noutchan,
+		                        baseband_cores)
 		
 		# TESTING
 		#port = int(sys.argv[1])

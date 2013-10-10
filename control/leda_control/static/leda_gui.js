@@ -109,6 +109,8 @@ function onStatusUpdate(response) {
 			document.getElementById("control_xengine_status"+i+"_"+j).src = img_src;
 			img_src = status_img(leda.control[i][1][j].beam);
 			document.getElementById("control_beam_status"+i+"_"+j).src = img_src;
+			img_src = status_img(leda.control[i][1][j].baseband);
+			document.getElementById("control_baseband_status"+i+"_"+j).src = img_src;
 			img_src = status_img(leda.control[i][1][j].disk);
 			document.getElementById("control_disk_status"+i+"_"+j).src = img_src;
 			
