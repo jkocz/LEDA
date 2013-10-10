@@ -13,6 +13,8 @@ DBBDI_INC  += $(PSRDADA_INC)
 DBBEAM_LIBS += $(PSRDADA_LIBS) -Laaplus/lib -laaplus
 DBBEAM_INC  += $(PSRDADA_INC)
 
+DBBASEBAND_INC += $(PSRDADA_INC)
+
 CXX_FLAGS   += -Wall -pedantic -O3 -Wno-long-long
 NVCC_FLAGS  += -Xcompiler "-Wall -Wno-long-long" -O3 -arch=sm_35
 DEBUG_FLAGS += -g
@@ -39,8 +41,8 @@ leda_dbbeam.asm: leda_dbbeam.cpp dada_db2db.hpp dada_db2db.cpp aaplus/lib/libaap
 leda_dbbeam_gpu: leda_dbbeam_gpu.cu dada_db2db.hpp dada_db2db.cpp
 	$(NVCC) -o leda_dbbeam_gpu $(NVCC_FLAGS) $(DEBUG_FLAGS) $(DBBEAM_INC) leda_dbbeam_gpu.cu dada_db2db.cpp $(PSRDADA_LIBS)
 
-leda_dbbaseband: leda_dbbaseband.cpp
-	g++ -o leda_dbbaseband -O3 -Wall -g leda_dbbaseband.cpp dada_db2db.cpp -lpsrdada
+leda_dbbaseband: leda_dbbaseband.cpp dada_db2db.hpp dada_db2db.cpp
+	$(CXX) -o leda_dbbaseband $(CXX_FLAGS) $(DEBUG_FLAGS) $(DBBASEBAND_INC) leda_dbbaseband.cpp dada_db2db.cpp $(PSRDADA_LIBS)
 
 hackhex: hackhex.cpp
 	$(CXX) -o hackhex hackhex.cpp
