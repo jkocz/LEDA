@@ -1,0 +1,7 @@
+# Basic configuration example
+at1_settings = [10 for ii in range(256)]
+at2_settings = [10 for ii in range(256)]
+fee_settings = [1 for ii in range(256)]
+fee_settings = [(False, False) for ii in range(256)]
+fil_settings = [1 for ii in range(256)]
+
