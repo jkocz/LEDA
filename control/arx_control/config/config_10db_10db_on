@@ -1,7 +1,12 @@
-# Basic configuration example
+# Basic configuration
+# 10 dB of atten at each attenuator
 at1_settings = [10 for ii in range(256)]
 at2_settings = [10 for ii in range(256)]
-fee_settings = [1 for ii in range(256)]
+
+#30 dB of atten for the split-level attenuator
+ats_settings = [30 for ii in range(256)]
+
+# All FEEs on, normal filtering mode
 fee_settings = [(True, True) for ii in range(256)]
-fil_settings = [1 for ii in range(256)]
+fil_settings = [0 for ii in range(256)]
 

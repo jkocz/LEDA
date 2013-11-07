@@ -1,7 +1,0 @@
-# Basic configuration example
-at1_settings = [15 for ii in range(256)]
-at2_settings = [15 for ii in range(256)]
-fee_settings = [1 for ii in range(256)]
-fee_settings = [(True, True) for ii in range(256)]
-fil_settings = [1 for ii in range(256)]
-

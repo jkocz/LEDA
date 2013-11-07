@@ -115,28 +115,23 @@ class ArxCalOVRO(arx.ArxOVRO):
     def applyCalibration(self):
         """ Apply computed calibration to stands"""
         for ii in range(len(self.cal_atten)):
-            if ii + 1 in self.bad_stands:
-                self.setFEE(False, False, ii+1)
-            elif ii + 1 in self.semi_stands:
-                self.setFEE(False, False, ii+1)
-            else:
-                curr1, curr2, delt = self.at1_settings[ii], self.at2_settings[ii], self.cal_atten[ii]
-                if delt > 0:
-                    if curr2 + delt < 20:
-                        self.at2_settings[ii] += delt
-                    elif curr1 + delt < 20:
-                        self.at1_settings[ii] += delt
-                    elif curr1 + delt/2 < 20 and curr2 + delt/2 < 20:
-                        self.at1_settings[ii] += delt/2
-                        self.at2_settings[ii] += delt/2
-                if delt < 0:
-                    if curr2 + delt > 0:
-                        self.at2_settings[ii] += delt
-                    elif curr1 + delt > 0:
-                        self.at1_settings[ii] += delt
-                    elif curr1 + delt/2 > 0 and curr2 + delt/2 > 0:
-                        self.at1_settings[ii] += delt/2
-                        self.at2_settings[ii] += delt/2
+            curr1, curr2, delt = self.at1_settings[ii], self.at2_settings[ii], self.cal_atten[ii]
+            if delt > 0:
+                if curr2 + delt < 20:
+                    self.at2_settings[ii] += delt
+                elif curr1 + delt < 20:
+                    self.at1_settings[ii] += delt
+                elif curr1 + delt/2 < 20 and curr2 + delt/2 < 20:
+                    self.at1_settings[ii] += delt/2
+                    self.at2_settings[ii] += delt/2
+            if delt < 0:
+                if curr2 + delt > 0:
+                    self.at2_settings[ii] += delt
+                elif curr1 + delt > 0:
+                    self.at1_settings[ii] += delt
+                elif curr1 + delt/2 > 0 and curr2 + delt/2 > 0:
+                    self.at1_settings[ii] += delt/2
+                    self.at2_settings[ii] += delt/2
         
     def listCalibration(self):
         """ List computed calibration values """
@@ -186,7 +181,7 @@ if __name__ == '__main__':
         q = raw_input("Apply settings? Y/N: ")
         if q in yes:
             a.applyCalibration()
-            a.applySettings(set_fil=False, set_fee=False)
+            a.applySettings(set_fil=False, set_fee=False, set_ats=False)
         q = raw_input("Run calibration again? Y/N: ")
         if q not in yes:
             run_another = False

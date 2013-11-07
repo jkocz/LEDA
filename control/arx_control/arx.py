@@ -165,9 +165,9 @@ class ArxController(object):
             
         Notes:
             The possible filter values are:
-            splitFilter    = 0
-            fullFilter     = 1
-            reducedFilter  = 2
+            splitFilter    = 0      (Normal operation mode)
+            fullFilter     = 1      
+            reducedFilter  = 2      (Narrowband)
             signalChainOff = 3
         
         TODO: Check this does what I think it does.
@@ -205,13 +205,11 @@ class ArxController(object):
             self._sendCommand('AT2', '%03d%02d' % (stand, dB / 2))
     
     def setATS(self, dB, stand = 0):
-        """ Set attenuator levels
+        """ Set attenuator level in split-band filter
         
         Arguments:
             dB (int): Attenuation to apply at each attenuator, in dB.
             stand (int): Stand number. If set to zero, applied to all stands.
-        
-        TODO: Check this does what I think it does.
         """
         if stand == 0:
             for stand in xrange(1, 8 * self.nBoards + 1):
@@ -254,11 +252,14 @@ class ArxOVRO(object):
         self.arxlist = [self.arx1, self.arx2, self.arx3, self.arx4]
         
         # Setup lists for ARX setup storage
-        self.at1_settings  = [0 for ii in range(256)]
-        self.at2_settings  = [0 for ii in range(256)]
+        self.at1_settings  = [10 for ii in range(256)]
+        self.at2_settings  = [10 for ii in range(256)]
+        self.ats_settings  = [30 for ii in range(256)]
         self.fee_settings  = [(False, False) for ii in range(256)]
         self.fil_settings  = [0 for ii in range(256)]
-        self.bad_pols = []
+        self.bad_stands    = []
+        self.semi_stands   = []
+        
     
     def __repr__(self):
         toprint = "### LEDA-OVRO ARX CONTROLLER\n"
@@ -268,6 +269,19 @@ class ArxOVRO(object):
         toprint += "%s \n"%self.arx4.__repr__()
         return toprint
     
+    def getStandSettings(self, stand_idx):
+        """ Return a tuple of stand settings.
+        
+        returns:
+            Tuple of (at1, at2, ats, fil, fee)
+        """
+        at1  = self.at1_settings[stand_idx]
+        at2  = self.at2_settings[stand_idx]
+        ats  = self.ats_settings[stand_idx]
+        fil  = self.fil_settings[stand_idx]
+        fee  = self.fee_settings[stand_idx]
+        return at1, at2, ats, fil, fee
+        
     def loadSettings(self, filename):
         """ Load ARXsettings from file 
         
@@ -295,6 +309,9 @@ class ArxOVRO(object):
         f.write("at2_settings = [%s]\n" \
                     % ", ".join([str(x) for x in self.at2_settings]))
         f.write("\n")
+        f.write("ats_settings = [%s]\n" \
+                    % ", ".join([str(x) for x in self.ats_settings]))
+        f.write("\n")
         f.write("fee_settings = [%s]\n" \
                     % ", ".join([str(x) for x in self.fee_settings]))
         f.write("\n")
@@ -303,7 +320,7 @@ class ArxOVRO(object):
         f.write("\n")
         f.close()    
     
-    def applySettings(self, set_at1=True, set_at2=True, set_fil=True, set_fee=True):
+    def applySettings(self, set_at1=True, set_at2=True, set_ats=True, set_fil=True, set_fee=True):
         """ Apply all settings to all ARX boards.
         
         Applies settings (as stored in self.*_settings lists).
@@ -311,6 +328,7 @@ class ArxOVRO(object):
         Arguments:
             set_at1 (bool): Set first attenuator. Default True.
             set_at2 (bool): Set second attenuator. Default True.
+            set_ats (bool): Set split-level attenuator. Default True.
             set_fil (bool): Set filters. Default True.
             set_fee (bool): Set fee power. Default True.
         """
@@ -322,21 +340,20 @@ class ArxOVRO(object):
             arxlist[ii].initialize()
             print arxlist[ii]
             time.sleep(0.1)
-            print "STAND | AT1 | AT2 | FIL | FEE "
-            print "------|-----|-----|-----|----------"
+            self.printHeader()
+            
             for jj in range(64):
                 stand_num = ii*64 + jj + 1
                 stand_idx = stand_num - 1
                 bd_stand  = jj + 1
-                at1  = self.at1_settings[stand_idx]
-                at2  = self.at2_settings[stand_idx]
-                fil  = self.fil_settings[stand_idx]
-                fee  = self.fee_settings[stand_idx]
-                print "%5s |%4s |%4s |%4s | %6s"%(stand_num, at1, at2, fil, fee)
+                at1, at2, ats, fil, fee = self.getStandSettings(stand_idx)
+                print "%5s |%4s |%4s |%4s |%4s | %6s"%(stand_num, at1, at2, ats, fil, fee)
                 if set_at1:
                     arxlist[ii].setAT1(at1, bd_stand)
                 if set_at2:
                     arxlist[ii].setAT2(at2, bd_stand)
+                if set_ats:
+                    arxlist[ii].setATS(ats, bd_stand)
                 if set_fil:
                     arxlist[ii].setFilter(fil, bd_stand)
                 if set_fee:
@@ -345,35 +362,35 @@ class ArxOVRO(object):
             arxlist[ii].close()
             time.sleep(0.1)
     
-    def applySingle(self, stand):
+    def applySingle(self, stand, print_header=True):
         """ Apply settings to a single ARX path 
         
         Arguments:
             stand (int): Stand to apply settings to.
+            print_header (bool): print table header. Defaults to True.
         """
         arxlist = self.arxlist
         arx_idx   = int(stand / 64)
         stand_idx = stand - 1
         bd_stand  = (stand_idx % 64) + 1
         
-        at1  = self.at1_settings[stand_idx]
-        at2  = self.at2_settings[stand_idx]
-        fil  = self.fil_settings[stand_idx]
-        fee  = self.fee_settings[stand_idx]
+        at1, at2, ats, fil, fee = self.getStandSettings(stand_idx)
         
         arxlist[arx_idx].connect()
         arxlist[arx_idx].initialize()
         arxlist[arx_idx].setAT1(at1, bd_stand)
         arxlist[arx_idx].setAT2(at2, bd_stand)
+        arxlist[arx_idx].setATS(ats, bd_stand)
         arxlist[arx_idx].setFilter(fil, bd_stand)
         arxlist[arx_idx].powerFEE(fee[0], fee[1], stand = bd_stand)
         #arxlist[arx_idx].shutdown()
         arxlist[arx_idx].close()
-                
-        print "STAND | AT1 | AT2 | FIL | FEE "
-        print "------|-----|-----|-----|----------"
-        print "%5s |%4s |%4s |%4s | %6s"%(stand, at1, at2, fil, fee)
-
+        
+        if print_header:        
+            self.printHeader()
+        print "%5s |%4s |%4s |%4s |%4s | %6s"%(stand, at1, at2, ats, fil, fee)
+        
+    
         
     def listSettings(self, stand_num = None):
         """ prints the configured values for each stand 
@@ -383,18 +400,20 @@ class ArxOVRO(object):
                              a list of all stand values will be returned.
                              NB: First stand is 1, not 0.
         """
-        print "STAND | AT1 | AT2 | FIL | FEE "
-        print "------|-----|-----|-----|------"
+        
+        self.printHeader()
         if not stand_num:
             stand_ids = range(1, 256+1)
         else:
             stand_ids = [stand_num]
         for ii in stand_ids:
-            at1  = self.at1_settings[ii - 1]
-            at2  = self.at2_settings[ii - 1]
-            fil  = self.fil_settings[ii - 1]
-            fee  = self.fee_settings[ii - 1]
-            print "%5s |%4s |%4s |%4s |%6s"%(ii, at1, at2, fil, fee)
+            at1, at2, ats, fil, fee = self.getStandSettings(ii - 1)
+            print "%5s |%4s |%4s |%4s |%4s | %6s"%(ii, at1, at2, ats, fil, fee)
+    
+    def printHeader(self):
+        """ Print table header to screen """
+        print "STAND | AT1 | AT2 | ATS | FIL | FEE "
+        print "------|-----|-----|-----|-----|----------"
     
     def setAT1(self, dB, stand=0):
         """ Set level of first attenuator
@@ -404,7 +423,7 @@ class ArxOVRO(object):
             stand (int): Stand number (from 1). If set to 0, applied to all stands.
         """
         if stand == 0:
-            self.at1_settings = [dB for ii in range(512)]
+            self.at1_settings = [dB for ii in range(256)]
         else:
             self.at1_settings[stand - 1] = dB
     
@@ -416,9 +435,21 @@ class ArxOVRO(object):
             stand (int): Stand number. If set to zero, applied to all stands.
         """
         if stand == 0:
-            self.at2_settings = [dB for ii in range(512)]
+            self.at2_settings = [dB for ii in range(256)]
         else:
             self.at2_settings[stand - 1] = dB
+
+    def setATS(self, dB, stand=0):
+        """ Set level of split-level attenuator
+        
+        Arguments:
+            dB (int): Attenuation to apply, in decibels.
+            stand (int): Stand number. If set to zero, applied to all stands.
+        """
+        if stand == 0:
+            self.ats_settings = [dB for ii in range(256)]
+        else:
+            self.ats_settings[stand - 1] = dB
         
     def setFilter(self, filterNum, stand = 0):
         """ Configure ARX filters.
@@ -429,15 +460,13 @@ class ArxOVRO(object):
             
         Notes:
             The possible filter values are:
-            splitFilter    = 0
+            splitFilter    = 0   (Normal operating mode)
             fullFilter     = 1
-            reducedFilter  = 2
+            reducedFilter  = 2   (Narrowband operating mode)
             signalChainOff = 3
-        
-        TODO: Implement!
         """
         if stand == 0:
-            self.fil_settings = [filterNum for ii in range(512)]
+            self.fil_settings = [filterNum for ii in range(256)]
         else:
             self.fil_settings[stand - 1] = filterNum
         
@@ -452,13 +481,22 @@ class ArxOVRO(object):
         TODO: Implement!
         """
         if stand == 0:
-            self.fee_settings = [(xpol, ypol) for ii in range(512)]
+            self.fee_settings = [(xpol, ypol) for ii in range(256)]
         else:
             self.fee_settings[stand - 1] = (xpol, ypol)
 
     def setFEE(self, xpol = True, ypol = None,  stand = 0):
         """ Alias for powerFEE() method """
         self.powerFEE(xpol, ypol, stand)
+    
+    def disableBadStands(self):
+        """ Set bad stands to be turned off """
+        print "Disabling stands marked as faulty..."
+        for ii in range(len(self.at1_settings)):
+            if ii + 1 in self.bad_stands or ii+1 in self.semi_stands:
+                self.setFEE(False, False, ii+1)
+                self.setFilter(3, ii+1)
+                self.applySingle(ii+1, print_header=False)
     
 if __name__ == '__main__':
     # Basic testing and examples
