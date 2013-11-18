@@ -58,7 +58,7 @@ logpath = getenv_warn('LEDA_LOG_DIR', "/home/leda/logs")
 
 ninput    = 512
 nchan     = 109
-ntime     = 8192
+ntime     = 8000 # Note: Exactly 1 sec with 24.0kHz chans
 nstream   = 2
 lowfreq   = 30.0
 baseband_noutchan = 3
@@ -80,8 +80,8 @@ bufkeys  = ["dada", "eada", # Captured
 bufsizes = [bufsize]*nstream + [upsize]*nstream + [outsize]*nstream \
     + [beamoutsize]*nstream + [basebandoutsize]*nstream
 bufcores = [1, 9,
-			1, 9,
-			1, 9,
+            1, 9,
+            1, 9,
             1, 9,
             1, 9]
 
