@@ -633,8 +633,8 @@ class LEDAServer(object):
 		for buf in self.buffers:
 			buf.destroy()
 	def setTotalPowerRecording(self, ncycles):
-		for xengine_proc in self.xengine:
-			xengine_proc.tp_ncycles = ncycles
+		#for xengine_proc in self.xengine:
+		#	xengine_proc.tp_ncycles = ncycles
 		for post_proc in self.post:
 			post_proc.totalpower = (ncycles != 0)
 	def armPipeline(self, mode='correlator'):
