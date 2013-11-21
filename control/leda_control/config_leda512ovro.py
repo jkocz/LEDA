@@ -148,8 +148,9 @@ disk_path           = os.path.join(getenv_warn('PSRDADA_DIR',
 disk_outpaths       = ["/data1/one", "/data2/one"]
 disk_cores          = [5, 13]
 
-post_path           = os.path.join(getenv_warn('LEDA_DADA_DIR',
-                                               "/home/leda/software/psrdada/leda/src"),
+# TODO: This is crap, fix it (problem is that no other exe is used from this dir!)
+post_path           = os.path.join(getenv_warn('LEDA_REPO_DADA_DIR',
+                                               "/home/leda/software/LEDA/dada"),
                                    "leda_dbpost.py")
 post_logfiles       = [os.path.join(logpath,"dbpost."+bufkey) \
 	                       for bufkey in xengine_bufkeys]

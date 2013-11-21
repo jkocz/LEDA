@@ -279,13 +279,15 @@ class LEDAXEngineProcess(LEDAProcess):
 			args += " -c %i" % self.core
 		## TODO: This is for the older leda_dbgpu code
 		#args += " -g %i %s %s" % (self.gpu, self.in_bufkey, self.out_bufkey)
-		
+		"""
+		# TODO: This has been replaced with leda_dbpost's tp integration support
 		if self.tp_ncycles != 0:
 			# TODO: Ideally this would be set to match the proper start time
 			utc = datetime.datetime.utcnow().strftime("%Y-%m-%d-%H:%M:%S")
 			total_power_outfile = os.path.join(self.tp_outpath,
 			                                   "total_power_" + utc + "." + self.in_bufkey)
 			args += " -p %s -n %i" % (total_power_outfile, self.tp_ncycles)
+		"""
 		args += " -d %i -t %i %s %s" \
 		    % (self.gpu, self.navg,
 		       self.in_bufkey, self.out_bufkey)
