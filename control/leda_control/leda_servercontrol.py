@@ -200,6 +200,7 @@ class LEDAPostProcess(LEDAProcess):
 		self.totalpower = totalpower
 		self.correlator = correlator
 		self.transients_key = transients_key
+		self.bdi = bdi
 		if not os.path.exists(outpath):
 			raise ValueError("Output path '%s' does not exist" % outpath)
 	def start(self):
