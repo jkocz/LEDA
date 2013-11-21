@@ -7,8 +7,8 @@ OPTIMISE = -O3
 DEBUG    = -g
 
 SOURCES = pysrdada.c pysrdada.h
-INCLUDE = -I$(PSRDADA_DIR)/src
-LIB     = -L$(PSRDADA_DIR)/src/.libs -lpsrdada
+INCLUDE = -I$(PSRDADA_DIR)/src -I$(PSRDADA_DIR)
+LIB     = -L$(PSRDADA_DIR)/src/.libs -L$(PSRDADA_DIR)/.libs -lpsrdada
 
 LIB_NAME  := libpysrdada
 SO_EXT    := .so

@@ -189,6 +189,33 @@ class LEDAProcess(object):
 			basename = os.path.basename(self.path)
 			return process_running(basename)
 
+class LEDAPostProcess(LEDAProcess):
+	def __init__(self, logpath, path, bufkey, outpath, core=None,
+	             totalpower=False, correlator=False, transients_key=None,
+	             bdi=False):
+		LEDAProcess.__init__(self, logpath, path)
+		self.bufkey  = bufkey
+		self.outpath = outpath
+		self.core    = core
+		self.totalpower = totalpower
+		self.correlator = correlator
+		self.transients_key = transients_key
+		if not os.path.exists(outpath):
+			raise ValueError("Output path '%s' does not exist" % outpath)
+	def start(self):
+		args = ""
+		if self.totalpower:
+			args += " -tp"
+		if self.correlator:
+			args += " -corr"
+		if self.transients_key is not None:
+			args += " -trkey " + self.bufkey
+		if self.bdi:
+			args += " -bdi"
+		# TODO: Add core parameter and any others
+		args += " -o %s %s" % (self.outpath, self.bufkey)
+		self._startProc(args)
+
 class LEDADiskProcess(LEDAProcess):
 	def __init__(self, logpath, path, bufkey, outpath, core=None):
 		LEDAProcess.__init__(self, logpath, path)
@@ -539,6 +566,11 @@ class LEDAServer(object):
 			             in zip(disk_logfiles,xengine_bufkeys,disk_outpaths,
 			                    disk_cores)]
 		
+		self.post = [LEDAPostProcess(logfile,post_path,bufkey,outpath,core) \
+			             for logfile,bufkey,outpath,core \
+			             in zip(post_logfiles,xengine_bufkeys,disk_outpaths,
+			                    disk_cores)]
+		
 		self.beam = [LEDABeamProcess(logfile,beam_path,in_bufkey,out_bufkey,
 		                             lat,lon,standfile,
 		                             gpu=gpu,core=core,verbosity=2) \
@@ -565,12 +597,13 @@ class LEDAServer(object):
 		all_buffers_exist = True
 		for buf in self.buffers:
 			all_buffers_exist = all_buffers_exist and buf.exists()
-		for capture_proc,unpack_proc,xengine_proc,disk_proc,beam_proc,baseband_proc in \
-			    zip(self.capture,self.unpack,self.xengine,self.disk,self.beam,self.baseband):
+		for capture_proc,unpack_proc,xengine_proc,disk_proc,post_proc,beam_proc,baseband_proc in \
+			    zip(self.capture,self.unpack,self.xengine,self.disk,self.post,self.beam,self.baseband):
 			capture = 'ok' if capture_proc.isRunning() else 'down'
 			unpack  = 'ok' if unpack_proc.isRunning()  else 'down'
 			xengine = 'ok' if xengine_proc.isRunning() else 'down'
 			disk    = 'ok' if disk_proc.isRunning()    else 'down'
+			post    = 'ok' if post_proc.isRunning()    else 'down'
 			beam    = 'ok' if beam_proc.isRunning()    else 'down'
 			baseband= 'ok' if baseband_proc.isRunning()else 'down'
 			buffers = 'ok' if all_buffers_exist        else 'down'
@@ -581,6 +614,7 @@ class LEDAServer(object):
 			               'unpack':       unpack,
 			               'xengine':      xengine,
 			               'disk':         disk,
+			               'post':         post,
 			               'beam':         beam,
 			               'baseband':     baseband,
 			               'disk_info':    disk_info,
@@ -600,21 +634,27 @@ class LEDAServer(object):
 	def setTotalPowerRecording(self, ncycles):
 		for xengine_proc in self.xengine:
 			xengine_proc.tp_ncycles = ncycles
+		for post_proc in self.post:
+			post_proc.totalpower = (ncycles != 0)
 	def armPipeline(self, mode='correlator'):
 		self.mode = mode
 		# Set which buffers to write to disk
 		if mode == 'beam' or mode == 'incoherent':
 			for disk_proc,beam_proc in zip(self.disk,self.beam):
 				disk_proc.bufkey = beam_proc.out_bufkey
+				disk_proc.start()
 		elif mode == 'baseband':
 			for disk_proc,baseband_proc in zip(self.disk,self.baseband):
 				disk_proc.bufkey = baseband_proc.out_bufkey
+				disk_proc.start()
 		else:
-			for disk_proc,xengine_proc in zip(self.disk,self.xengine):
-				disk_proc.bufkey = xengine_proc.out_bufkey
+			for disk_proc,post_proc,xengine_proc in zip(self.disk,self.post,self.xengine):
+				#disk_proc.bufkey = xengine_proc.out_bufkey
+				post_proc.bufkey = xengine_proc.out_bufkey
+				post_proc.start()
 		
-		for disk_proc in self.disk:
-			disk_proc.start()
+		#for disk_proc in self.disk:
+		#	disk_proc.start()
 		#time.sleep(1)
 		for unpack_proc in self.unpack:
 			unpack_proc.start()

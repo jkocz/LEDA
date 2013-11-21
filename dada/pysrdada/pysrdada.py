@@ -5,7 +5,9 @@ import numpy
 import array
 from ctypes import *
 
-lib = cdll.LoadLibrary('libpysrdada.so')
+# TODO: What should this be?
+#lib = cdll.LoadLibrary('libpysrdada.so')
+lib = cdll.LoadLibrary('pysrdada/libpysrdada.so')
 
 class DADA_HANDLE_STRUCT(Structure):
 	pass
@@ -26,6 +28,8 @@ class dada_handle(object):
 		if ret != self.DADA_NO_ERROR:
 			raise(Exception(self.get_error_string(ret)))
 	def connect(self, key):
+		if isinstance(key, basestring):
+			key = int(key, 16)
 		self._check_error(self.lib.dada_connect(self.obj, key))
 	def disconnect(self):
 		self._check_error(self.lib.dada_disconnect(self.obj))

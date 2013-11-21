@@ -58,7 +58,7 @@ logpath = getenv_warn('LEDA_LOG_DIR', "/home/leda/logs")
 
 ninput    = 512
 nchan     = 109
-ntime     = 8000 # Note: Exactly 1 sec with 24.0kHz chans
+ntime     = 8000 # Note: Exactly 1/3 sec with 24.0kHz chans
 nstream   = 2
 lowfreq   = 30.0
 baseband_noutchan = 3
@@ -134,7 +134,8 @@ xengine_path        = os.path.join(getenv_warn('LEDA_XENGINE_DIR',
                                                "/home/leda/LEDA/xengine"),
                                    "leda_dbxgpu")
 xengine_gpus        = [0, 1]
-xengine_navg        = 25
+#xengine_navg        = 25
+xengine_navg        = 3 # Exactly 1 second
 xengine_cores       = [4, 12]
 xengine_tp_ncycles  = 100
 
@@ -146,6 +147,12 @@ disk_path           = os.path.join(getenv_warn('PSRDADA_DIR',
 #disk_outpaths       = ["/data1/one", "/data1/two"]
 disk_outpaths       = ["/data1/one", "/data2/one"]
 disk_cores          = [5, 13]
+
+post_path           = os.path.join(getenv_warn('LEDA_DADA_DIR',
+                                               "/home/leda/software/psrdada/leda/src"),
+                                   "leda_dbpost.py")
+post_logfiles       = [os.path.join(logpath,"dbpost."+bufkey) \
+	                       for bufkey in xengine_bufkeys]
 
 beam_bufkeys        = ["abda", "ebda"]
 beam_logfiles       = [os.path.join(logpath,"dbbeam."+bufkey) \
