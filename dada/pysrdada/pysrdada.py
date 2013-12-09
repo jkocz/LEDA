@@ -6,8 +6,8 @@ import array
 from ctypes import *
 
 # TODO: What should this be?
-#lib = cdll.LoadLibrary('libpysrdada.so')
-lib = cdll.LoadLibrary('pysrdada/libpysrdada.so')
+lib = cdll.LoadLibrary('libpysrdada.so')
+#lib = cdll.LoadLibrary('pysrdada/libpysrdada.so')
 
 class DADA_HANDLE_STRUCT(Structure):
 	pass

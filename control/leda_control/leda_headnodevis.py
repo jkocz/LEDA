@@ -727,6 +727,14 @@ def onMessage(ledavis, message, clientsocket, address):
 		else:
 			powspectra_x, powspectra_y = ret
 			
+			navg = 16
+			for rep in xrange(navg-1):
+				new_x, new_y = ledavis.getADCAllSpectra()
+				powspectra_x += new_x
+				powspectra_y += new_y
+			powspectra_x /= float(navg)
+			powspectra_y /= float(navg)
+			
 			lofreq = 0.0
 			hifreq = 98.304
 			
@@ -738,14 +746,17 @@ def onMessage(ledavis, message, clientsocket, address):
 			du = 1.1 * (xmax-xmin)
 			dv = 1.1 * (ymax-ymin)
 			
-			plt.figure(figsize=(20.48, 7.68), dpi=100)
+			plt.figure(figsize=(40.96, 3.84), dpi=100)
+			
+			#plt.xlim([xmin, xmax])
+			plt.ylim([ymin, ymax])
 			
 			nchan_reduced = powspectra_x.shape[0]
 			freqs = np.linspace(lofreq, hifreq, nchan_reduced)
 			
 			ntile = 16
 			#for v in range(ledavis.nstation / ntile):
-			v = i
+			v = idx
 			for u in range(ntile):
 				i = u + v*ntile
 				powspec_x = powspectra_x[:,i]
@@ -757,10 +768,10 @@ def onMessage(ledavis, message, clientsocket, address):
 				stand_i = ledavis.adc2stand[i]
 				plt.plot(freqs + u*du, powspec_x, color='r', linewidth=0.5)
 				plt.plot(freqs + u*du, powspec_y, color='b', linewidth=0.5)
-				plt.text(xmin + (u+0.4)*du, ymin,
+				plt.text(xmin + (u+0.4)*du, ymin+2,
 				         # Note: i here is (0-based) real stand index
 						 stand_i + 1,
-						 fontsize=6, color='black')
+						 fontsize=24, color='black')
 					
 		imgfile = StringIO.StringIO()
 		plt.savefig(imgfile, format=image_format, bbox_inches='tight')

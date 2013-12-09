@@ -86,7 +86,7 @@ class XGPUReader(object):
 			rtt_stations  = (rtt_i[valid], rtt_j[valid])
 			rtt_bids      = bid(*rtt_stations)
 			# Now we invert the mapping using a scatter
-			self.bid_rtts = np.zeros(self.nbaseline)
+			self.bid_rtts = np.zeros(self.nbaseline, dtype=np.int32)
 			# Note: This is a many-to-one scatter, but degenerate indices all
 			#         correspond to the same baseline, so we don't care
 			#         which end up winning the race conditions.
@@ -118,7 +118,9 @@ class XGPUReader(object):
 		return data
 	def process_reg_tile_triangular(self, rawdata):
 		# Note: rawdata is ordered (ndim, nchan, rtt_nbaseline, npol, npol)
-		rawshape = (2,self.nbin,self.nchan,self.nbaseline,self.npol,self.npol)
+		nbaseline = self.reg_tile_triangular_nbaseline()
+		rawshape = (2,self.nbin,self.nchan,nbaseline,self.npol,self.npol)
+		print 'rawshape:', rawshape
 		data = rawdata.view(dtype=np.float32).reshape(rawshape)
 		data = data[0] + 1j*data[1] # Combine components into complex
 		data = data[:,:,self.bid_rtts,:,:] # Extract triangular baselines

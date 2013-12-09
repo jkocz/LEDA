@@ -18,6 +18,7 @@ if __name__ == '__main__':
     reprogram_arx = True
     autocal_arx   = True
     savecal_arx   = True
+    disable_bad   = False
     
     # ROACH settings
     boffile         = 'l512_actual.bof'
@@ -67,7 +68,8 @@ if __name__ == '__main__':
         a.computeCalibration(target_rms)
     a.listCalibration()
     
-    a.disableBadStands()
+    if disable_bad:
+       a.disableBadStands()
     
     print "Final ARX settings:"
     a.listSettings()

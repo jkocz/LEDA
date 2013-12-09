@@ -371,6 +371,8 @@ class ArxOVRO(object):
         """
         arxlist = self.arxlist
         arx_idx   = int(stand / 64)
+        if arx_idx == 4:
+            arx_idx = 3
         stand_idx = stand - 1
         bd_stand  = (stand_idx % 64) + 1
         

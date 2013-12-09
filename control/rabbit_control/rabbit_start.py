@@ -14,9 +14,10 @@ if __name__ == "__main__":
     
     host = "192.168.25.7"
     #host = "192.168.25.8" # WRONG
-    port = 3023
+    port = 1738
+    #port = 3023
     #port = 3022 # WRONG
-    print "Connecting..."
+    print "Connecting to %s:%s"%(host, port)
     sock.connect((host, port))
     
     #print "Sending 'hold'..."

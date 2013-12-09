@@ -19,7 +19,7 @@ roach14    = 'rofl14'
 roach15    = 'rofl15'
 roach16    = 'rofl16'
 
-roach_array = ('rofl1', 'rofl2','rofl3','rofl4','rofl5','rofl6',
+roach_array = ('rofl1', 'rofl2','rofl3','rofl4','rofl5','rofl6','rofl7',
 	       'rofl8', 'rofl9','rofl10','rofl11','rofl12','rofl13','rofl14',
 	       'rofl15','rofl16')
 
