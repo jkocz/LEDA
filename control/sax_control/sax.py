@@ -22,13 +22,13 @@ class saxController(object):
     debug (bool):       Enable debug output (more expections raised). Defaults to False.
     """
     
-    def __init__(self, ip_addr = ('192.168.25.7', 3023), 
-                 connect = True, verbose = True, debug = False):
+    def __init__(self, ip_addr = ('192.168.25.7', 1738), 
+                 connect = True, verbose = False, debug = False):
                  
         self.host = ip_addr[0]
         self.port = ip_addr[1]
-        self.debug   = True
-        self.verbose = True
+        self.debug   = debug
+        self.verbose = verbose
         self.socket = socket.socket()
         self.is_connected = False
         
@@ -37,15 +37,17 @@ class saxController(object):
     
     def connect(self):
         """ Connect to Rabbit board via socket """
-        if self.verbose:
+        if self.is_connected:
+            print "Already connected on %s:%s"%(self.host, self.port)
+        else:
             print "Connecting to %s:%s"%(self.host, self.port)
-        try:
-            self.socket.connect((self.host, self.port))
-            self.is_connected = True
-        except:
-            print "Error: could not connect."
-            if self.debug:
-                raise
+            try:
+                self.socket.connect((self.host, self.port))
+                self.is_connected = True
+            except:
+                print "Error: could not connect."
+                if self.debug:
+                   raise
     
     def sendCmd(self, cmd):
         """ Send a command to the rabbit.
@@ -64,9 +66,9 @@ class saxController(object):
 
         ret = self.socket.sendall(cmd)
         if self.verbose:
-            print "  Sent", ret, "bytes"
+            print "Sent", ret, "bytes"
             print "Receiving..."
-        ret = sock.recv(512)
+        ret = self.socket.recv(512)
         if self.verbose:
             print "Received:", ret
         return 1
