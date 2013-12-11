@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """ 
-ping_all.py
+ipmi_check.py
 
-Pings all hosts in /etc/hosts, and reports which ones do not respond. 
+Looks for IPMI hosts in /etc/hosts, and checks the power status via IPMI
 """
 
 import os
@@ -12,27 +12,22 @@ from threading import Thread
 from Queue import Queue
 from optparse import OptionParser
 
-from ping_all import read_hosts
+from ping_check import read_hosts
 
 def impier(i, q):
     """ Worker thread that issues IPMI command 
     
     Arguments:
-    i (IP address or hostname)
-    q (queue)
+    i (int) Thread ID
+    q (queue) Queue ID
     """
     while True:
-    	hostname = q.get()
-    	sp = subprocess.Popen(["ipmitool", "-H", "%s"%hostname, "-U", "ADMIN", "-P", "ADMIN", 
+        hostname = q.get()
+        sp = subprocess.Popen(["ipmitool", "-H", "%s"%hostname, "-U", "ADMIN", "-P", "ADMIN", 
                                "power", "status"], stdout = subprocess.PIPE)
         out, err = sp.communicate()
         print "%s: %s"%(hostname, out.strip())
-        #if ret == 0:
-        #	# print "%s: is alive" % ip
-        #    pass
-    	#else:
-        #	print "%s: did not respond"%hostname
-    	q.task_done()
+        q.task_done()
 
 if __name__ == '__main__':
     hosts = read_hosts()

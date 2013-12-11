@@ -16,8 +16,8 @@ def pinger(i, q):
     """ Worker thread that pings given IP 
     
     Arguments:
-    i (IP address, hostname)
-    q (queue)
+    i (int) Thread ID
+    q (queue) Queue ID
     """
     while True:
     	ip, hostname = q.get()
