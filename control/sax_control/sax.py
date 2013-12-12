@@ -12,6 +12,8 @@ __status__     = "Development"
 
 import socket
 
+from leda_config import sax_config
+
 class saxController(object):
     """ Python class for control of the switching assembly 
     
@@ -22,7 +24,7 @@ class saxController(object):
     debug (bool):       Enable debug output (more expections raised). Defaults to False.
     """
     
-    def __init__(self, ip_addr = ('192.168.25.7', 1738), 
+    def __init__(self, ip_addr = (sax_config.host, sax_config.port), 
                  connect = True, verbose = False, debug = False):
                  
         self.host = ip_addr[0]
@@ -89,20 +91,63 @@ class saxController(object):
         s = self.sendCmd('start')
         
         if s == 1:
-            print "Switching assembly started."
+            print "1PPS triggered switching started."
         else:
             print "Error: Could not start assembly."
     
+    def start_switching(self):
+        """ Send start command to rabbit.
+        
+        This will start the switching assembly stepping between
+        15, 16 and 17 V in order to switch between sky, noise and load.
+        """
+        self.start()
+    
     def hold(self):
+        """ Send HOLD command to rabbit.
+        
+        This will instruct the switching assembly to hold at 15 V (sky/ant).
+        
+        Notes
+        -----
+        Deprecated in favor of hold_sky, hold_hot and hold_cold methods.
+        """
+        self.hold_sky()
+            
+    def hold_sky(self):
         """ Send start command to rabbit.
         
         This will instruct the switching assembly to hold its current
         voltage level (keep it fixed on sky / noise / load)
         """
-        s = self.sendCmd('hold')
+        s = self.sendCmd('hold_sky')
         
         if s == 1:
-            print "Switching assembly HOLD on current voltage."
+            print "Switching assembly HOLD on SKY voltage (15 V)."
+        else:
+            print "Error: Could not HOLD."
+            
+    def hold_hot(self):
+        """ Send HOLD_HOT command to rabbit.
+        
+        This will instruct the switching assembly to hold at 17 V (hot/diode)
+        """
+        s = self.sendCmd('hold_hot')
+        
+        if s == 1:
+            print "Switching assembly HOLD on HOT voltage (17 V)."
+        else:
+            print "Error: Could not HOLD."
+
+    def hold_cold(self):
+        """ Send start command to rabbit.
+        
+        This will instruct the switching assembly to hold at 16 V (cold/load)
+        """
+        s = self.sendCmd('hold_cold')
+        
+        if s == 1:
+            print "Switching assembly HOLD on COLD voltage (16 V)."
         else:
             print "Error: Could not HOLD."
     
