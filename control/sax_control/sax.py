@@ -14,14 +14,19 @@ import socket
 
 from leda_config import sax_config
 
-class saxController(object):
+class SaxController(object):
     """ Python class for control of the switching assembly 
     
-    Arguments:
-    ip_addr (str, int): Rabbit IP address and port. 
-    connect (bool):     Connect to socket on initialization. Defaults to True.
-    verbose (bool):     Enable or disable verbose output. Defaults to True.
-    debug (bool):       Enable debug output (more expections raised). Defaults to False.
+    Parameters
+    ----------
+    ip_addr : (str, int)
+        Rabbit IP address and port. 
+    connect : (bool)   
+        Connect to socket on initialization. Defaults to True.
+    verbose : (bool)   
+        Enable or disable verbose output. Defaults to True.
+    debug   : (bool)   
+        Enable debug output (more expections raised). Defaults to False.
     """
     
     def __init__(self, ip_addr = (sax_config.host, sax_config.port), 
@@ -54,8 +59,10 @@ class saxController(object):
     def sendCmd(self, cmd):
         """ Send a command to the rabbit.
         
-        Arguments: cmd (str): command to send.
-        Returns 0 if unsuccessful, or 1 if successful
+        Parameters
+        ---------- 
+        cmd : (str) 
+            command to send. Returns 0 if unsuccessful, or 1 if successful
         """
         if not self.is_connected:
             self.connect()
@@ -85,8 +92,11 @@ class saxController(object):
     def start(self):
         """ Send start command to rabbit.
         
+        Notes
+        -----
         This will start the switching assembly stepping between
         15, 16 and 17 V in order to switch between sky, noise and load.
+        Switching is triggered by the 1PPS.
         """
         s = self.sendCmd('start')
         
@@ -158,7 +168,10 @@ class saxController(object):
         'manual' mode, which can only be gotten out of by manually pressing
         buttons on the rabbit in real life.
         
-        Arguments: really (Bool): really, really stop the rabbit running.
+        Parameters
+        ---------- 
+        really : (Bool)
+            really, really stop the rabbit running.
         """
         if not really:
             print "WARNING: ARE YOU SURE? THIS WILL PUT THE RABBIT INTO"

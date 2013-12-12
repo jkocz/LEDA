@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import sax
-s = sax.saxController()
+s = sax.SaxController()
 s.start()
 s.close()
 

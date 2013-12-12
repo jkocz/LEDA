@@ -1,6 +1,6 @@
 /*************************************************************************
-    pulse_gen.C
-    Switching assembly rabbit control firmware.
+    SAXMCS.C
+    Switching assembly rabbit control firmware. Previously pulse_gen.c
     Coded up by John Test   (CfA) Aug 2013.
     Modified by Danny Price (CfA) Dec 2013.
 
@@ -58,7 +58,6 @@
 #define S3_BIT  5
 
 /* the default mime type for '/' must be first */
-
 void my_isr0();
 void my_isr1();
 void setup_isr0( void );
@@ -68,15 +67,17 @@ void disable_isr1( void );
 void enable_isr( void );
 void enable_isr1( void );
 void hold_pattern( void );
+void hold_pattern_hot( void );
+void hold_pattern_cold( void );
 void switch_mode( void );
 void cycle_switch( void );
 
 char str_start[] = "start";
 char str_stop[]  = "stop";
 char str_hold[]  = "hold";
-char str_hot[]   = 'hold_hot';
-char str_cold[]  = 'hold_cold';
-char str_sky[]   = 'hold_sky';
+char str_hot[]   = "hold_hot";
+char str_cold[]  = "hold_cold";
+char str_sky[]   = "hold_sky";
 int count;
 int index;
 int switch_enable;
@@ -89,13 +90,10 @@ tcp_Socket socket, socket2;
 void main()
 {
    char message[512] = {0};
-   char    buffer[512];
-    // char    buffer[50];
-    char adc_reading[2];
-   //  char csr_reg_val[1];
+   char buffer[512];
+   char adc_reading[2];
    char func1_reg_val[3];
    char func2_reg_val[2];
-   //  char chan_func_reg_val[3];
    char chan_phase_offset_word[2];
    int i, j;
    int adc_sample;
@@ -107,11 +105,9 @@ void main()
 
    brdInit();
    sock_init_or_exit(1);
-
    BitWrPortI(PADR, &PADRShadow, 1, 0);
    BitWrPortI(PADR, &PADRShadow, 0, 1);
    BitWrPortI(PADR, &PADRShadow, 0, 2);
-
    setup_isr0();
    count = 0;
    index = 0;
@@ -125,38 +121,34 @@ void main()
         printf("Waiting for connection...\n");
           while(!sock_established(&socket) && sock_bytesready(&socket)==-1)
             tcp_tick(NULL);
-
         printf("Connection received...\n");
 
         do {
             bytes_read=sock_fastread(&socket,buffer,sizeof(buffer)-1);
-         isafloat = 0;
+            isafloat = 0;
             if(bytes_read>0) {
                 buffer[bytes_read]=0;
-          //     printf("%s",buffer);
+                //     printf("%s",buffer);
             result = buffer;
             result[strcspn(result,"\n")] = '\0';
-      //      printf("result size is %d\n", strlen(result));
-        //   parse_input(result);
-         //   my_input = (strtok(result, " "));
-       //     printf("The input is %s\n", result);
+            //   printf("result size is %d\n", strlen(result));
+            //   parse_input(result);
+            //   my_input = (strtok(result, " "));
+            //   printf("The input is %s\n", result);
            if (strcmp(result, str_start) == 0){
-
             /*  if (int2 == 1)
                  disable_isr1();   */
-
               if (int1 == 0)
               {
                 enable_isr();
                 switch_enable = 0;
-
               }
-              
            strcat(message, "start enabled\n");
            sock_fastwrite(&socket,message,512);
            message[0] = '\0';
          //     printf("Stop walshing\n");
          //     disable_isr();
+           
         /*********  enable the isr register to read 1 pps  */
           }
            else if(strcmp(result, str_stop) == 0){
@@ -173,16 +165,13 @@ void main()
              /* strcat(message, "switch enabled\n");
               sock_fastwrite(&socket,message,512);
               message[0] = '\0';          */
-
            // disable the isr
-
            }
            else if(strcmp(result, str_hold) == 0){
              //  printf("reset, wait for SOW");
              //  disable_isr();
              //  enable_isr1();
              // disable the isr.  Set the read to the pushbutton
-
              strcat(message, "hold enabled\n");
              sock_fastwrite(&socket,message,512);
              message[0] = '\0';
@@ -226,66 +215,63 @@ void toggle_pe6(void)
 
 void setup_isr0( void )
 {
-   WrPortI(PEDDR, &PEDDRShadow, 0xFC);    // lower bits of port e are interrupts
-   SetVectExtern(0, my_isr0);
-   SetVectExtern(1, my_isr1);
-   // re-setup ISR's to show example of retrieving ISR address using GetVectExtern3000
-   SetVectExtern(0, GetVectExtern(0));
-   SetVectExtern(1, GetVectExtern(1));
-   //    SetVectExtern3000(1, GetVectExtern3000(1));
-
-  WrPortI(I0CR, &I0CRShadow, 0x09);
-  WrPortI(I1CR, &I1CRShadow, 0x00);
-
-   int1 = 1;
- //  if (isr1_enabled == 1)
- //     disable_isr1();
+    WrPortI(PEDDR, &PEDDRShadow, 0xFC);    // lower bits of port e are interrupts
+    SetVectExtern(0, my_isr0);
+    SetVectExtern(1, my_isr1);
+    // re-setup ISR's to show example of retrieving ISR address using GetVectExtern3000
+    SetVectExtern(0, GetVectExtern(0));
+    SetVectExtern(1, GetVectExtern(1));
+    //    SetVectExtern3000(1, GetVectExtern3000(1));
+    
+    WrPortI(I0CR, &I0CRShadow, 0x09);
+    WrPortI(I1CR, &I1CRShadow, 0x00);
+    int1 = 1;
+    //  if (isr1_enabled == 1)
+    //     disable_isr1();
 }
 
 void setup_isr1( void )
 {
     WrPortI(PDDDR, &PDDDRShadow, 0xFD);    // set port E as all inputs
-
-   SetVectExtern(1, my_isr1);
- //    SetVectExtern3000(1, my_isr1);
-   // re-setup ISR's to show example of retrieving ISR address using GetVectExtern3000
-   SetVectExtern(1, GetVectExtern(1));
-  //    SetVectExtern3000(1, GetVectExtern3000(1));
-
-   WrPortI(I1CR, &I1CRShadow, 0x81);
-  //   WrPortI(I1CR, &I1CRShadow, 0x81);
-   //  enable_isr1();
+    SetVectExtern(1, my_isr1);
+    //    SetVectExtern3000(1, my_isr1);
+    // re-setup ISR's to show example of retrieving ISR address using GetVectExtern3000
+    SetVectExtern(1, GetVectExtern(1));
+    //    SetVectExtern3000(1, GetVectExtern3000(1));
+    WrPortI(I1CR, &I1CRShadow, 0x81);
+    //   WrPortI(I1CR, &I1CRShadow, 0x81);
+    //  enable_isr1();
 }
  nodebug root interrupt void my_isr0()
 {
-  //     char message[512] = {0};
-  //   WrPortI(PADR, &PADRShadow, 0x04);
-  //   printf("send 0x%x to port a\n", line_out[index]);
-  //    BitWrPortI(PEDR, &PEDRShadow, 1, 0);
-  // WrPortE(PADR, &PADRShadow, line_out[index]);
-  if (index == 0)
-  {
-   BitWrPortI(PADR, &PADRShadow, 1, 0);
-   BitWrPortI(PADR, &PADRShadow, 0, 1);
-   BitWrPortI(PADR, &PADRShadow, 0, 2);
-   index += 1;
-  }
-  else if (index == 1)
-  {
+    //     char message[512] = {0};
+    //   WrPortI(PADR, &PADRShadow, 0x04);
+    //   printf("send 0x%x to port a\n", line_out[index]);
+    //    BitWrPortI(PEDR, &PEDRShadow, 1, 0);
+    // WrPortE(PADR, &PADRShadow, line_out[index]);
+    if (index == 0)
+    {
+     BitWrPortI(PADR, &PADRShadow, 1, 0);
+     BitWrPortI(PADR, &PADRShadow, 0, 1);
+     BitWrPortI(PADR, &PADRShadow, 0, 2);
+     index += 1;
+    }
+    else if (index == 1)
+    {
      BitWrPortI(PADR, &PADRShadow, 0, 0);
      BitWrPortI(PADR, &PADRShadow, 1, 1);
      BitWrPortI(PADR, &PADRShadow, 0, 2);
      index += 1;
-  }
-  else if (index == 2)
-  {
+    }
+    else if (index == 2)
+    {
      BitWrPortI(PADR, &PADRShadow, 0, 0);
      BitWrPortI(PADR, &PADRShadow, 0, 1);
      BitWrPortI(PADR, &PADRShadow, 1, 2);
      index = 0;
-  }
-  else
-      index += 1;
+    }
+    else
+     index += 1;
 }
 
  nodebug root interrupt void my_isr1()
@@ -416,17 +402,15 @@ void switch_mode( void )
         costate
         {
             if (BitRdPortI(PBDR, S2_BIT))        //wait for switch S2 press
-                abort;
-            waitfor(DelayMs(50));                    //switch press detected if got to here
-
-         if (BitRdPortI(PBDR, S2_BIT))        //wait for switch release
-            {
-             printf("switch 2 pressed\n");
-                sw2=!sw2;
-
-          //set valid switch
-                abort;
-            }
+                   abort;
+               waitfor(DelayMs(50));             //switch press detected if got to here
+            if (BitRdPortI(PBDR, S2_BIT))        //wait for switch release
+               {
+                printf("switch 2 pressed\n");
+                   sw2=!sw2;
+             //set valid switch
+                   abort;
+               }
         }
         costate
         {
@@ -492,7 +476,6 @@ void cycle_switch ( void )
      BitWrPortI(PADR, &PADRShadow, 0, 1);
      BitWrPortI(PADR, &PADRShadow, 1, 2);
      index = 0;
-
   }
   else
       index += 1;
