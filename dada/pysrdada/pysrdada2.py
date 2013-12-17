@@ -118,6 +118,22 @@ class IPCBufObj(object):
 		memmove(ptr, buf, nbytes)
 		self.mark_filled(nbytes)
 
+# TODO: This needs to create/allocate a ipcbuf_t struct instance, set
+#         it to ipcbuf_init, and then either create/destroy or connect/disconnect
+"""
+class IPCBuf(IPCBufObj):
+	def __init__(self, key=0xdada, nbufs=4, bufsz=524288, num_readers=1):
+		IPCBufObj.__init__(self)
+		err = _dada.ipcbuf_create(self.obj, key_t(key),
+		                          c_uint64(nbufs),
+		                          c_uint64(bufsz),
+		                          c_uint(num_readers))
+		if err:
+			raise Exception("IPCBuf: Failed to create buffer")
+	def __del__(self):
+		_dada.ipcbuf_destroy(self.obj)
+"""
+
 class ipcio_t(Structure):
 	pass
 class IPCIoObj(IPCBufObj):
@@ -236,6 +252,8 @@ class DadaHDU(DadaHDUObj):
 
 if __name__ == "__main__":
 	
+	#ipcbuf = IPCBuf(key=0xaada) # Not implemented yet
+	
 	print "Binding thread to core 0"
 	bind_thread_to_core(0)
 	
@@ -245,6 +263,7 @@ if __name__ == "__main__":
 	hdu = DadaHDU(log)
 	print "Setting key"
 	hdu.set_key(0xdada)
+	hdu.set_key("dada")
 	print "Key:", hex(hdu.data_block_key)
 	
 	print "Connecting"
