@@ -80,7 +80,7 @@ class XGPUReader(object):
 				self.tileh = 2
 			# Generate table mapping tri_ind --> rtt_ind
 			rtt_nbaseline = self.reg_tile_triangular_nbaseline()
-			rtt_inds      = np.arange(rtt_nbaseline)
+			rtt_inds      = np.arange(rtt_nbaseline, dtype=np.int32)
 			rtt_i, rtt_j  = self.reg_tile_triangular_stations(rtt_inds)
 			valid = (rtt_i >= rtt_j)
 			rtt_stations  = (rtt_i[valid], rtt_j[valid])
@@ -120,7 +120,8 @@ class XGPUReader(object):
 		# Note: rawdata is ordered (ndim, nchan, rtt_nbaseline, npol, npol)
 		nbaseline = self.reg_tile_triangular_nbaseline()
 		rawshape = (2,self.nbin,self.nchan,nbaseline,self.npol,self.npol)
-		print 'rawshape:', rawshape
+		print 'rawshape: ', rawshape
+		print 'data size:', rawdata.view(dtype=np.float32).size
 		data = rawdata.view(dtype=np.float32).reshape(rawshape)
 		data = data[0] + 1j*data[1] # Combine components into complex
 		data = data[:,:,self.bid_rtts,:,:] # Extract triangular baselines

@@ -9,6 +9,7 @@ TODO: Add high-level convenience functions such as:
         Header parsing/formatting
         Numpy interoperation
         More convenient HDU inteface?
+          E.g., read/write_header, returning/accepting header dicts
 """
 
 #import numpy
@@ -17,10 +18,26 @@ from ctypes import *
 #import warnings
 #import sys
 
+try:
+	import numpy
+except ImportError:
+	pass
+
 # Note: Build psrdada with ./configure --enable-shared
 _dada = cdll.LoadLibrary('libpsrdada.so')
+# TODO: This is only needed for fdopen, used as a way to get FILE* from fileno
+_libc = cdll.LoadLibrary('libc.so.6')
 
 key_t = c_uint
+
+def _module_loaded(module):
+	# TODO: Nicer way to do this?
+	try:
+		module
+	except NameError:
+		return False
+	else:
+		return True
 
 def bind_thread_to_core(core):
 	_dada.dada_bind_thread_to_core.restype = c_int
@@ -28,18 +45,73 @@ def bind_thread_to_core(core):
 	if err:
 		raise Exception("Failed to bind thread to core %i" % core)
 
+def _cast_to_type(string):
+	try: return int(string)
+	except ValueError: pass
+	try: return float(string)
+	except ValueError: pass
+	return string
+def parse_header(headerstr, cast_types=True):
+	header = {}
+	for line in headerstr.split('\n'):
+		try:
+			key, value = line.split()
+		except ValueError:
+			break
+		key = key.strip()
+		value = value.strip()
+		if cast_types:
+			value = _cast_to_type(value)
+		header[key] = value
+	return header
+def serialize_header(headerdict, keypadding=32):
+	return '\n'.join([str(key).ljust(keypadding-1)+" "+str(val) \
+		                  for (key,val) in headerdict.items()]) + '\n'
+
 class multilog_t(Structure):
 	pass
 class MultiLogObj(object):
+	# Note: These come from sys/syslog.h
+	LOG_EMERG   = 0	# system is unusable
+	LOG_ALERT   = 1	# action must be taken immediately
+	LOG_CRIT    = 2	# critical conditions
+	LOG_ERR     = 3	# error conditions
+	LOG_WARNING = 4	# warning conditions
+	LOG_NOTICE  = 5	# normal but significant condition
+	LOG_INFO    = 6	# informational
+	LOG_DEBUG   = 7	# debug-level messages
 	def __init__(self, obj=POINTER(multilog_t)()):
 		self.obj = obj
-	def add(self, fileno):#=sys.stderr.fileno()):
-		err = _dada.multilog_add(self.obj, fileno)
+		# Note: Added functionality
+		self.verbosity = self.LOG_NOTICE
+	def add(self, fileobj):#=sys.stderr.fileno()):
+		fn = fileobj.fileno()
+		_libc.fdopen.restype = c_void_p
+		fp = _libc.fdopen(fn, "w")
+		err = _dada.multilog_add(self.obj, fp)
 		if err:
 			raise Exception("MultiLog: Failed to add file pointer")
-	#def __call__(self, priority, 
+	def __call__(self, msg, priority):
+		if priority > self.verbosity: # Note: Added functionality
+			return
+		if not isinstance(msg, basestring):
+			msg = str(msg)
+		msg += "\n" # Note: Convenient, and important to force flush
+		err = _dada.multilog(self.obj, c_int(priority), r"%s", msg)
+		if err:
+			raise Exception("MultiLog: Failed to write message '%s'" % msg)
+	def error(self, msg):
+		return self.__call__(msg, self.LOG_ERR)
+	def warning(self, msg):
+		return self.__call__(msg, self.LOG_WARNING)
+	def notice(self, msg):
+		return self.__call__(msg, self.LOG_NOTICE)
+	def info(self, msg):
+		return self.__call__(msg, self.LOG_INFO)
+	def debug(self, msg):
+		return self.__call__(msg, self.LOG_DEBUG)
 class MultiLog(MultiLogObj):
-	def __init__(self, name=None):
+	def __init__(self, name):
 		MultiLogObj.__init__(self)
 		self._dada = _dada # Must keep reference; needed in __del__
 		self.obj = _dada.multilog_open(name, 0)
@@ -139,19 +211,30 @@ class ipcio_t(Structure):
 class IPCIoObj(IPCBufObj):
 	def __init__(self, obj=POINTER(ipcio_t)()):
 		self.obj = obj
-	def read(self, buf):
-		nbytes = len(buf)
+	def read(self, buf, nbytes=None):
+		if _module_loaded(numpy):
+			if isinstance(buf, numpy.ndarray):
+				nbytes = buf.nbytes
+				#buf    = buf.ctypes.data # Doesn't work
+				buf    = buf.ctypes.data_as(c_void_p)
+		if nbytes is None:
+			nbytes = len(buf)
 		_dada.ipcio_read.restype = c_ssize_t
 		ret = _dada.ipcio_read(self.obj, buf, c_size_t(nbytes))
 		if ret < 0:
 			raise Exception("IPCIo: Failed to read")
 		return ret
-	def write(self, buf):
+	def write(self, buf, nbytes=None):
 		_dada.ipcio_read.restype = c_ssize_t
 		if isinstance(buf, basestring):
 			# Note: Buffer length is string length + 1 for null terminator
 			buf = create_string_buffer(buf)
-		nbytes = len(buf)
+		elif _module_loaded(numpy):
+			if isinstance(buf, numpy.ndarray):
+				nbytes = buf.nbytes
+				buf    = buf.ctypes.data
+		if nbytes is None:
+			nbytes = len(buf)
 		ret = _dada.ipcio_write(self.obj, buf, c_size_t(nbytes))
 		if ret < 0:
 			raise Exception("IPCIo: Failed to write")
@@ -296,10 +379,19 @@ if __name__ == "__main__":
 	print "Printing header"
 	print hdu.header
 	
+		
+	import numpy as np
+	data = np.ones(10, dtype=np.uint8)
+	hdu.data_block.read(data)
+	#hdu.data_block.read(data.data)
+	#hdu.data_block.read(data.ctypes.data, len(data))
+	print data
+	
 	print "Reading data"
 	buf = create_string_buffer(hdu.data_block.bufsz)
 	while hdu.data_block.read(buf):
 		print buf.value
+	
 	
 	print "Done"
 	

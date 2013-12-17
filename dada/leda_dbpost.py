@@ -17,22 +17,6 @@ import numpy as np
 
 from xgpu_reader import *
 
-# TODO: Consider moving these inside dada_handle for convenience
-def parse_header(headerstr):
-	header = {}
-	for line in headerstr.split('\n'):
-		try:
-			key, value = line.split()
-		except ValueError:
-			break
-		key = key.strip()
-		value = value.strip()
-		header[key] = value
-	return header
-def serialize_header(headerdict, keypadding=32):
-	return '\n'.join([str(key).ljust(keypadding-1)+" "+str(val) \
-		                  for (key,val) in headerdict.items()]) + '\n'
-
 class SDFITSWriter(object):
 	def __init__(self, filestem):
 		self.filestem = filestem
@@ -214,8 +198,10 @@ if __name__ == "__main__":
 	import os
 	import argparse
 	#from pysrdada import dada_handle
-	from pysrdada.pysrdada import dada_handle
+	#from pysrdada.pysrdada import dada_handle
+	from pysrdada.pysrdada2 import *
 	import numpy as np
+	import time
 	
 	parser = argparse.ArgumentParser(description="LEDA post-correlation processor")
 	parser.add_argument("in_key", help="psrdada buffer key to read from")
@@ -232,33 +218,56 @@ if __name__ == "__main__":
 	                    help="psrdada buffer key to write transients data to")
 	parser.add_argument("-o", "--outpath", required=True,
 	                    help="Path where output files should be written")
+	parser.add_argument("-core", "--core", type=int,
+	                    help="CPU core to bind process to")
+	parser.add_argument('--verbose', '-v', action='count', default=0,
+	                    help="Increase verbosity")
+	parser.add_argument('--quiet', '-q', action='count', default=0,
+	                    help="Decrease verbosity")
 	
 	args = parser.parse_args()
 	
-	print "leda_dbpost: Connecting to input buffer '%s'" % (args.in_key,)
-	inbuf = dada_handle("leda_dbpost")
-	inbuf.connect(args.in_key)
+	log = MultiLog("leda_dbpost")
+	log.add(sys.stderr)
+	log.verbosity += args.verbose - args.quiet
+	
+	if args.core is not None:
+		log.notice("Binding thread to core %i" % args.core)
+		bind_thread_to_core(args.core)
+	else:
+		log.notice("Not binding thread to any particular core")
+	
+	log.info("Creating Dada HDU object")
+	#inbuf = dada_handle("leda_dbpost")
+	
+	inbuf = DadaHDU(log)
+	log.info("Connecting to input buffer '%s'" % (args.in_key,))
+	inbuf.set_key(args.in_key)
+	inbuf.connect()
+	log.info("Locking input buffer for read")
 	inbuf.lock_read()
+	log.notice("Waiting to open header")
+	inbuf.open()
 	
-	print "leda_dbpost: Reading header from input buffer"
-	headerstr = inbuf.read_header()
-	header = parse_header(headerstr)
+	log.info("Reading header from input buffer")
+	#headerstr = inbuf.read_header()
+	header = parse_header(inbuf.header)
 	
-	print "leda_dbpost: Creating XGPUReader"
+	log.info("Creating XGPUReader")
 	xgpu_reader = XGPUReader(header)
 	npol = xgpu_reader.npol
 	
 	#npol = int(inbuf.header['NPOL'])
 	utc_start = header['UTC_START']
 	outstem = os.path.join(args.outpath, utc_start)
-	print "leda_dbpost: Output stem set to %s" % (outstem,)
+	log.info("Output stem set to %s" % (outstem,))
 	
 	tp_integrator        = None
 	corr_integrator      = None
 	transient_integrator = None
 	
 	if args.totalpower:
-		print "leda_dbpost: Total power recording enabled"
+		log.notice("Total power recording enabled")
 		tp_writer = SimpleBinaryWriter(header, outstem)
 		#tp_writer = SDFITSWriter( )
 		tp_integrator = TotalPowerIntegrator(stands=[252,253,254,255,256],
@@ -266,45 +275,52 @@ if __name__ == "__main__":
 		                                     #navg=3, nbuf=3)
 		                                     navg=1, nbuf=3)
 		
-	if args.correlator:
-		print "leda_dbpost: Correlator recording enabled"
-		if args.bdi:
-			corr_integrator = BDIIntegrator( )
-		else:
-			corr_integrator = FixedIntegrator( )
+	#if args.correlator:
+	#	print "leda_dbpost: Correlator recording enabled"
+	#	if args.bdi:
+	#		corr_integrator = BDIIntegrator( )
+	#	else:
+	#		corr_integrator = FixedIntegrator( )
 	
-	if args.transients_key:
-		print "leda_dbpost: Transients output enabled"
-		transient_integrator = FixedIntegrator(navg=3)
-		transient_buf = dada_handle("leda_dbpost_transient")
-		transient_buf.connect(args.transients_key)
-		transient_buf.lock_write()
+	#if args.transients_key:
+	#	print "leda_dbpost: Transients output enabled"
+	#	transient_integrator = FixedIntegrator(navg=3)
+	#	transient_buf = dada_handle("leda_dbpost_transient")
+	#	transient_buf.connect(args.transients_key)
+	#	transient_buf.lock_write()
 	
-	print "leda_dbpost: Entering pipeline loop"
-	while not inbuf.eod:
-		print "leda_dbpost: Waiting to read from input buffer"
-		rawdata = inbuf.read_buffer()
-		print "leda_dbpost: Converting raw data"
+	log.info("Allocating raw input buffer")
+	#rawdata = create_string_buffer(inbuf.data_block.bufsz)
+	rawdata = np.zeros(inbuf.data_block.bufsz, dtype=np.uint8)
+	log.info("Entering pipeline loop")
+	#while not inbuf.eod:
+	log.notice("Waiting to read from input buffer")
+	while inbuf.data_block.read(rawdata):
+		#rawdata = inbuf.read_buffer()
+		log.info("Converting raw data")
+		start_time = time.time()
 		data = xgpu_reader.process(rawdata)
+		run_time = time.time() - start_time
+		log.debug("  Time = %f s" % run_time)
+		log.debug("       = %f Hz" % (1./run_time,))
 		
-		if transient_integrator is not None:
-			transient_data = transient_integrator.update(data)
-			if transient_data is not None:
-				transient_buf.write(transient_data)
+		#if transient_integrator is not None:
+		#	transient_data = transient_integrator.update(data)
+		#	if transient_data is not None:
+		#		transient_buf.write(transient_data)
 		
 		if tp_integrator is not None:
-			print "leda_dbpost: Updating total power integrator"
+			log.notice("Updating total power integrator")
 			tp_data = tp_integrator.update(data)
 			if tp_data is not None:
-				print "leda_dbpost: Writing total power integrations"
+				log.notice("Writing total power integrations")
 				tp_writer.write(tp_data)
 		
-		"""
-		if corr_integrator is not None:
-			corr_data = corr_integrator.update(data)
-			if corr_data is not None:
-				corr_writer.write(corr_data)
-		"""
+		#if corr_integrator is not None:
+		#	corr_data = corr_integrator.update(data)
+		#	if corr_data is not None:
+		#		corr_writer.write(corr_data)
+		
 		"""
 		if args.totalpower:
 			## is_switching = bool(header['SWITCHING'])
@@ -314,7 +330,9 @@ if __name__ == "__main__":
 			tp_data = data[:,bid(tp_stands,tp_stands),...][...,pols,pols].real
 			tp_outfile.write(tp_data)
 		"""
+		log.notice("Waiting to read from input buffer")
 		
-	print "leda_dbpost: Disconnecting from input buffer"
+	log.notice("EOD reached")
+	log.info("leda_dbpost: Disconnecting from input buffer")
 	inbuf.disconnect()
 	
