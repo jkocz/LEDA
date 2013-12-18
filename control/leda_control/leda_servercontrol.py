@@ -213,7 +213,9 @@ class LEDAPostProcess(LEDAProcess):
 			args += " -trkey " + self.bufkey
 		if self.bdi:
 			args += " -bdi"
-		# TODO: Add core parameter and any others
+		if self.core is not None:
+			args += " -core %i" % self.core
+		args += " -vv"
 		args += " -o %s %s" % (self.outpath, self.bufkey)
 		self._startProc(args)
 

@@ -170,28 +170,41 @@ class BDIIntegrator(object):
 		return None
 
 class SimpleBinaryWriter(object):
-	def __init__(self, header, outstem, header_size=4096):
-		self.header  = header
-		self.outstem = outstem
-		self.byte_offset = 0
-		self.header_size = header_size
-		
-		self.header["DATA_ORDER"] = "time_state_bin_station_chan_pol"
-	def write(self, data):
+	def __init__(self, header, outstem, suffix=".dada",
+	             max_filesize=2147483647, header_size=4096):
+		self.header       = header
+		self.outstem      = outstem
+		self.byte_offset  = 0
+		self.max_filesize = max_filesize
+		self.header_size  = header_size
+		self.suffix       = suffix
+		self.file         = None
+	def __del__(self):
+		self.close()
+	def open(self):
+		self.close()
+		filename = self.outstem + "_%016i%s" % (self.byte_offset,self.suffix)
+		self.file = open(filename, 'wb')
 		headerstr = serialize_header(self.header)
 		if len(headerstr) > self.header_size:
 			raise ValueError("Serialized header exceeds header size")
-		filename = self.outstem + "_%016i.tp" % (self.byte_offset,)
-		print "Writing data to", filename
-		print "Data shape:", data.shape
-		
-		f = open(filename, 'wb')
-		f.write(headerstr)
-		f.seek(self.header_size, 0)
-		data.tofile(f)
-		f.close()
-		
-		self.byte_offset += data.size * data.itemsize
+		self.file.write(headerstr)
+		self.file.seek(self.header_size, 0)
+	def close(self):
+		if self.file is not None:
+			self.file.close()
+			self.file = None
+	# Note: This method can be used alone, without needing to call open/close
+	def write(self, data):
+		if self.file is None:
+			self.open()
+		elif self.byte_offset + data.nbytes > self.max_filesize:
+			self.open()
+		data.tofile(self.file)
+		self.byte_offset += data.nbytes
+	def reset(self):
+		self.byte_offset = 0
+		self.close()
 
 if __name__ == "__main__":
 	import sys
@@ -239,7 +252,6 @@ if __name__ == "__main__":
 	
 	log.info("Creating Dada HDU object")
 	#inbuf = dada_handle("leda_dbpost")
-	
 	inbuf = DadaHDU(log)
 	log.info("Connecting to input buffer '%s'" % (args.in_key,))
 	inbuf.set_key(args.in_key)
@@ -268,7 +280,10 @@ if __name__ == "__main__":
 	
 	if args.totalpower:
 		log.notice("Total power recording enabled")
-		tp_writer = SimpleBinaryWriter(header, outstem)
+		tpheader = header.copy()
+		tpheader["DATA_ORDER"] = "time_state_bin_station_chan_pol"
+		tp_writer = SimpleBinaryWriter(tpheader, outstem, suffix=".tp",
+		                               max_filesize=(128*1024*1024))
 		#tp_writer = SDFITSWriter( )
 		tp_integrator = TotalPowerIntegrator(stands=[252,253,254,255,256],
 		                                     #navg=3, nbuf=60)
@@ -333,6 +348,6 @@ if __name__ == "__main__":
 		log.notice("Waiting to read from input buffer")
 		
 	log.notice("EOD reached")
-	log.info("leda_dbpost: Disconnecting from input buffer")
+	log.info("Disconnecting from input buffer")
 	inbuf.disconnect()
-	
+	log.notice("All done, exiting")

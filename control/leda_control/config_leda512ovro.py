@@ -137,7 +137,7 @@ xengine_gpus        = [0, 1]
 #xengine_navg        = 25
 xengine_navg        = 3 # Exactly 1 second
 xengine_cores       = [4, 12]
-xengine_tp_ncycles  = 100
+xengine_tp_ncycles  = 100 # TODO: Remove this and all references to it
 
 disk_logfiles       = [os.path.join(logpath,"dbdisk."+bufkey) \
 	                       for bufkey in xengine_bufkeys]
@@ -145,10 +145,13 @@ disk_path           = os.path.join(getenv_warn('PSRDADA_DIR',
                                                "/home/leda/software/psrdada/src"),
                                    "dada_dbdisk")
 #disk_outpaths       = ["/data1/one", "/data1/two"]
-disk_outpaths       = ["/data1/one", "/data2/one"]
+#*disk_outpaths       = ["/data1/one", "/data2/one"] # This is good for the local disks
+disk_outpaths       = ["/nfs/ledastorage/"+servername+"/data1/one",
+                       "/nfs/ledastorage/"+servername+"/data2/one"]
 disk_cores          = [5, 13]
 
 # TODO: This is crap, fix it (problem is that no other exe is used from this dir!)
+#         Now that pysrdada wraps libpsrdada directly, no need to keep it in this dir!
 post_path           = os.path.join(getenv_warn('LEDA_REPO_DADA_DIR',
                                                "/home/leda/software/LEDA/dada"),
                                    "leda_dbpost.py")
