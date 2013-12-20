@@ -490,7 +490,7 @@ public:
 			cout << xgpu_error << endl;
 			throw std::runtime_error("xgpuCudaXengine failed");
 		}
-		
+	/*	
 		// Extract, compute and write total power from specified inputs
 		// Note: This will run concurrently with xGPU when not dumping
 		if( m_tp_inputs.size() ) {
@@ -524,7 +524,7 @@ public:
 					}
 					//}
 				*/
-			}
+	/*		}
 			//cout << "Calling advanceWrite" << endl;
 			m_tp_outstream->write((char*)&m_tp_out[0],
 			                      m_tp_out.size()*sizeof(tptype));
@@ -565,7 +565,7 @@ public:
 			m_bp_outstream->write((char*)&m_bandpasses[0],
 			                      m_bandpasses.size()*sizeof(Complex));
 		}
-		
+	*/	
 		// Manually sync xGPU
 		cudaThreadSynchronize();
 		
