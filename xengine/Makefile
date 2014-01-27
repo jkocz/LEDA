@@ -1,4 +1,7 @@
 
+PSRDADA_DIR  ?= $(HOME)/psrdada
+CUDA_DIR     ?= /usr/local/cuda
+XGPU_DIR     ?= .
 PSRDADA_LIBS += -L$(PSRDADA_DIR)/src/.libs -L$(PSRDADA_DIR)/.libs -lpsrdada
 PSRDADA_INC  += -I$(PSRDADA_DIR)/src -I$(PSRDADA_DIR)
 CUDA_LIBS    += -L$(CUDA_DIR)/lib64 -lcudart

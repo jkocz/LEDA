@@ -597,7 +597,7 @@ void usage() {
 		"dbgpu [options] in_key out_key\n"
 		" -v         verbose mode\n"
 		" -c core    bind process to CPU core\n"
-		" -d device  gpu device (default 0)\n"
+		" -d device  gpu device index *or* PCI bus ID (default 0)\n"
 		" -t count   no. NTIMEs to integrate (default 1)\n"
 		" -p tpfile  filename for total power output\n"
 		" -n cycles  no. NTIMEs to record each total power antenna for (100)\n"
@@ -627,7 +627,12 @@ int main(int argc, char* argv[])
 		switch (arg){
 		case 'd':
 			if( optarg ) {
-				gpu_idx = atoi(optarg);
+				if( strchr(optarg, ':') ) {
+					cudaDeviceGetByPCIBusId(&gpu_idx, optarg);
+				}
+				else {
+					gpu_idx = atoi(optarg);
+				}
 				break;
 			}
 			else {
