@@ -133,7 +133,7 @@ xengine_logfiles    = [os.path.join(logpath,"dbgpu."+bufkey) \
 xengine_path        = os.path.join(getenv_warn('LEDA_XENGINE_DIR',
                                                "/home/leda/LEDA/xengine"),
                                    "leda_dbxgpu")
-xengine_gpus        = [0, 1]
+xengine_gpus        = ["02:00.0", "84:00.0"]
 #xengine_navg        = 25
 xengine_navg        = 3 # Exactly 1 second
 xengine_cores       = [4, 12]
@@ -165,6 +165,7 @@ beam_path           = os.path.join(getenv_warn('LEDA_XENGINE_DIR',
                                                "/home/leda/LEDA/xengine"),
                                    "leda_dbbeam_gpu")
                                    #"leda_dbbeam")
+# TODO: Beamforming code needs to accept PCI bus IDs instead of GPU IDs
 beam_gpus           = [0, 1]
 beam_cores          = [4, 12]
 

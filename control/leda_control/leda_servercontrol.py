@@ -290,8 +290,9 @@ class LEDAXEngineProcess(LEDAProcess):
 			                                   "total_power_" + utc + "." + self.in_bufkey)
 			args += " -p %s -n %i" % (total_power_outfile, self.tp_ncycles)
 		"""
-		args += " -d %i -t %i %s %s" \
-		    % (self.gpu, self.navg,
+		args += " -d " + str(self.gpu)
+		args += " -t %i %s %s" \
+		    % (self.navg,
 		       self.in_bufkey, self.out_bufkey)
 		    
 		self._startProc(args)
@@ -654,7 +655,9 @@ class LEDAServer(object):
 				disk_proc.start()
 		else:
 			for disk_proc,post_proc,xengine_proc in zip(self.disk,self.post,self.xengine):
+				# TESTING new leda_dbpost, or not
 				#disk_proc.bufkey = xengine_proc.out_bufkey
+				#disk_proc.start()
 				post_proc.bufkey = xengine_proc.out_bufkey
 				post_proc.start()
 		
