@@ -1,3 +1,0 @@
-/nfs/home/leda/LEDA/xengine/aaplus/CMakeFiles/AATest.dir
-/nfs/home/leda/LEDA/xengine/aaplus/CMakeFiles/aaplus-shared.dir
-/nfs/home/leda/LEDA/xengine/aaplus/CMakeFiles/aaplus-static.dir
