@@ -152,9 +152,12 @@ disk_cores          = [5, 13]
 
 # TODO: This is crap, fix it (problem is that no other exe is used from this dir!)
 #         Now that pysrdada wraps libpsrdada directly, no need to keep it in this dir!
-post_path           = os.path.join(getenv_warn('LEDA_REPO_DADA_DIR',
-                                               "/home/leda/software/LEDA/dada"),
-                                   "leda_dbpost.py")
+#post_path           = os.path.join(getenv_warn('LEDA_REPO_DADA_DIR',
+#                                               "/home/leda/software/LEDA/dada"),
+#                                   "leda_dbpost.py")
+post_path           = os.path.join(getenv_warn('LEDA_XENGINE_DIR',
+                                               "/home/leda/LEDA/xengine"),
+                                   "leda_dbpost_adapter")
 post_logfiles       = [os.path.join(logpath,"dbpost."+bufkey) \
 	                       for bufkey in xengine_bufkeys]
 

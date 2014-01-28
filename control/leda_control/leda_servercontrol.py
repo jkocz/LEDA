@@ -204,19 +204,27 @@ class LEDAPostProcess(LEDAProcess):
 		if not os.path.exists(outpath):
 			raise ValueError("Output path '%s' does not exist" % outpath)
 	def start(self):
-		args = ""
+		subargs = ""
 		if self.totalpower:
-			args += " -tp"
+			subargs += " -tp"
 		if self.correlator:
-			args += " -corr"
-		if self.transients_key is not None:
-			args += " -trkey " + self.bufkey
+			subargs += " -corr"
+		#if self.transients_key is not None:
+		#	subargs += " -trkey " + self.bufkey
 		if self.bdi:
-			args += " -bdi"
+			subargs += " -bdi"
+		if self.core is not None:
+			subargs += " -core %i" % self.core
+		subargs += " -vv"
+		subargs += " -o %s" % self.outpath
+		
+		args = ""
+		args += ' -a "%s"' % subargs
+		# Note: This puts both the adapter and the subprocess on the same core
 		if self.core is not None:
 			args += " -core %i" % self.core
 		args += " -vv"
-		args += " -o %s %s" % (self.outpath, self.bufkey)
+		args += " %s" % self.bufkey
 		self._startProc(args)
 
 class LEDADiskProcess(LEDAProcess):

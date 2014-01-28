@@ -10,6 +10,9 @@ CUDA_INC     += -I$(CUDA_DIR)/include
 DBXGPU_LIBS += $(CUDA_LIBS) -L$(XGPU_DIR)/src -lxgpu $(PSRDADA_LIBS)
 DBXGPU_INC  += $(CUDA_INC) -I$(XGPU_DIR)/src $(PSRDADA_INC)
 
+DBPOST_ADAPTER_LIBS += $(PSRDADA_LIBS)
+DBPOST_ADAPTER_INC  += $(PSRDADA_INC)
+
 DBBDI_LIBS += $(PSRDADA_LIBS)
 DBBDI_INC  += $(PSRDADA_INC)
 
@@ -49,3 +52,6 @@ leda_dbbaseband: leda_dbbaseband.cpp dada_db2db.hpp dada_db2db.cpp
 
 hackhex: hackhex.cpp
 	$(CXX) -o hackhex hackhex.cpp
+
+leda_dbpost_adapter: leda_dbpost_adapter.cpp dada_db2db.hpp dada_db2db.cpp
+	$(CXX) -o leda_dbpost_adapter $(CXX_FLAGS) $(DEBUG_FLAGS) $(DBPOST_ADAPTER_INC) leda_dbpost_adapter.cpp dada_dbreader.cpp $(DBPOST_ADAPTER_LIBS)
