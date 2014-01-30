@@ -403,9 +403,9 @@ public:
 		m_tp_inputs.assign(tp_inputs, tp_inputs + tp_ninputs);
 		//m_tp_stations.assign(tp_stations, tp_stations + tp_ninputs);
 		//m_tp_pols.assign(tp_pols, tp_pols + tp_ninputs);
-		size_t ninputs = m_xgpu_info.nstation * 2;
+		//size_t ninputs = m_xgpu_info.nstation * 2;
 		//m_tp_ncycles = tp_ncycles;
-		size_t tpsize  = m_xgpu_info.vecLength / ninputs * tp_ninputs;
+		size_t tpsize  = m_xgpu_info.nfrequency * tp_ninputs * m_nstates;
 		//size_t tpsize  = m_xgpu_info.vecLength / ninputs * m_tp_nrecord;
 		//m_tp_out.resize(tpsize);
 		m_tp_accums.resize(tpsize, 0);
@@ -574,13 +574,17 @@ public:
 		int nedge = m_chan_width_mhz*1e6*m_tp_edge_time_s/2;
 		int buf_position = m_buf_idx % m_bufs_per_state;
 		int tp_offset;
+		
+		// TODO: Remove this when done testing
+		cout << "nedge = " << nedge << endl;
+		
 		if( buf_position == 0 ) {
 			tp_offset = 0;
 		}
-		else if( buf_position == 2 ) {
+		else if( buf_position == (m_bufs_per_state-1) ) {
 			tp_offset = m_ntime - nedge;
 		}
-		if( buf_position == 0 || buf_position == 2 ) {
+		if( buf_position == 0 || buf_position == (m_bufs_per_state-1) ) {
 			for( int t=tp_offset; t<tp_offset+nedge; ++t ) {
 				for( int c=0; c<m_nchan; ++c ) {
 					for( int tpi=0; tpi<m_tp_ninputs; ++tpi ) {
