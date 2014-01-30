@@ -444,7 +444,7 @@ class LEDACaptureProcess(LEDAProcess):
 			header += "MODE            %s\n" % "CORRELATOR" # What is this?
 		"""
 		sky_state_phase = 0 # TODO: This needs to be worked out somehow!
-		header += "SKY_STATE_PHASE " + str(sky_state_phase)
+		header += "SKY_STATE_PHASE %i\n" % sky_state_phase
 		# Note: The header file is put in the log path for convenience
 		headerpath = os.path.join(os.path.dirname(self.logpath),
 		                          "header." + self.bufkey)

@@ -496,22 +496,22 @@ public:
 		// Create header for total power data
 		// TODO: Add info about starting state!
 		std::vector<char> tp_header(header_in, header_in + header_size);
-		if( ascii_header_set(header_out, "NBIT", "%d", 32) < 0 ) {
+		if( ascii_header_set(&tp_header[0], "NBIT", "%d", 32) < 0 ) {
 			logInfo("dbgpu: Failed to set NBIT 32 in tp_header");
 		}
-		if( ascii_header_set(header_out, "NDIM", "%d", 1) < 0 ) {
+		if( ascii_header_set(&tp_header[0], "NDIM", "%d", 1) < 0 ) {
 			logInfo("dbgpu: Failed to set NDIM 1 in tp_header");
 		}
-		if( ascii_header_set(header_out, "NSTATION", "%d", m_tp_inputs.size()/2) < 0 ) {
+		if( ascii_header_set(&tp_header[0], "NSTATION", "%d", m_tp_inputs.size()/2) < 0 ) {
 			logInfo("dbgpu: Failed to set NSTATION in tp_header");
 		}
-		if( ascii_header_set(header_out, "NAVG", "%d", m_tp_navg) < 0 ) {
+		if( ascii_header_set(&tp_header[0], "NAVG", "%d", m_tp_navg) < 0 ) {
 			logInfo("dbgpu: Failed to set NAVG in tp_header");
 		}
-		if( ascii_header_set(header_out, "SOURCE", "%s", "SWITCHING_TOTAL_POWER") < 0 ) {
+		if( ascii_header_set(&tp_header[0], "SOURCE", "%s", "SWITCHING_TOTAL_POWER") < 0 ) {
 			logInfo("dbgpu: Failed to set SOURCE in tp_header");
 		}
-		if( ascii_header_set(header_out, "DATA_ORDER", "%s", "STATE_CHAN_INPUT") < 0 ) {
+		if( ascii_header_set(&tp_header[0], "DATA_ORDER", "%s", "STATE_CHAN_INPUT") < 0 ) {
 			logInfo("dbgpu: Failed to set DATA_ORDER in tp_header");
 		}
 		// Create string listing TP inputs
@@ -524,7 +524,7 @@ public:
 		}
 		ss << m_tp_inputs[tp_ninputs-1] << "]";
 		const char* tp_inputs_string = ss.str().c_str();
-		if( ascii_header_set(header_out, "INPUTS", "%s", tp_inputs_string) < 0 ) {
+		if( ascii_header_set(&tp_header[0], "INPUTS", "%s", tp_inputs_string) < 0 ) {
 			logInfo("dbgpu: Failed to set DATA_ORDER in tp_header");
 		}
 		
@@ -657,11 +657,16 @@ public:
 		
 		// Now dump the TP integrations to disk if this is the end of a cycle
 		// Note: This will run concurrently with xGPU when it's not dumping
-		if( switch_state == 2 && buf_position == 2 ) {
+		if( switch_state == (m_nstates-1) &&
+		    buf_position == (m_bufs_per_state-1) ) {
 			if( m_tp_outstream ) {
+				size_t tp_size = m_tp_accums.size() * sizeof(tptype);
+				cout << "Writing " << tp_size/1e3 << " kB "
+				     << "of total power data to disk" << endl;
 				m_tp_outstream.write((char*)&m_tp_accums[0],
-				                     m_tp_accums.size()*sizeof(tptype));
+				                     tp_size);
 			}
+			cout << "Resetting total power integrations" << endl;
 			std::fill(m_tp_accums.begin(), m_tp_accums.end(), 0);
 		}
 		
@@ -684,6 +689,7 @@ public:
 		
 		//++m_cycle;
 		++m_buf_idx;
+		buf_position = m_buf_idx % m_bufs_per_state;
 		if( buf_position == 0 ) {
 			++m_state_idx;
 		}
