@@ -221,6 +221,7 @@ using std::endl;
 #include <fstream>
 #include <iterator>
 #include <cmath>
+#include <sstream>
 //#include <iomanip>
 #include <errno.h>       // For errno
 #include <sys/syscall.h> // For SYS_gettid
@@ -239,7 +240,7 @@ using std::endl;
 #include "dada_db2db.hpp"
 
 // For benchmarking only
-//#include "stopwatch.hpp"
+#include "stopwatch.hpp"
 
 typedef ComplexInput InType;
 
@@ -304,24 +305,41 @@ class dbgpu : public dada_db2db {
 	XGPUInfo             m_xgpu_info;
 	bool                 m_do_register;
 	
-	size_t m_cycle;
+	//size_t m_cycle;
+	size_t m_buf_idx;
+	size_t m_bufs_per_state;
+	size_t m_state_idx;
+	size_t m_nstates;
+	
+	int   m_ntime;
+	int   m_nchan;
+	int   m_ninput;
+	float m_chan_width_mhz;
 	
 	// Total power variables
 	//typedef unsigned short tptype;
-	typedef unsigned char tptype;
+	//typedef unsigned char tptype;
+	typedef float tptype;
 	//typedef ComplexInput tptype;
+	int                  m_tp_navg;
 	std::vector<size_t>  m_tp_inputs;
-	std::vector<tptype>  m_tp_out;
-	std::ostream*        m_tp_outstream;
+	//std::vector<size_t>  m_tp_stations;
+	//std::vector<size_t>  m_tp_pols;
+	std::vector<tptype>  m_tp_accums;
+	//std::ostream*        m_tp_outstream;
+	std::ofstream        m_tp_outstream;
+	std::string          m_tp_outpath;
+	float                m_tp_edge_time_s;
+	int                  m_tp_sky_state;
 	//size_t           m_tp_size;
 	//sew::ringbuffer  m_tp_buf;
 	//sew::stream_sink m_tp_disktask;
 	//tptype*          m_tp_ptr;
-	size_t           m_tp_ncycles;
-	size_t           m_tp_nrecord;
+	//size_t           m_tp_ncycles;
+	//size_t           m_tp_nrecord;
 	
-	std::ostream*        m_bp_outstream;
-	std::vector<Complex> m_bandpasses;
+	//std::ostream*        m_bp_outstream;
+	//std::vector<Complex> m_bandpasses;
 public:
 	dbgpu(multilog_t* log, int verbose,
 	      size_t ntime_integrate,
@@ -332,9 +350,13 @@ public:
 		  m_subintegration(0),
 		  m_gpu_device(gpu_device),
 		  m_do_register(do_register),
-		  m_cycle(0),
-		  m_tp_outstream(0),
-		  m_bp_outstream(0) {
+		  //m_cycle(0),
+		  m_buf_idx(0),
+		  m_bufs_per_state(3), // TODO: Set dynamically?
+		  m_state_idx(0),
+		  m_nstates(3), // TODO: Set dynamically?
+		  //m_tp_outstream(0),
+		  m_tp_edge_time_s(0) {
 		
 		// Give the CPU a rest while the GPU kernel is running
 		cudaSetDeviceFlags(cudaDeviceScheduleYield);
@@ -369,20 +391,27 @@ public:
 	}
 	
 	void setTotalPowerInputs(const int* tp_inputs, size_t tp_ninputs,
-	                         size_t tp_ncycles, size_t nrecord,
-	                         std::ostream& tp_outstream=std::cout) {
+	                         //size_t tp_ncycles, size_t nrecord,
+	                         float tp_switch_edge_time_secs,
+	                         const char* tp_outpath) {
+		//std::ostream& tp_outstream=std::cout) {
 		//size_t nrecord = 2;
-		m_tp_nrecord = nrecord;
-		if( tp_ninputs % m_tp_nrecord != 0 ) {
-			throw std::runtime_error("Number of total power inputs must be a multiple of nrecord");
-		}
+		//m_tp_nrecord = nrecord;
+		//if( tp_ninputs % m_tp_nrecord != 0 ) {
+		//	throw std::runtime_error("Number of total power inputs must be a multiple of nrecord");
+		//}
 		m_tp_inputs.assign(tp_inputs, tp_inputs + tp_ninputs);
+		//m_tp_stations.assign(tp_stations, tp_stations + tp_ninputs);
+		//m_tp_pols.assign(tp_pols, tp_pols + tp_ninputs);
 		size_t ninputs = m_xgpu_info.nstation * 2;
-		m_tp_ncycles = tp_ncycles;
-		//size_t tpsize  = m_xgpu_info.vecLength / ninputs * tp_ninputs;
-		size_t tpsize  = m_xgpu_info.vecLength / ninputs * m_tp_nrecord;
-		m_tp_out.resize(tpsize);
-		m_tp_outstream = &tp_outstream;
+		//m_tp_ncycles = tp_ncycles;
+		size_t tpsize  = m_xgpu_info.vecLength / ninputs * tp_ninputs;
+		//size_t tpsize  = m_xgpu_info.vecLength / ninputs * m_tp_nrecord;
+		//m_tp_out.resize(tpsize);
+		m_tp_accums.resize(tpsize, 0);
+		m_tp_edge_time_s = tp_switch_edge_time_secs;
+		//m_tp_outstream = &tp_outstream;
+		m_tp_outpath = tp_outpath;
 		/*
 		m_tp_size = m_xgpu_info.vecLength / ninputs * tp_ninputs;
 		size_t nbufs = 4;
@@ -395,9 +424,9 @@ public:
 		*/
 	}
 	
-	void setBandpassStream(std::ostream& bp_outstream) {
-		m_bp_outstream = &bp_outstream;
-	}
+	//void setBandpassStream(std::ostream& bp_outstream) {
+	//	m_bp_outstream = &bp_outstream;
+	//}
 	
 	virtual void onConnect(key_t in_key, key_t out_key) {
 		if( m_do_register ) {
@@ -433,18 +462,93 @@ public:
 			logInfo("dbgpu: Failed to set NBIT 32 in header_out");
 		}
 		
-		m_cycle = 0;
-		
-		if( m_bp_outstream ) {
-			Complex zero;
-			zero.real = 0;
-			zero.imag = 0;
-			m_bandpasses.resize(0);
-			m_bandpasses.resize(m_xgpu_info.nfrequency *
-			                    m_xgpu_info.nstation *
-			                    m_xgpu_info.npol,
-			                    zero);
+		if( ascii_header_get(header_in, "XENGINE_NTIME", "%i", &m_ntime) < 0 ) {
+			throw std::runtime_error("Missing header entry XENGINE_NTIME");
 		}
+		if( ascii_header_get(header_in, "NCHAN", "%i", &m_nchan) < 0 ) {
+			throw std::runtime_error("Missing header entry NCHAN");
+		}
+		int nstation;
+		if( ascii_header_get(header_in, "NSTATION", "%i", &nstation) < 0 ) {
+			throw std::runtime_error("Missing header entry NSTATION");
+		}
+		int npol;
+		if( ascii_header_get(header_in, "NPOL", "%i", &npol) < 0 ) {
+			throw std::runtime_error("Missing header entry NPOL");
+		}
+		m_ninput = nstation * npol;
+		if( ascii_header_get(header_in, "SKY_STATE_PHASE", "%i", &m_tp_sky_state) < 0 ) {
+			//throw std::runtime_error("Missing header entry SKY_STATE_PHASE");
+			logWarning("dbgpu: Missing header entry SKY_STATE_PHASE; defaulting to 0");
+			m_tp_sky_state = 0;
+		}
+		
+		if( ascii_header_get(header_in, "CHAN_WIDTH", "%f", &m_chan_width_mhz) < 0 ) {
+			float tsamp_us;
+			if( ascii_header_get(header_in, "TSAMP", "%f", &tsamp_us) < 0 ) {
+				throw std::runtime_error("Missing header entry CHAN_WIDTH or TSAMP");
+			}
+			m_chan_width_mhz = 1. / tsamp_us;
+		}
+		// TODO: This assumes TP averages are 1s
+		m_tp_navg = (size_t)(1. * m_chan_width_mhz*1e6 + 0.5);
+		
+		// Create header for total power data
+		// TODO: Add info about starting state!
+		std::vector<char> tp_header(header_in, header_in + header_size);
+		if( ascii_header_set(header_out, "NBIT", "%d", 32) < 0 ) {
+			logInfo("dbgpu: Failed to set NBIT 32 in tp_header");
+		}
+		if( ascii_header_set(header_out, "NDIM", "%d", 1) < 0 ) {
+			logInfo("dbgpu: Failed to set NDIM 1 in tp_header");
+		}
+		if( ascii_header_set(header_out, "NSTATION", "%d", m_tp_inputs.size()/2) < 0 ) {
+			logInfo("dbgpu: Failed to set NSTATION in tp_header");
+		}
+		if( ascii_header_set(header_out, "NAVG", "%d", m_tp_navg) < 0 ) {
+			logInfo("dbgpu: Failed to set NAVG in tp_header");
+		}
+		if( ascii_header_set(header_out, "SOURCE", "%s", "SWITCHING_TOTAL_POWER") < 0 ) {
+			logInfo("dbgpu: Failed to set SOURCE in tp_header");
+		}
+		if( ascii_header_set(header_out, "DATA_ORDER", "%s", "STATE_CHAN_INPUT") < 0 ) {
+			logInfo("dbgpu: Failed to set DATA_ORDER in tp_header");
+		}
+		// Create string listing TP inputs
+		int tp_ninputs = m_tp_inputs.size();
+		std::stringstream ss;
+		ss << "[";
+		for( int tpi=0; tpi<tp_ninputs-1; ++tpi ) {
+			// Note: Converts to 1-based indexing
+			ss << m_tp_inputs[tpi] + 1 << ",";
+		}
+		ss << m_tp_inputs[tp_ninputs-1] << "]";
+		const char* tp_inputs_string = ss.str().c_str();
+		if( ascii_header_set(header_out, "INPUTS", "%s", tp_inputs_string) < 0 ) {
+			logInfo("dbgpu: Failed to set DATA_ORDER in tp_header");
+		}
+		
+		char utc_start_str[32];
+		if( ascii_header_get(header_in, "UTC_START", "%s", utc_start_str) < 0 ) {
+			throw std::runtime_error("Missing header entry UTC_START");
+		}
+		
+		// Open total power output file
+		// TODO: This should probably be less hard-coded
+		if( m_tp_outpath != "" ) {
+			std::string tp_filename = m_tp_outpath + "/" + utc_start_str + ".tp";
+			m_tp_outstream.open(tp_filename.c_str());
+			
+			// Write the total power header
+			m_tp_outstream.write(&tp_header[0],
+			                     tp_header.size()*sizeof(char));
+		}
+		
+		//m_cycle = 0;
+		m_buf_idx   = 0;
+		m_state_idx = 0;
+		
+		std::fill(m_tp_accums.begin(), m_tp_accums.end(), 0);
 		
 		uint64_t bytes_per_read = m_xgpu_info.vecLength * sizeof(InType);
 		return bytes_per_read;
@@ -453,12 +557,72 @@ public:
 	// Return no. bytes written
 	virtual uint64_t onData(uint64_t in_size,
 	                        const char* data_in, char* data_out) {
-		//Stopwatch timer;
 		uint64_t bytes_written = 0;
 		int xgpu_error;
 		
-		//timer.start();
+		Stopwatch timer;
+		timer.start();
 		
+		// Note: data_in order is (time, chan, station, pol, dim)
+		
+		//const ComplexInput* samples_in = (ComplexInput*)data_in;
+		// Note: Must const-cast this because we modify it in-place
+		ComplexInput* samples_in = (ComplexInput*)data_in;
+		
+		// First we zap samples that are on the edge of a state transition
+		int m_tp_ninputs = m_tp_inputs.size();
+		int nedge = m_chan_width_mhz*1e6*m_tp_edge_time_s/2;
+		int buf_position = m_buf_idx % m_bufs_per_state;
+		int tp_offset;
+		if( buf_position == 0 ) {
+			tp_offset = 0;
+		}
+		else if( buf_position == 2 ) {
+			tp_offset = m_ntime - nedge;
+		}
+		if( buf_position == 0 || buf_position == 2 ) {
+			for( int t=tp_offset; t<tp_offset+nedge; ++t ) {
+				for( int c=0; c<m_nchan; ++c ) {
+					for( int tpi=0; tpi<m_tp_ninputs; ++tpi ) {
+						int i = m_tp_inputs[tpi];
+						//int s = m_tp_stations[i];
+						//int p = m_tp_pols[i];
+						//size_t idx = p + m_npol*(s + m_nstation*(c + m_nchan*t));
+						size_t idx = i + m_ninput*(c + m_nchan*t);
+						samples_in[idx].real = 0;
+						samples_in[idx].imag = 0;
+					}
+				}
+			}
+		}
+		
+		// Next we extract and integrate samples from total power inputs
+		// Note: TP output order is: (state, chan, tp_input)
+		// We also zero-out samples from TP inputs when in off-sky states
+		int switch_state = m_state_idx % m_nstates;
+		for( int t=0; t<m_ntime; ++t ) {
+			for( int c=0; c<m_nchan; ++c ) {
+				for( int tpi=0; tpi<m_tp_ninputs; ++tpi ) {
+					int i = m_tp_inputs[tpi];
+					//int s = m_tp_stations[i];
+					//int p = m_tp_pols[i];
+					// Extract
+					//size_t src_idx = p + m_npol*(s + m_nstation*(c + m_nchan*t));
+					size_t src_idx = i + m_ninput*(c + m_nchan*t);
+					ComplexInput samp = samples_in[src_idx];
+					// Integrate
+					size_t dst_idx = tpi + m_tp_ninputs*(c + m_nchan*switch_state);
+					m_tp_accums[dst_idx] += total_power(samp);
+					// Zero-out
+					if( switch_state != m_tp_sky_state ) {
+						samples_in[src_idx].real = 0;
+						samples_in[src_idx].imag = 0;
+					}
+				}
+			}
+		}
+		
+		// Now we can pass the input data to xGPU to do the real work
 		m_xgpu->array_h  = (ComplexInput*)data_in;
 		m_xgpu->matrix_h =      (Complex*)data_out;
 		xgpu_error = xgpuSetHostInputBuffer(m_xgpu);
@@ -490,84 +654,20 @@ public:
 			cout << xgpu_error << endl;
 			throw std::runtime_error("xgpuCudaXengine failed");
 		}
-	/*	
-		// Extract, compute and write total power from specified inputs
-		// Note: This will run concurrently with xGPU when not dumping
-		if( m_tp_inputs.size() ) {
-			size_t ninput    = m_xgpu_info.nstation * 2;
-			size_t tp_ninput = m_tp_inputs.size();
-			
-			//size_t nrecord = 2;
-			size_t is = m_cycle / m_tp_ncycles % (tp_ninput/m_tp_nrecord) * m_tp_nrecord;
-			//cout << "Recording total power from antenna " << is << endl;
-			cout << "Recording hires cross corr for input group " << is << endl;
-			
-			// TODO: Could optimise this by making m_tp_inputs a static array
-			for( size_t j=0; j<m_xgpu_info.vecLength / ninput; ++j ) {
-				//for( size_t i=0; i<m_tpinputs.size(); ++i ) {
-				//for( size_t is=0; is<tp_ninput; is+=2 ) {
-				for( size_t ip=0; ip<m_tp_nrecord; ++ip ) {
-					//ComplexInput a = ((ComplexInput*)data_in)[j*ninput+m_tp_inputs[is+ip*2+0]];
-					//ComplexInput b = ((ComplexInput*)data_in)[j*ninput+m_tp_inputs[is+ip*2+1]];
-					//((ComplexInput*)m_tp_out)[j*2+ip] = conj_mult(a, b);
-					ComplexInput a = ((ComplexInput*)data_in)[j*ninput+m_tp_inputs[is+ip]];
-					m_tp_out[j*m_tp_nrecord+ip] = pack44(a);
-				}
-				/*
-					for( size_t ip=0; ip<2; ++ip ) {
-						size_t i = is + ip;
-						size_t inp = m_tp_inputs[i];
-						ComplexInput val = ((ComplexInput*)data_in)[j*ninput+inp];
-						//m_tp_out[j*tp_ninput+i] = total_power(val);
-						m_tp_out[j*2+ip] = total_power(val);
-						//m_tp_ptr[j*tp_ninput+i] = total_power(val);
-					}
-					//}
-				*/
-	/*		}
-			//cout << "Calling advanceWrite" << endl;
-			m_tp_outstream->write((char*)&m_tp_out[0],
-			                      m_tp_out.size()*sizeof(tptype));
-			// Hard system IO sync
-			//sync();
-			//m_tp_ptr = (tptype*)m_tp_buf.advanceWrite(m_tp_size);
-			//cout << "  done" << endl;
+		
+		// Now dump the TP integrations to disk if this is the end of a cycle
+		// Note: This will run concurrently with xGPU when it's not dumping
+		if( switch_state == 2 && buf_position == 2 ) {
+			if( m_tp_outstream ) {
+				m_tp_outstream.write((char*)&m_tp_accums[0],
+				                     m_tp_accums.size()*sizeof(tptype));
+			}
+			std::fill(m_tp_accums.begin(), m_tp_accums.end(), 0);
 		}
 		
-		if( m_bp_outstream ) {
-			size_t ntime    = m_xgpu_info.ntime;
-			size_t nchan    = m_xgpu_info.nfrequency;
-			size_t nstation = m_xgpu_info.nstation;
-			const ComplexInput* in = (ComplexInput*)data_in;
-			for( size_t t=0; t<ntime; ++t ) {
-				for( size_t c=0; c<nchan; ++c ) {
-					for( size_t s=0; s<nstation; ++s ) {
-						size_t in_idx  = s + nstation*(c + nchan*t);
-						size_t out_idx = s + nstation*c;
-						// Note: This assumes 2 pols
-						m_bandpasses[2*out_idx+0].real += in[2*in_idx+0].real*in[2*in_idx+0].real;
-						m_bandpasses[2*out_idx+0].imag += in[2*in_idx+0].imag*in[2*in_idx+0].imag;
-						m_bandpasses[2*out_idx+1].real += in[2*in_idx+1].real*in[2*in_idx+1].real;
-						m_bandpasses[2*out_idx+1].imag += in[2*in_idx+1].imag*in[2*in_idx+1].imag;
-					}
-				}
-			}
-			// Normalise (and undo unpacking bitshift)
-			for( size_t c=0; c<nchan; ++c ) {
-				for( size_t s=0; s<nstation; ++s ) {
-					size_t out_idx = s + nstation*c;
-					m_bandpasses[2*out_idx+0].real = sqrt(m_bandpasses[2*out_idx+0].real / ((1<<4) * ntime));
-					m_bandpasses[2*out_idx+0].imag = sqrt(m_bandpasses[2*out_idx+0].imag / ((1<<4) * ntime));
-					m_bandpasses[2*out_idx+1].real = sqrt(m_bandpasses[2*out_idx+1].real / ((1<<4) * ntime));
-					m_bandpasses[2*out_idx+1].imag = sqrt(m_bandpasses[2*out_idx+1].imag / ((1<<4) * ntime));
-				}
-			}
-			m_bp_outstream->write((char*)&m_bandpasses[0],
-			                      m_bandpasses.size()*sizeof(Complex));
-		}
-	*/	
 		// Manually sync xGPU
-		cudaThreadSynchronize();
+		//cudaThreadSynchronize(); // Deprecated
+		cudaDeviceSynchronize();
 		
 		if( clear_integration ) {
 			xgpu_error = xgpuClearDeviceIntegrationBuffer(m_xgpu);
@@ -575,18 +675,18 @@ public:
 				logError("dbgpu: xgpuClearDeviceIntegrationBuffer failed");
 				throw std::runtime_error("xgpuClearDeviceIntegrationBuffer failed");
 			}
-			
-			// Note: This being done here is somewhat arbitrary
-			// Hard system IO sync
-			// WARNING: This caused massive packet loss at NM.
-			//            It doesn't seem to be necessary.
-			//sync();
 		}
 		
-		//timer.stop();
-		//cout << "xGPU speed: " << in_size / timer.getTime() / 1e6 << " MB/s" << endl;
+		timer.stop();
+		cout << "Processing time:  " << timer.getTime() << " s" << endl;
+		cout << "           speed: " << in_size / timer.getTime() / 1e6 << " MB/s" << endl;
+		cout << "           BW:    " << in_size/sizeof(ComplexInput) / timer.getTime() / 1e6 << " MHz" << endl;
 		
-		++m_cycle;
+		//++m_cycle;
+		++m_buf_idx;
+		if( buf_position == 0 ) {
+			++m_state_idx;
+		}
 		
 		return bytes_written;
 	}
@@ -599,10 +699,12 @@ void usage() {
 		" -c core    bind process to CPU core\n"
 		" -d device  gpu device index *or* PCI bus ID (default 0)\n"
 		" -t count   no. NTIMEs to integrate (default 1)\n"
-		" -p tpfile  filename for total power output\n"
-		" -n cycles  no. NTIMEs to record each total power antenna for (100)\n"
-		" -N ninputs no. inputs to record simultaneously (2)\n"
-		" -b bpfile  filename for bandpass recording\n"
+		//" -p tpfile  filename for total power output\n"
+		" -p path    path for total power output (default: no TP output)\n"
+		" -e ms      time to blank around state change edges (default 1.5 ms)\n"
+		//" -n cycles  no. NTIMEs to record each total power antenna for (100)\n"
+		//" -N ninputs no. inputs to record simultaneously (2)\n"
+		//" -b bpfile  filename for bandpass recording\n"
 		" -r         disable host memory pinning\n"
 		" -h         print usage" << endl;
 }
@@ -617,13 +719,16 @@ int main(int argc, char* argv[])
 	size_t      ntime_integrate = 1;
 	int         do_register = 1;
 	int         core = -1;
-	std::string tp_filename = "";
-	int         tp_ncycles = 100;
-	int         tp_nrecord = 2; // no. inputs
-	std::string bp_filename = "";
+	//std::string tp_filename = "";
+	std::string tp_outpath = "";
+	float       tp_edge_time_ms = 1.5;
+	//int         tp_ncycles = 100;
+	//int         tp_nrecord = 2; // no. inputs
+	//std::string bp_filename = "";
 	
 	int arg = 0;
-	while( (arg = getopt(argc,argv,"d:t:c:p:n:b:rhv")) != -1 ) {
+	//while( (arg = getopt(argc,argv,"d:t:c:p:n:b:rhv")) != -1 ) {
+	while( (arg = getopt(argc,argv,"d:t:c:p:e:rhv")) != -1 ) {
 		switch (arg){
 		case 'd':
 			if( optarg ) {
@@ -659,38 +764,21 @@ int main(int argc, char* argv[])
 			}
 		case 'p':
 			if( optarg ) {
-				tp_filename = optarg;
+				//tp_filename = optarg;
+				tp_outpath = optarg;
 				break;
 			}
 			else {
 				fprintf(stderr, "ERROR: -p flag requires argument\n");
 				return EXIT_FAILURE;
 			}
-		case 'n':
+		case 'e':
 			if( optarg ) {
-				tp_ncycles = atoi(optarg);
+				tp_edge_time_ms = atof(optarg);
 				break;
 			}
 			else {
-				fprintf(stderr, "ERROR: -n flag requires argument\n");
-				return EXIT_FAILURE;
-			}
-		case 'b':
-			if( optarg ) {
-				bp_filename = optarg;
-				break;
-			}
-			else {
-				fprintf(stderr, "ERROR: -b flag requires argument\n");
-				return EXIT_FAILURE;
-			}
-		case 'N':
-			if( optarg ) {
-				tp_nrecord = atoi(optarg);
-				break;
-			}
-			else {
-				fprintf(stderr, "ERROR: -N flag requires argument\n");
+				fprintf(stderr, "ERROR: -e flag requires argument\n");
 				return EXIT_FAILURE;
 			}
 		case 'h':
@@ -748,8 +836,11 @@ int main(int argc, char* argv[])
 	
 	dbgpu ctx(log, verbose, ntime_integrate, gpu_idx, do_register);
 	
-	std::ofstream tp_outfile;
-	if( tp_filename != "" ) {
+	// Note: We always do the below so that samples are zero'd even
+	//         if we're not dumping TP data.
+	//std::ofstream tp_outfile;
+	//if( tp_filename != "" ) {
+	//if( tp_outpath != "" ) {
 		
 		std::string      tp_inputs_filename = "total_power_inputs.txt";
 		std::ifstream    tp_inputs_file(tp_inputs_filename.c_str());
@@ -766,30 +857,26 @@ int main(int argc, char* argv[])
 			        tp_inputs.size(),
 			        tp_inputs_filename.c_str());
 		}
+		/*
 		tp_outfile.open(tp_filename.c_str(), std::ios::binary);
 		if( !tp_outfile ) {
 			fprintf(stderr,
 			        "dbgpu: failed to open output file %s\n",tp_filename.c_str());
 			return -1;
 		}
+		*/
 		ctx.setTotalPowerInputs(&tp_inputs[0], tp_inputs.size(),
-		                        tp_ncycles, tp_nrecord, tp_outfile);
-	}
-	
-	std::ofstream bp_outfile;
-	if( bp_filename != "" ) {
-		bp_outfile.open(bp_filename.c_str(), std::ios::binary);
-		if( !tp_outfile ) {
-			fprintf(stderr,
-			        "dbgpu: failed to open output file %s\n",bp_filename.c_str());
-			return -1;
-		}
-		ctx.setBandpassStream(bp_outfile);
-	}
+		                        //tp_ncycles, tp_nrecord,
+		                        tp_edge_time_ms * 1e-3,
+		                        //tp_outfile);
+		                        tp_outpath.c_str());
+	//}
 	
 	ctx.connect(in_key, out_key);
 	ctx.run();
 	ctx.disconnect();
+	
+	//tp_outfile.close();
 	
 	return 0;
 }

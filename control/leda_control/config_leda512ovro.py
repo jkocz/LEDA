@@ -135,9 +135,11 @@ xengine_path        = os.path.join(getenv_warn('LEDA_XENGINE_DIR',
                                    "leda_dbxgpu")
 xengine_gpus        = ["02:00.0", "84:00.0"]
 #xengine_navg        = 25
-xengine_navg        = 3 # Exactly 1 second
+#xengine_navg        = 3 # Exactly 1 second
+xengine_navg        = 27 # Exactly 9 seconds
 xengine_cores       = [4, 12]
 xengine_tp_ncycles  = 100 # TODO: Remove this and all references to it
+xengine_tp_edge_time = 1.5 # Switching system transition time in ms
 
 disk_logfiles       = [os.path.join(logpath,"dbdisk."+bufkey) \
 	                       for bufkey in xengine_bufkeys]

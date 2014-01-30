@@ -222,7 +222,7 @@ class LEDAPostProcess(LEDAProcess):
 		args += ' -a "%s"' % subargs
 		# Note: This puts both the adapter and the subprocess on the same core
 		if self.core is not None:
-			args += " -core %i" % self.core
+			args += " -c %i" % self.core
 		args += " -vv"
 		args += " %s" % self.bufkey
 		self._startProc(args)
@@ -274,7 +274,8 @@ class LEDADiskProcess(LEDAProcess):
 class LEDAXEngineProcess(LEDAProcess):
 	def __init__(self, logpath, path, in_bufkey, out_bufkey,
 	             gpu, navg, core=None,
-	             totalpower_outpath="", totalpower_ncycles=100):
+	             totalpower_outpath="", totalpower_ncycles=100,
+	             totalpower_edge_time_ms=1.5):
 		LEDAProcess.__init__(self, logpath, path)
 		self.in_bufkey  = in_bufkey
 		self.out_bufkey = out_bufkey
@@ -283,26 +284,31 @@ class LEDAXEngineProcess(LEDAProcess):
 		self.core       = core
 		self.tp_outpath = totalpower_outpath
 		self.tp_ncycles = totalpower_ncycles
+		self.tp_edge_time = totalpower_edge_time_ms
 	def start(self):
 		args = ""
 		if self.core is not None:
 			args += " -c %i" % self.core
 		## TODO: This is for the older leda_dbgpu code
 		#args += " -g %i %s %s" % (self.gpu, self.in_bufkey, self.out_bufkey)
-		"""
-		# TODO: This has been replaced with leda_dbpost's tp integration support
+		
+		# TODO: This needs to be changed to something else after all the old
+		#         ncycles code is removed. Still need to be able to toggle it.
 		if self.tp_ncycles != 0:
+			"""
 			# TODO: Ideally this would be set to match the proper start time
 			utc = datetime.datetime.utcnow().strftime("%Y-%m-%d-%H:%M:%S")
 			total_power_outfile = os.path.join(self.tp_outpath,
 			                                   "total_power_" + utc + "." + self.in_bufkey)
-			args += " -p %s -n %i" % (total_power_outfile, self.tp_ncycles)
-		"""
+			"""
+			args += " -p %s" % (self.tp_outpath)
+		
 		args += " -d " + str(self.gpu)
-		args += " -t %i %s %s" \
-		    % (self.navg,
-		       self.in_bufkey, self.out_bufkey)
-		    
+		args += " -t " + str(self.navg)
+		args += " -e " + str(self.tp_edge_time)
+		args += " %s %s" \
+		    % (self.in_bufkey, self.out_bufkey)
+		
 		self._startProc(args)
 
 class LEDABeamProcess(LEDAProcess):
@@ -437,6 +443,8 @@ class LEDACaptureProcess(LEDAProcess):
 			#header += "MODE            %s\n" % "TPS" # What is this?
 			header += "MODE            %s\n" % "CORRELATOR" # What is this?
 		"""
+		sky_state_phase = 0 # TODO: This needs to be worked out somehow!
+		header += "SKY_STATE_PHASE " + str(sky_state_phase)
 		# Note: The header file is put in the log path for convenience
 		headerpath = os.path.join(os.path.dirname(self.logpath),
 		                          "header." + self.bufkey)
@@ -535,7 +543,7 @@ class LEDAServer(object):
 	             unpack_cores, unpack_ncores,
 	             xengine_logfiles, xengine_path, xengine_bufkeys,
 	             xengine_gpus, xengine_navg, xengine_cores,
-	             xengine_tp_ncycles,
+	             xengine_tp_ncycles, xengine_tp_edge_time,
 	             disk_logfiles, disk_path, disk_outpaths, disk_cores,
 	             
 	             beam_logfiles, beam_path, beam_bufkeys,
@@ -570,7 +578,7 @@ class LEDAServer(object):
 			                      unpack_bufkeys,unpack_cores)]
 		self.xengine = [LEDAXEngineProcess(logfile,xengine_path,in_bufkey,
 		                                   out_bufkey,gpu,xengine_navg,core,outpath,
-		                                   xengine_tp_ncycles) \
+		                                   xengine_tp_ncycles, xengine_tp_edge_time) \
 			                for logfile,in_bufkey,out_bufkey,gpu,core,outpath \
 			                in zip(xengine_logfiles,unpack_bufkeys,
 			                       xengine_bufkeys,xengine_gpus,xengine_cores,
@@ -663,11 +671,11 @@ class LEDAServer(object):
 				disk_proc.start()
 		else:
 			for disk_proc,post_proc,xengine_proc in zip(self.disk,self.post,self.xengine):
-				# TESTING new leda_dbpost, or not
-				#disk_proc.bufkey = xengine_proc.out_bufkey
-				#disk_proc.start()
-				post_proc.bufkey = xengine_proc.out_bufkey
-				post_proc.start()
+				disk_proc.bufkey = xengine_proc.out_bufkey
+				disk_proc.start()
+				# TESTING new leda_dbpost
+				#post_proc.bufkey = xengine_proc.out_bufkey
+				#post_proc.start()
 		
 		#for disk_proc in self.disk:
 		#	disk_proc.start()
@@ -899,6 +907,7 @@ if __name__ == "__main__":
 		                        xengine_navg,
 		                        xengine_cores,
 		                        xengine_tp_ncycles,
+		                        xengine_tp_edge_time,
 		                        
 		                        disk_logfiles,
 		                        disk_path,
