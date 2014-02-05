@@ -28,14 +28,15 @@ using std::endl;
 #include <dada_affinity.h>
 #include <ascii_header.h>
 
-#include <xgpu.h>
-
 #include "dada_db2db.hpp"
 
 // For benchmarking only
 #include "stopwatch.hpp"
 
-typedef ComplexInput InType;
+struct ComplexInput {
+	char real;
+	char imag;
+};
 
 inline unsigned char total_power(const ComplexInput& c) {
 	// Note: Max power from 4+4b input = -8^2 + -8^2 = 128
@@ -181,7 +182,7 @@ public:
 		std::fill(m_tp_accums.begin(), m_tp_accums.end(), 0);
 		
 		size_t   sample_count   = m_ntime * m_nchan * m_ninput;
-		uint64_t bytes_per_read = sample_count * sizeof(InType);
+		uint64_t bytes_per_read = sample_count * sizeof(ComplexInput);
 		return bytes_per_read;
 	}
 	
