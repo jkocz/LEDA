@@ -612,8 +612,7 @@ class LEDAServer(object):
 			           in zip(tp_logfiles,unpack_bufkeys,tp_bufkeys,
 			                  tp_cores,disk_outpaths)]
 		self.xengine = [LEDAXEngineProcess(logfile,xengine_path,in_bufkey,
-		                                   out_bufkey,gpu,xengine_navg,core,outpath,
-		                                   xengine_tp_ncycles, xengine_tp_edge_time) \
+		                                   out_bufkey,gpu,xengine_navg,core,outpath) \
 			                for logfile,in_bufkey,out_bufkey,gpu,core,outpath \
 			                in zip(xengine_logfiles,tp_bufkeys,
 			                       xengine_bufkeys,xengine_gpus,xengine_cores,
@@ -689,6 +688,8 @@ class LEDAServer(object):
 		for buf in self.buffers:
 			buf.destroy()
 	def setTotalPowerRecording(self, ncycles):
+		# TODO: This is probably broken
+		
 		#for xengine_proc in self.xengine:
 		#	xengine_proc.tp_ncycles = ncycles
 		for post_proc in self.post:
@@ -947,8 +948,6 @@ if __name__ == "__main__":
 		                        xengine_gpus,
 		                        xengine_navg,
 		                        xengine_cores,
-		                        #xengine_tp_ncycles,
-		                        #xengine_tp_edge_time,
 		                        
 		                        disk_logfiles,
 		                        disk_path,
