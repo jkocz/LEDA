@@ -574,7 +574,6 @@ class LEDAServer(object):
 	             tp_edge_time,
 	             xengine_logfiles, xengine_path, xengine_bufkeys,
 	             xengine_gpus, xengine_navg, xengine_cores,
-	             xengine_tp_ncycles, xengine_tp_edge_time,
 	             disk_logfiles, disk_path, disk_outpaths, disk_cores,
 	             
 	             beam_logfiles, beam_path, beam_bufkeys,
