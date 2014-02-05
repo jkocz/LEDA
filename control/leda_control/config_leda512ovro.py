@@ -74,12 +74,18 @@ visports = [3142 + i for i in xrange(nstream)]
 dadapath = getenv_warn('PSRDADA_DIR', "/home/leda/software/psrdada/src")
 bufkeys  = ["dada", "eada", # Captured
             "aada", "bada", # Unpacked
+            "aaba", "baba", # TP blanked
             "cada", "fada", # Correlated
             "abda", "ebda", # Beamformed
             "acda", "ecda"] # Basebanded
-bufsizes = [bufsize]*nstream + [upsize]*nstream + [outsize]*nstream \
-    + [beamoutsize]*nstream + [basebandoutsize]*nstream
+bufsizes = ( [bufsize]*nstream +
+             [upsize]*nstream +
+             [upsize]*nstream +
+             [outsize]*nstream +
+             [beamoutsize]*nstream +
+             [basebandoutsize]*nstream )
 bufcores = [1, 9,
+            1, 9,
             1, 9,
             1, 9,
             1, 9,
@@ -125,6 +131,15 @@ unpack_path         = os.path.join(getenv_warn('LEDA_DADA_DIR',
 unpack_cores        = [2, 10]
 unpack_ncores       = 1
 
+tp_bufkeys      = ["aaba", "baba"]
+tp_logfiles     = [os.path.join(logpath,"dbtp."+bufkey) \
+	                       for bufkey in tp_bufkeys]
+tp_path         = os.path.join(getenv_warn('LEDA_XENGINE_DIR',
+                                               "/home/leda/LEDA/xengine"),
+                                   "leda_dbtp")
+tp_cores        = [3, 11]
+tp_edge_time    = 1.5 # Switching system transition time in ms
+
 xengine_bufkeys     = ["cada", "fada"]
 xengine_logfiles    = [os.path.join(logpath,"dbgpu."+bufkey) \
 	                       for bufkey in xengine_bufkeys]
@@ -138,8 +153,8 @@ xengine_gpus        = ["02:00.0", "84:00.0"]
 #xengine_navg        = 3 # Exactly 1 second
 xengine_navg        = 27 # Exactly 9 seconds
 xengine_cores       = [4, 12]
-xengine_tp_ncycles  = 100 # TODO: Remove this and all references to it
-xengine_tp_edge_time = 1.5 # Switching system transition time in ms
+#xengine_tp_ncycles  = 100 # TODO: Remove this and all references to it
+#xengine_tp_edge_time = 1.5 # Switching system transition time in ms
 
 disk_logfiles       = [os.path.join(logpath,"dbdisk."+bufkey) \
 	                       for bufkey in xengine_bufkeys]

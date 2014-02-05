@@ -2,6 +2,10 @@
 
 """
 
+TODO: Re-load config file dynamically on start (or some other event)
+      Load config file into its own dict and reference directly rather
+        than forwarding params around everywhere!
+
 leda_control.py
   Listens on a socket for commands
   E.g., receives "status", "start" or "stop" and runs corresponding scripts
@@ -271,20 +275,42 @@ class LEDADiskProcess(LEDAProcess):
 		image_filename = stem + ".png"
 		return image_filename
 
+class LEDATPProcess(LEDAProcess):
+	def __init__(self, logpath, path, in_bufkey, out_bufkey,
+	             core=None,
+	             totalpower_outpath="",
+	             totalpower_edge_time_ms=1.5):
+		LEDAProcess.__init__(self, logpath, path)
+		self.in_bufkey  = in_bufkey
+		self.out_bufkey = out_bufkey
+		self.core       = core
+		self.outpath    = totalpower_outpath
+		self.edge_time  = totalpower_edge_time_ms
+	def start(self):
+		args = ""
+		if self.core is not None:
+			args += " -c %i" % self.core
+		# TODO: Make this togglable via the web interface
+		args += " -p %s" % (self.outpath)
+		
+		args += " -e " + str(self.edge_time)
+		args += " %s %s" \
+		    % (self.in_bufkey, self.out_bufkey)
+		
+		self._startProc(args)
+
 class LEDAXEngineProcess(LEDAProcess):
 	def __init__(self, logpath, path, in_bufkey, out_bufkey,
-	             gpu, navg, core=None,
-	             totalpower_outpath="", totalpower_ncycles=100,
-	             totalpower_edge_time_ms=1.5):
+	             gpu, navg, core=None): #totalpower_ncycles=100,
+	             #totalpower_edge_time_ms=1.5):
 		LEDAProcess.__init__(self, logpath, path)
 		self.in_bufkey  = in_bufkey
 		self.out_bufkey = out_bufkey
 		self.gpu        = gpu
 		self.navg       = navg
 		self.core       = core
-		self.tp_outpath = totalpower_outpath
-		self.tp_ncycles = totalpower_ncycles
-		self.tp_edge_time = totalpower_edge_time_ms
+		#self.tp_ncycles = totalpower_ncycles
+		#self.tp_edge_time = totalpower_edge_time_ms
 	def start(self):
 		args = ""
 		if self.core is not None:
@@ -294,18 +320,18 @@ class LEDAXEngineProcess(LEDAProcess):
 		
 		# TODO: This needs to be changed to something else after all the old
 		#         ncycles code is removed. Still need to be able to toggle it.
-		if self.tp_ncycles != 0:
+		#if self.tp_ncycles != 0:
 			"""
 			# TODO: Ideally this would be set to match the proper start time
 			utc = datetime.datetime.utcnow().strftime("%Y-%m-%d-%H:%M:%S")
 			total_power_outfile = os.path.join(self.tp_outpath,
 			                                   "total_power_" + utc + "." + self.in_bufkey)
 			"""
-			args += " -p %s" % (self.tp_outpath)
+			#args += " -p %s" % (self.tp_outpath)
 		
 		args += " -d " + str(self.gpu)
 		args += " -t " + str(self.navg)
-		args += " -e " + str(self.tp_edge_time)
+		#args += " -e " + str(self.tp_edge_time)
 		args += " %s %s" \
 		    % (self.in_bufkey, self.out_bufkey)
 		
@@ -541,6 +567,11 @@ class LEDAServer(object):
 	             capture_ninputs, capture_controlports, capture_cores,
 	             unpack_logfiles, unpack_path, unpack_bufkeys,
 	             unpack_cores, unpack_ncores,
+	             tp_logfiles,
+	             tp_path,
+	             tp_bufkeys,
+	             tp_cores,
+	             tp_edge_time,
 	             xengine_logfiles, xengine_path, xengine_bufkeys,
 	             xengine_gpus, xengine_navg, xengine_cores,
 	             xengine_tp_ncycles, xengine_tp_edge_time,
@@ -576,11 +607,16 @@ class LEDAServer(object):
 			               for logfile,in_bufkey,out_bufkey,core \
 			               in zip(unpack_logfiles,capture_bufkeys,
 			                      unpack_bufkeys,unpack_cores)]
+		self.tp = [LEDATPProcess(logfile, tp_path, in_bufkey, out_bufkey,
+		                         core, outpath, tp_edge_time) \
+			           for logfile,in_bufkey,out_bufkey,core,outpath \
+			           in zip(tp_logfiles,unpack_bufkeys,tp_bufkeys,
+			                  tp_cores,disk_outpaths)]
 		self.xengine = [LEDAXEngineProcess(logfile,xengine_path,in_bufkey,
 		                                   out_bufkey,gpu,xengine_navg,core,outpath,
 		                                   xengine_tp_ncycles, xengine_tp_edge_time) \
 			                for logfile,in_bufkey,out_bufkey,gpu,core,outpath \
-			                in zip(xengine_logfiles,unpack_bufkeys,
+			                in zip(xengine_logfiles,tp_bufkeys,
 			                       xengine_bufkeys,xengine_gpus,xengine_cores,
 			                       disk_outpaths)]
 		self.disk = [LEDADiskProcess(logfile,disk_path,bufkey,outpath,core) \
@@ -680,8 +716,10 @@ class LEDAServer(object):
 		#for disk_proc in self.disk:
 		#	disk_proc.start()
 		#time.sleep(1)
-		for unpack_proc in self.unpack:
-			unpack_proc.start()
+		for proc in self.unpack:
+			proc.start()
+		for proc in self.tp:
+			proc.start()
 		#time.sleep(1)
 		if mode == 'beam':
 			for beam_proc in self.beam:
@@ -702,28 +740,26 @@ class LEDAServer(object):
 		for capture_proc in self.capture:
 			capture_proc.start(self.mode, ra, dec)
 	def killPipeline(self):
-		for capture_proc in self.capture:
-			capture_proc.kill()
-		for disk_proc in self.disk:
-			disk_proc.kill()
-		for unpack_proc in self.unpack:
-			unpack_proc.kill()
-		for xengine_proc in self.xengine:
-			xengine_proc.kill()
-		for beam_proc in self.beam:
-			beam_proc.kill()
-		for baseband_proc in self.baseband:
-			baseband_proc.kill()
+		for proclist in [self.capture,
+		                 self.disk,
+		                 self.unpack,
+		                 self.tp,
+		                 self.xengine,
+		                 self.beam,
+		                 self.baseband]:
+			for proc in proclist:
+				proc.kill()
 		time.sleep(2)
 	def clearLogs(self):
-		for capture_proc in self.capture:
-			capture_proc.clearLog()
-		for disk_proc in self.disk:
-			disk_proc.clearLog()
-		for unpack_proc in self.unpack:
-			unpack_proc.clearLog()
-		for xengine_proc in self.xengine:
-			xengine_proc.clearLog()
+		for proclist in [self.capture,
+		                 self.disk,
+		                 self.unpack,
+		                 self.tp,
+		                 self.xengine,
+		                 self.beam,
+		                 self.baseband]:
+			for proc in proclist:
+				proc.clearLog()
 	def getVisMatrixImages(self):
 		return [disk.getVisMatrixImages("vismatrix_str%02i"%i) \
 			        for i,disk in enumerate(self.disk)]
@@ -900,14 +936,20 @@ if __name__ == "__main__":
 		                        unpack_cores,
 		                        unpack_ncores,
 		                        
+		                        tp_logfiles,
+		                        tp_path,
+		                        tp_bufkeys,
+		                        tp_cores,
+		                        tp_edge_time,
+		                        
 		                        xengine_logfiles,
 		                        xengine_path,
 		                        xengine_bufkeys,
 		                        xengine_gpus,
 		                        xengine_navg,
 		                        xengine_cores,
-		                        xengine_tp_ncycles,
-		                        xengine_tp_edge_time,
+		                        #xengine_tp_ncycles,
+		                        #xengine_tp_edge_time,
 		                        
 		                        disk_logfiles,
 		                        disk_path,

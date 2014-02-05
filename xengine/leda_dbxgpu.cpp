@@ -230,6 +230,7 @@ using std::endl;
 //#include "sew.hpp"
 
 #include <dada_def.h>
+#include <dada_affinity.h>
 #include <ascii_header.h>
 #include <dada_cuda.h>
 
@@ -243,7 +244,7 @@ using std::endl;
 #include "stopwatch.hpp"
 
 typedef ComplexInput InType;
-
+/*
 int dada_bind_thread_to_core(int core)
 {
 
@@ -267,6 +268,7 @@ int dada_bind_thread_to_core(int core)
 
   return 0;
 }
+*/
 /*
 inline unsigned short total_power(const ComplexInput& c) {
 	// Note: Max power from 8+8b input = -128^2 + -128^2 = 32768
@@ -687,9 +689,10 @@ public:
 		}
 		
 		timer.stop();
+		size_t nsamps = in_size / sizeof(ComplexInput) / m_ninput;
 		cout << "Processing time:  " << timer.getTime() << " s" << endl;
-		cout << "           speed: " << in_size / timer.getTime() / 1e6 << " MB/s" << endl;
-		cout << "           BW:    " << in_size/sizeof(ComplexInput) / timer.getTime() / 1e6 << " MHz" << endl;
+		cout << "           speed: " << in_size / timer.getTime() / 1e9 << " GB/s" << endl;
+		cout << "           BW:    " << nsamps / timer.getTime() / 1e6 << " MHz" << endl;
 		
 		//++m_cycle;
 		++m_buf_idx;
