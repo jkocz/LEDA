@@ -612,11 +612,10 @@ class LEDAServer(object):
 			           in zip(tp_logfiles,unpack_bufkeys,tp_bufkeys,
 			                  tp_cores,disk_outpaths)]
 		self.xengine = [LEDAXEngineProcess(logfile,xengine_path,in_bufkey,
-		                                   out_bufkey,gpu,xengine_navg,core,outpath) \
-			                for logfile,in_bufkey,out_bufkey,gpu,core,outpath \
+		                                   out_bufkey,gpu,xengine_navg,core) \
+			                for logfile,in_bufkey,out_bufkey,gpu,core \
 			                in zip(xengine_logfiles,tp_bufkeys,
-			                       xengine_bufkeys,xengine_gpus,xengine_cores,
-			                       disk_outpaths)]
+			                       xengine_bufkeys,xengine_gpus,xengine_cores)]
 		self.disk = [LEDADiskProcess(logfile,disk_path,bufkey,outpath,core) \
 			             for logfile,bufkey,outpath,core \
 			             in zip(disk_logfiles,xengine_bufkeys,disk_outpaths,
