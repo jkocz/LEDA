@@ -534,7 +534,7 @@ public:
 		if( ascii_header_get(header_in, "UTC_START", "%s", utc_start_str) < 0 ) {
 			throw std::runtime_error("Missing header entry UTC_START");
 		}
-		
+		/*
 		// Open total power output file
 		// TODO: This should probably be less hard-coded
 		if( m_tp_outpath != "" ) {
@@ -551,7 +551,7 @@ public:
 		m_state_idx = 0;
 		
 		std::fill(m_tp_accums.begin(), m_tp_accums.end(), 0);
-		
+		*/
 		uint64_t bytes_per_read = m_xgpu_info.vecLength * sizeof(InType);
 		return bytes_per_read;
 	}
@@ -566,7 +566,7 @@ public:
 		timer.start();
 		
 		// Note: data_in order is (time, chan, station, pol, dim)
-		
+		/*
 		//const ComplexInput* samples_in = (ComplexInput*)data_in;
 		// Note: Must const-cast this because we modify it in-place
 		ComplexInput* samples_in = (ComplexInput*)data_in;
@@ -627,7 +627,7 @@ public:
 				}
 			}
 		}
-		
+		*/
 		// Now we can pass the input data to xGPU to do the real work
 		m_xgpu->array_h  = (ComplexInput*)data_in;
 		m_xgpu->matrix_h =      (Complex*)data_out;
@@ -660,7 +660,7 @@ public:
 			cout << xgpu_error << endl;
 			throw std::runtime_error("xgpuCudaXengine failed");
 		}
-		
+		/*
 		// Now dump the TP integrations to disk if this is the end of a cycle
 		// Note: This will run concurrently with xGPU when it's not dumping
 		if( switch_state == (m_nstates-1) &&
@@ -675,7 +675,7 @@ public:
 			cout << "Resetting total power integrations" << endl;
 			std::fill(m_tp_accums.begin(), m_tp_accums.end(), 0);
 		}
-		
+		*/
 		// Manually sync xGPU
 		//cudaThreadSynchronize(); // Deprecated
 		cudaDeviceSynchronize();
@@ -693,14 +693,14 @@ public:
 		cout << "Processing time:  " << timer.getTime() << " s" << endl;
 		cout << "           speed: " << in_size / timer.getTime() / 1e9 << " GB/s" << endl;
 		cout << "           BW:    " << nsamps / timer.getTime() / 1e6 << " MHz" << endl;
-		
+		/*
 		//++m_cycle;
 		++m_buf_idx;
 		buf_position = m_buf_idx % m_bufs_per_state;
 		if( buf_position == 0 ) {
 			++m_state_idx;
 		}
-		
+		*/
 		return bytes_written;
 	}
 };

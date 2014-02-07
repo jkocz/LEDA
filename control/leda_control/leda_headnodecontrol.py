@@ -61,6 +61,8 @@ class LEDARemoteServerControl(object):
 	def _sendmsg(self, msg):
 		if self.sock is None:
 			self.log.write("Not connected", -2)
+			self.log.write("Reconnecting", 0)
+			self.connect()
 			return None
 		if len(msg) <= 256:
 			self.log.write("Sending message "+msg, 4)
@@ -72,6 +74,8 @@ class LEDARemoteServerControl(object):
 		except:
 			self.log.write("Not connected", -2)
 			self.sock = None
+			self.log.write("Reconnecting", 0)
+			self.connect()
 			return None
 		if len(ret) < 256:
 			self.log.write("Received response "+ret, 4)
@@ -89,6 +93,8 @@ class LEDARemoteServerControl(object):
 		self.log.write("Requesting server status", 2)
 		if self.sock is None:
 			self.log.write("Not connected", -2)
+			self.log.write("Reconnecting", 0)
+			self.connect()
 			return None
 		encoded = self._sendmsg("status=1")
 		if encoded is None:

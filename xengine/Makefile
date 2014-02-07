@@ -24,6 +24,9 @@ DBBEAM_INC  += $(PSRDADA_INC)
 
 DBBASEBAND_INC += $(PSRDADA_INC)
 
+DBUPDB512NEW_LIBS += -L$(PSRDADA_DIR)/src/.libs -L$(PSRDADA_DIR)/.libs -lpsrdada -fopenmp -lgomp
+DBUPDB512NEW_INC  += -I$(PSRDADA_DIR)/src -I$(PSRDADA_DIR)
+
 CXX_FLAGS   += -Wall -pedantic -O3 -Wno-long-long
 NVCC_FLAGS  += -Xcompiler "-Wall -Wno-long-long" -O3 -arch=sm_35
 DEBUG_FLAGS += -g
@@ -61,3 +64,6 @@ leda_dbpost_adapter: leda_dbpost_adapter.cpp dada_db2db.hpp dada_db2db.cpp
 
 leda_dbtp: leda_dbtp.cpp dada_db2db.hpp dada_db2db.cpp
 	$(CXX) -o leda_dbtp $(CXX_FLAGS) $(DEBUG_FLAGS) $(DBTP_INC) leda_dbtp.cpp dada_db2db.cpp $(DBTP_LIBS)
+
+leda_dbupdb_512_new: leda_dbupdb_512_new.cpp dada_db2db.hpp dada_db2db.cpp
+	$(CXX) -o leda_dbupdb_512_new $(CXX_FLAGS) $(DEBUG_FLAGS) $(DBUPDB512NEW_INC) leda_dbupdb_512_new.cpp dada_db2db.cpp $(DBUPDB512NEW_LIBS)

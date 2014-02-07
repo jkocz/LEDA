@@ -74,7 +74,7 @@ visports = [3142 + i for i in xrange(nstream)]
 dadapath = getenv_warn('PSRDADA_DIR', "/home/leda/software/psrdada/src")
 bufkeys  = ["dada", "eada", # Captured
             "aada", "bada", # Unpacked
-            "aaba", "baba", # TP blanked
+            #"aaba", "baba", # TP blanked
             "cada", "fada", # Correlated
             "abda", "ebda", # Beamformed
             "acda", "ecda"] # Basebanded
@@ -125,11 +125,14 @@ capture_cores       = [1, 9]
 unpack_bufkeys      = ["aada", "bada"]
 unpack_logfiles     = [os.path.join(logpath,"unpack."+bufkey) \
 	                       for bufkey in unpack_bufkeys]
-unpack_path         = os.path.join(getenv_warn('LEDA_DADA_DIR',
-                                               "/home/leda/software/psrdada/leda/src"),
-                                   "leda_dbupdb_512")
+#unpack_path         = os.path.join(getenv_warn('LEDA_DADA_DIR',
+#                                               "/home/leda/software/psrdada/leda/src"),
+#                                   "leda_dbupdb_512")
+unpack_path         = os.path.join(getenv_warn('LEDA_XENGINE_DIR',
+                                               "/home/leda/LEDA/xengine"),
+                                   "leda_dbupdb_512_new")
 unpack_cores        = [2, 10]
-unpack_ncores       = 1
+unpack_ncores       = 2
 
 tp_bufkeys      = ["aaba", "baba"]
 tp_logfiles     = [os.path.join(logpath,"dbtp."+bufkey) \

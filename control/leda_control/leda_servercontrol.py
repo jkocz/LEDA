@@ -408,7 +408,9 @@ class LEDABasebandProcess(LEDAProcess):
 
 class LEDAUnpackProcess(LEDAProcess):
 	def __init__(self, logpath, path, in_bufkey, out_bufkey,
-	             core=None, ncores=1):
+	             core=None, ncores=1,
+	             totalpower_outpath="",
+	             totalpower_edge_time_ms=1.5):
 		LEDAProcess.__init__(self, logpath, path)
 		self.logpath    = logpath
 		self.path       = path
@@ -416,11 +418,17 @@ class LEDAUnpackProcess(LEDAProcess):
 		self.out_bufkey = out_bufkey
 		self.core       = core
 		self.ncores     = ncores
+		self.outpath    = totalpower_outpath
+		self.edge_time  = totalpower_edge_time_ms
 	def start(self):
 		args = ""
 		if self.core is not None:
 			args += " -c%i" % self.core
 		args += " -n%i" % self.ncores
+		
+		args += " -p %s" % self.outpath
+		args += " -e %f" % self.edge_time
+		
 		args += " %s %s" % (self.in_bufkey, self.out_bufkey)
 		#args = []
 		#if self.core is not None:
@@ -543,7 +551,7 @@ class LEDABuffer(object):
 		cmd = os.path.join(self.dadapath,"dada_db")
 		if self.core is not None:
 			cmd += " -c %i" % self.core
-		cmd += " -b %i -k %s -l" % (self.size, self.bufkey)
+		cmd += " -b %i -k %s -l -p" % (self.size, self.bufkey)
 		ret = subprocess.call(cmd, shell=True)
 	def destroy(self):
 		cmd = os.path.join(self.dadapath,"dada_db")
@@ -602,19 +610,22 @@ class LEDAServer(object):
 			                       capture_ninputs,capture_controlports,
 			                       capture_cores)]
 		self.unpack = [LEDAUnpackProcess(logfile,unpack_path,in_bufkey,
-		                                 out_bufkey,core,unpack_ncores) \
-			               for logfile,in_bufkey,out_bufkey,core \
+		                                 out_bufkey,core,unpack_ncores,
+		                                 outpath, tp_edge_time) \
+			               for logfile,in_bufkey,out_bufkey,core,outpath \
 			               in zip(unpack_logfiles,capture_bufkeys,
-			                      unpack_bufkeys,unpack_cores)]
+			                      unpack_bufkeys,unpack_cores,disk_outpaths)]
+		"""
 		self.tp = [LEDATPProcess(logfile, tp_path, in_bufkey, out_bufkey,
 		                         core, outpath, tp_edge_time) \
 			           for logfile,in_bufkey,out_bufkey,core,outpath \
 			           in zip(tp_logfiles,unpack_bufkeys,tp_bufkeys,
 			                  tp_cores,disk_outpaths)]
+		"""
 		self.xengine = [LEDAXEngineProcess(logfile,xengine_path,in_bufkey,
 		                                   out_bufkey,gpu,xengine_navg,core) \
 			                for logfile,in_bufkey,out_bufkey,gpu,core \
-			                in zip(xengine_logfiles,tp_bufkeys,
+			                in zip(xengine_logfiles,unpack_bufkeys,
 			                       xengine_bufkeys,xengine_gpus,xengine_cores)]
 		self.disk = [LEDADiskProcess(logfile,disk_path,bufkey,outpath,core) \
 			             for logfile,bufkey,outpath,core \
@@ -717,8 +728,8 @@ class LEDAServer(object):
 		#time.sleep(1)
 		for proc in self.unpack:
 			proc.start()
-		for proc in self.tp:
-			proc.start()
+		#for proc in self.tp:
+		#	proc.start()
 		#time.sleep(1)
 		if mode == 'beam':
 			for beam_proc in self.beam:
