@@ -6,6 +6,38 @@ This script talks to the rabbit boards that directly controls the swtiching
 assembly state to select between sky, noise, load.
 """
 
+"""
+Command interface for new SAX assembly (November 2014)
+------------------------------------------------------
+Programmed address: 192.168.25.7:3023
+1. "start":  On power up the Rabbit is in it's bit cycling mode.  The states
+change on the rising edge of the interrupt.  It is not necessary to issue the
+start command at system power up.
+
+2. "hold_a":  Set the control lines to A0 = 0, A1 = 0.
+
+3. "hold_b":  Set the control lines to A0 = 1, A1 = 0.
+
+4. "hold_c":  Set the control lines to A0 = 0, A1 = 1.
+
+5. "off"   :  Set the control lines to A0 = 1, A1 = 1.
+
+6. "set_waits n n n":  Set the length of time to remain in each of the states.
+At power up the states switch at 1 pps intervals.  For example, if you send the
+command "set_waits 1 2 3" the rabbit will stay in state A for 1 second, state B
+for 2 seconds and state 3 for 3 seconds.
+
+7. "state":  returns the current state of output bits ("a', "b" or "c").
+
+In addition to the changes in the command syntax I've made changes to the code
+that stores the state of the rabbit when is it put into any of the hold or off
+states.  When the "start" command is issued after a hold it will return to the
+last state it was in when the hold or off commands were issued.
+------------------------------------------------------
+"""
+
+# TODO: Implement 'state' request command
+
 __author__     = "LEDA Collaboration"
 __version__    = "2.0"
 __status__     = "Development"
@@ -130,7 +162,8 @@ class SaxController(object):
         This will instruct the switching assembly to hold its current
         voltage level (keep it fixed on sky / noise / load)
         """
-        s = self.sendCmd('hold_sky')
+        #s = self.sendCmd('hold_sky')
+        s = self.sendCmd('hold_c')
         
         if s == 1:
             print "Switching assembly HOLD on SKY voltage (15 V)."
@@ -142,7 +175,8 @@ class SaxController(object):
         
         This will instruct the switching assembly to hold at 17 V (hot/diode)
         """
-        s = self.sendCmd('hold_hot')
+        #s = self.sendCmd('hold_hot')
+        s = self.sendCmd('hold_b')
         
         if s == 1:
             print "Switching assembly HOLD on HOT voltage (17 V)."
@@ -154,12 +188,21 @@ class SaxController(object):
         
         This will instruct the switching assembly to hold at 16 V (cold/load)
         """
-        s = self.sendCmd('hold_cold')
+        #s = self.sendCmd('hold_cold')
+        s = self.sendCmd('hold_a')
         
         if s == 1:
             print "Switching assembly HOLD on COLD voltage (16 V)."
         else:
             print "Error: Could not HOLD."
+
+    def set_waits(self, nsecs_a, nsecs_b, nsecs_c):
+        s = self.sendCmd('set_waits %i %i %i' % (nsecs_a, nsecs_b, nsecs_c))
+        if s == 1:
+            print "Set switching intervals to %i, %i, %i secs" % \
+                (nsecs_a, nsecs_b, nsecs_c)
+        else:
+            print "Error: Failed to set switching intervals."
     
     def stop(self, really=False):
         """ Send STOP command to rabbit.
