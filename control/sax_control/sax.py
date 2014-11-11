@@ -43,6 +43,7 @@ __version__    = "2.0"
 __status__     = "Development"
 
 import socket
+import time
 
 from leda_config import sax_config
 
@@ -88,13 +89,15 @@ class SaxController(object):
                 if self.debug:
                    raise
     
-    def sendCmd(self, cmd):
+    def sendCmd(self, cmd, return_response=False):
         """ Send a command to the rabbit.
         
         Parameters
         ---------- 
         cmd : (str) 
             command to send. Returns 0 if unsuccessful, or 1 if successful
+        return_response : bool
+            return the rabbit's response instead of 0 / 1. Defaults to False.
         """
         if not self.is_connected:
             self.connect()
@@ -112,11 +115,15 @@ class SaxController(object):
         ret = self.socket.recv(512)
         if self.verbose:
             print "Received:", ret
-        return 1
+        if return_response:
+            return ret
+        else:
+            return 1
     
     def close(self):
         """ Close socket connection"""
         self.socket.close()
+        time.sleep(1)
         self.is_connected = False
         if self.verbose:
             print "Socket closed"
@@ -195,7 +202,20 @@ class SaxController(object):
             print "Switching assembly HOLD on COLD voltage (16 V)."
         else:
             print "Error: Could not HOLD."
-
+    
+    def status(self):
+        """ Return current switching state """
+        s = self.sendCmd('state', return_response=True)
+         
+        if s[0] == 'a':
+           return 'sky'
+        elif s[0] == 'b':
+           return 'diode'
+        elif s[0] == 'c':
+           return 'load'
+        else:
+           return s
+    
     def set_waits(self, nsecs_a, nsecs_b, nsecs_c):
         s = self.sendCmd('set_waits %i %i %i' % (nsecs_a, nsecs_b, nsecs_c))
         if s == 1:
