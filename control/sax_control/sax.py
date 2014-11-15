@@ -170,7 +170,7 @@ class SaxController(object):
         voltage level (keep it fixed on sky / noise / load)
         """
         #s = self.sendCmd('hold_sky')
-        s = self.sendCmd('hold_c')
+        s = self.sendCmd('hold_a')
         
         if s == 1:
             print "Switching assembly HOLD on SKY voltage (15 V)."
@@ -196,7 +196,7 @@ class SaxController(object):
         This will instruct the switching assembly to hold at 16 V (cold/load)
         """
         #s = self.sendCmd('hold_cold')
-        s = self.sendCmd('hold_a')
+        s = self.sendCmd('hold_c')
         
         if s == 1:
             print "Switching assembly HOLD on COLD voltage (16 V)."
