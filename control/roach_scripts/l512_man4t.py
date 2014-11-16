@@ -213,7 +213,7 @@ for roach2 in (roach_array):
         fpga.write_int('fft_f3_fft_shift',65535);
         fpga.write_int('fft_f4_fft_shift',65535);
 
-	odata = numpy.ones(4096,'l')*(1500<<7)
+	odata = numpy.ones(4096,'l')*(1500<<7)*0.7
 	cstr = struct.pack('>4096l',*odata)
 
 	fpga.write('fft_f1_coeff_eq0_coeffs',cstr)
@@ -258,7 +258,7 @@ for roach2 in (roach_array):
 	print 'done'
         i=i+1
 
-	if (i==6):
-		i=i+1
+#	if (i==6):
+#		i=i+1
 
 
