@@ -10,8 +10,8 @@ Last updated: November 2014
 def ip_address(ipaddr):
     """ Convert IP address to integer for ROACH programming """
 
-    ip_bits = [int(ipb) for ipb in ipaddr.split('.')]
-    assert len(ip_bits) == 4
+    ipb = [int(ipbit) for ipbit in ipaddr.split('.')]
+    assert len(ipb) == 4
     int_addr = ipb[0] * (2 ** 24) + ipb[1] * (2 ** 16) + ipb[2] * (2 ** 8) + ipb[3]
 
     return int_addr
@@ -21,11 +21,29 @@ def mac_address(macaddr):
     Address should be of form 00:01:02:03:04:05
     """
 
-    mac_bits = [int(m, 16) for m in macaddr.split(':')]
-    assert len(mac_bits) == 6
+    m = [int(mb, 16) for mb in macaddr.split(':')]
+    assert len(m) == 6
     int_addr = m[0] * (2 ** 40) + m[1] * (2 ** 32) + m[2] * (2 ** 24) + m[3] * (2 ** 16) + m[4] * (2 ** 8) + m[5]
 
     return int_addr
+
+def int_to_ip(ipnum):
+    """ Convert integer IP to regular string IP """
+    o1 = int(ipnum / 16777216) % 256
+    o2 = int(ipnum / 65536) % 256
+    o3 = int(ipnum / 256) % 256
+    o4 = int(ipnum) % 256
+    return '%(o1)s.%(o2)s.%(o3)s.%(o4)s' % locals()
+
+def int_to_mac(ipnum):
+    """ Convert integer MAC to regular string MAC """
+    o0 = int(ipnum / 2 ** 40) % 256
+    o1 = int(ipnum / 2 ** 32) % 256
+    o2 = int(ipnum / 2 ** 24) % 256
+    o3 = int(ipnum / 2 ** 16) % 256
+    o4 = int(ipnum / 2 ** 8) % 256
+    o5 = int(ipnum) % 256
+    return '%(o0)02x:%(o1)02x:%(o2)02x:%(o3)02x:%(o4)02x:%(o5)02x' % locals()
 
 
 dest_ip0  = ip_address('192.168.40.10')
@@ -87,6 +105,10 @@ rofl16_mac1 = mac_address('02:02:c0:a8:28:51')
 
 dest_macff  = mac_address('ff:ff:ff:ff:ff:ff')
 
+
+######################
+#  CREATE ARP TABLE  #
+######################
 arp_table = [dest_macff for i in range(256)]
 
 arp_table[10] = dest_mac0
@@ -134,12 +156,13 @@ arp_table[79] = rofl15_mac1
 arp_table[80] = rofl16_mac0
 arp_table[81] = rofl16_mac1
 
+arp_table_str = [int_to_mac(aa) for aa in arp_table]
+
 dest_port0 = 4015
 dest_port1 = 4016
-
-src_ip_base = 192 * (2 ** 24) + 168 * (2 ** 16) + 40 * (2 ** 8) + 50
 
 src_port0 = 4000
 src_port1 = 4001
 
-mac_base0 = (2 << 40) + (2 << 32)
+src_ip_base = 192 * (2 ** 24) + 168 * (2 ** 16) + 40 * (2 ** 8) + 50
+mac_base0   = (2 << 40) + (2 << 32)

@@ -10,7 +10,7 @@ import corr, time, numpy, struct, sys
 ## FUNCTION DEFS
 #####################
 
-def init_f_engine(roach, q, reg_dict, bram_dict, core_configs):
+def init_f_engine(roach, q, reg_dict, bram_dict, core_config):
     """ Initialize roach registers via register:value dictionary """
     fpga = katcp_wrapper.FpgaClient(roach)
     
@@ -25,8 +25,8 @@ def init_f_engine(roach, q, reg_dict, bram_dict, core_configs):
             allsystems_go = False
     
     if allsystemsgo:
-        for cc in core_configs:
-    	    fpga.config_10gbe_core(cc[0], cc[1], cc[2], cc[3], cc[4])
+        for cc in core_config:
+            fpga.config_10gbe_core(cc[0], cc[1], cc[2], cc[3], cc[4])
         
         time.sleep(2)
         
@@ -53,7 +53,7 @@ def init_f_engine(roach, q, reg_dict, bram_dict, core_configs):
     fpga.stop()
     return
 
-def init_f_engine_all(reg_dict, bram_dict, core_configs):
+def init_f_engine_all(reg_dicts, bram_dicts, core_configs):
     """ Initialize all roaches via register:value dictionary """
     roachlist = ['rofl%i'%i for i in range(1,16+1)]
     n_roach = len(roachlist)
@@ -66,7 +66,7 @@ def init_f_engine_all(reg_dict, bram_dict, core_configs):
     procs = []
     q     = JoinableQueue()
     for i in range(n_roach):
-        p = Process(target=init_f_engine, args=(roachlist[i], q, reg_dict, bram_dict, core_configs))
+        p = Process(target=init_f_engine, args=(roachlist[i], q, reg_dicts[i], bram_dicts[i], core_configs[i]))
         procs.append(p)
     # Start threads
     for p in procs:
@@ -238,7 +238,7 @@ if __name__ == "__main__":
         'tenge_ips_ip20' : dest_ip8,
         'tenge_ips_ip21' : dest_ip9,
         'tenge_ips_ip22' : dest_ip10,
-        'tenge_header_fid'  : i,    	
+        'tenge_header_fid'  : 0,
         'tenge_start_count' : 1246,
         'tenge_stop_count'  : 1464,
         'tenge_high_ch'     : 109,
@@ -282,13 +282,23 @@ if __name__ == "__main__":
         'fft_f4_coeff_eq6_coeffs' : cstr,
         'fft_f4_coeff_eq7_coeffs' : cstr
     }
-    
-    core_configs = [
-        ('tenge_gbe00', mac_base0+src_ip_base+(i*2), src_ip_base+(i*2), src_port0, arp_table),
-        ('tenge_gbe01', mac_base0+src_ip_base+(i*2)+1, src_ip_base+(i*2)+1, src_port1, arp_table)
-    ]
-    
-    init_f_engine_all(reg_dict, bram_dict, core_configs)
-    
-    
+
+    reg_dicts    = []
+    core_configs = []
+    bram_dicts   = []
+
+    # Customize configs for each ROACH board
+    for ii in range(1, 17):
+        reg_dict['tenge_header_fid'] = ii
+        reg_dicts.append = reg_dict
+
+        bram_dicts.append(bram_dict)
+
+        core_config = [
+            ('tenge_gbe00', mac_base0 + src_ip_base + (ii * 2),     src_ip_base + (ii * 2),     src_port0, arp_table),
+            ('tenge_gbe01', mac_base0 + src_ip_base + (ii * 2) + 1, src_ip_base + (ii * 2) + 1, src_port1, arp_table)
+        ]
+        core_configs.append(core_config)
+
+    init_f_engine_all(reg_dicts, bram_dicts, core_configs)
     
