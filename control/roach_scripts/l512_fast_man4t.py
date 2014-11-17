@@ -336,7 +336,7 @@ if __name__ == "__main__":
     # Customize configs for each ROACH board
     for ii in range(1, 17):
         reg_dict['tenge_header_fid'] = ii
-        reg_dicts.append = reg_dict
+        reg_dicts.append(reg_dict)
 
         bram_dicts.append(bram_dict)
 
