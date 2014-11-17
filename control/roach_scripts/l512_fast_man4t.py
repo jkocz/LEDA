@@ -5,7 +5,7 @@ import time, sys, os
 from corr import katcp_wrapper
 import corr, time, numpy, struct, sys
 
-from leda_config import arp_config
+from leda_config import arp_config as arp
 
 
 ######################
@@ -336,7 +336,7 @@ if __name__ == "__main__":
     # Customize configs for each ROACH board
     for ii in range(1, 17):
         reg_dict['tenge_header_fid'] = ii
-        reg_dicts.append = reg_dict
+        reg_dicts.append(reg_dict)
 
         bram_dicts.append(bram_dict)
 
@@ -357,8 +357,8 @@ if __name__ == "__main__":
 
         for jj in range(len(cc["gbe0_arp"])):
             try:
-                assert cc["gbe0_arp"][jj] == arp_config.arp_table_str[jj]
-                assert cc["gbe1_arp"][jj] == arp_config.arp_table_str[jj]
+                assert cc["gbe0_arp"][jj] == arp.arp_table_str[jj]
+                assert cc["gbe1_arp"][jj] == arp.arp_table_str[jj]
             except:
                 print "ERROR: ARP TABLE IS NOT CORRECT"
                 break
