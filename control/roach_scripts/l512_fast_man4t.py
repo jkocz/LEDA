@@ -349,12 +349,15 @@ if __name__ == "__main__":
     init_f_engine_all(reg_dicts, bram_dicts, core_configs)
 
     # Check that IPs are setup correctly
-    for ii in range(1, 17):
-        fpga = corr.katcp_wrapper.FpgaClient('rofl%i' % ii)
-        time.sleep(0.5)
+    # This is done in serial for improved sanity
+    fpga_list = [corr.katcp_wrapper.FpgaClient('rofl%i' % ii) for ii in range(1,17)]
+    time.sleep(1)
+
+    for fpga in fpga_list:
         cc = read_10gbe_config(fpga)
         print_10gbe_config(fpga)
 
+        # Explicitly check every entry in ARP table matches arp_config
         for jj in range(len(cc["gbe0_arp"])):
             try:
                 assert cc["gbe0_arp"][jj] == arp.arp_table_str[jj]
