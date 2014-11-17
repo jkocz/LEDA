@@ -5,6 +5,8 @@ import time, sys, os
 from corr import katcp_wrapper
 import corr, time, numpy, struct, sys
 
+from leda_config import arp_config
+
 
 ######################
 ## FUNCTION DEFS
@@ -85,6 +87,50 @@ def init_f_engine_all(reg_dicts, bram_dicts, core_configs):
         print to_print[r]
         
     print "OK"  
+
+def read_10gbe_config(fpga):
+    """ Read 10GbE core config from FPGA
+
+    TODO : READ DESTINATION IPS
+    """
+
+    config = {}
+    arp_config = fpga.get_10gbe_core_details('tenge_gbe00')
+    arp_tb = [arp.int_to_mac(ss) for ss in  arp_config["arp"]]
+    ip = arp.int_to_ip(arp_config["my_ip"])
+    mac = arp.int_to_mac(arp_config["mymac"])
+    config["gbe0_ip"]  = ip
+    config["gbe0_mac"] = mac
+    config["gbe0_arp"] = arp_tb
+    config["gbe0_port_src"] = arp_config["fabric_port"]
+    config["gbe0_port_dest"] = fpga.read_int("tenge_port1")
+    config["gbe0_fid"] = fpga.read_int('tenge_header_fid')
+
+    arp_config = fpga.get_10gbe_core_details('tenge_gbe01')
+    arp_tb = [arp.int_to_mac(ss) for ss in  arp_config["arp"]]
+    ip = arp.int_to_ip(arp_config["my_ip"])
+    mac = arp.int_to_mac(arp_config["mymac"])
+    config["gbe1_ip"]  = ip
+    config["gbe1_mac"] = mac
+    config["gbe1_arp"] = arp_tb
+    config["gbe1_port_src"] = arp_config["fabric_port"]
+    config["gbe1_port_dest"] = fpga.read_int("tenge_port2")
+    config["gbe1_fid"] = fpga.read_int('tenge_header_fid')
+
+    return config
+
+def print_10gbe_config(fpga):
+    """ Read and print 10GbE core config from FPGA """
+    cc = read_10gbe_config(fpga)
+    print "\n%s: 10GbE core configuration " % fpga.host
+    print "------------------------------------------------------"
+    print "           | %18s | %18s |" % ("GBE00", "GBE01")
+    print "%10s | %18s | %18s |" % ("MAC", cc["gbe0_mac"], cc["gbe1_mac"])
+    print "%10s | %18s | %18s |" % ("IP", cc["gbe0_ip"], cc["gbe1_ip"])
+    print "%10s | %18s | %18s |" % ("PORT SRC", cc["gbe0_port_src"], cc["gbe1_port_src"])
+    print "%10s | %18s | %18s |" % ("PORT DEST", cc["gbe0_port_dest"], cc["gbe1_port_dest"])
+    print "%10s | %18s | %18s |" % ("FID", cc["gbe0_fid"], cc["gbe1_fid"])
+    print "------------------------------------------------------"
 
 ######################
 ## START OF MAIN
@@ -301,4 +347,22 @@ if __name__ == "__main__":
         core_configs.append(core_config)
 
     init_f_engine_all(reg_dicts, bram_dicts, core_configs)
-    
+
+    # Check that IPs are setup correctly
+    for ii in range(1, 17):
+        fpga = corr.katcp_wrapper.FpgaClient('rofl%i' % ii)
+        time.sleep(0.5)
+        cc = read_10gbe_config(fpga)
+        print_10gbe_config(fpga)
+
+        for jj in range(len(cc["gbe0_arp"])):
+            try:
+                assert cc["gbe0_arp"][jj] == arp_config.arp_table_str[jj]
+                assert cc["gbe1_arp"][jj] == arp_config.arp_table_str[jj]
+            except:
+                print "ERROR: ARP TABLE IS NOT CORRECT"
+                break
+        fpga.stop()
+
+
+
