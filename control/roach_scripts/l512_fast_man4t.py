@@ -336,9 +336,9 @@ if __name__ == "__main__":
     # Customize configs for each ROACH board
     for ii in range(1, 17):
         reg_dict['tenge_header_fid'] = ii
-        reg_dicts.append(reg_dict)
 
-        bram_dicts.append(bram_dict)
+        reg_dicts.append(reg_dict.copy())
+        bram_dicts.append(bram_dict.copy())
 
         core_config = [
             ('tenge_gbe00', mac_base0 + src_ip_base + (ii * 2),     src_ip_base + (ii * 2),     src_port0, arp_table),
