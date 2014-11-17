@@ -117,6 +117,10 @@ def read_10gbe_config(fpga):
     config["gbe1_port_dest"] = fpga.read_int("tenge_port2")
     config["gbe1_fid"] = fpga.read_int('tenge_header_fid')
 
+    for ii in range(22):
+        reg = 'tenge_ips_ip%i' (ii + 1)
+        config["dest_ip%i" % (ii + 1)] = arp.int_to_ip(fpga.read_int(reg))
+
     return config
 
 def print_10gbe_config(fpga):
@@ -363,7 +367,16 @@ if __name__ == "__main__":
                 assert cc["gbe0_arp"][jj] == arp.arp_table_str[jj]
                 assert cc["gbe1_arp"][jj] == arp.arp_table_str[jj]
             except:
-                print "ERROR: ARP TABLE IS NOT CORRECT"
+                print "ERROR: ARP TABLE IS NOT CORRECT ON %s" % fpga.host
+                break
+
+        for jj in range(22):
+            try:
+                dest_ip = arp.dest_ip_str[ii]
+                assert cc["gbe0_ip_dest%02i" % (ii + 1)] == dest_ip
+                assert cc["gbe1_ip_dest%02i" % (ii + 1)] == dest_ip
+            except:
+                print "ERROR: DEST IPS ARE NOT CORRECT ON %s" % fpga.host
                 break
         fpga.stop()
 

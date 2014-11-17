@@ -158,6 +158,14 @@ arp_table[81] = rofl16_mac1
 
 arp_table_str = [int_to_mac(aa) for aa in arp_table]
 
+dest_ips = [dest_ip0, dest_ip1, dest_ip2, dest_ip3, dest_ip4, dest_ip5,
+            dest_ip6, dest_ip7. dest_ip8, dest_ip9, dest_ip10,
+            dest_ip0, dest_ip1, dest_ip2, dest_ip3, dest_ip4, dest_ip5,
+            dest_ip6, dest_ip7, dest_ip8, dest_ip9, dest_ip10]
+
+dest_ips_str = [int_to_ip(dd) for dd in dest_ips]
+
+
 dest_port0 = 4015
 dest_port1 = 4016
 
