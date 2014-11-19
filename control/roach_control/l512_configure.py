@@ -59,18 +59,14 @@ def init_f_engine(roach, q, reg_dict, bram_dict, core_config):
 
 def init_f_engine_all(reg_dicts, bram_dicts, core_configs):
     """ Initialize all roaches via register:value dictionary """
-    roachlist = ['rofl%i'%i for i in range(1,16+1)]
-    n_roach = len(roachlist)
     
     print "Please wait, configuring F-engines..."
-    #for key in reg_dict:
-    #    print "%16s  %s"%(key, reg_dict[key])
     
     # Create threads and message queue
     procs = []
     q     = JoinableQueue()
-    for i in range(n_roach):
-        p = Process(target=init_f_engine, args=(roachlist[i], q, reg_dicts[i], bram_dicts[i], core_configs[i]))
+    for k in reg_dicts.keys():
+        p = Process(target=init_f_engine, args=(k, q, reg_dicts[k], bram_dicts[k], core_configs[k]))
         procs.append(p)
     # Start threads
     for p in procs:
@@ -85,8 +81,8 @@ def init_f_engine_all(reg_dicts, bram_dicts, core_configs):
         rd = q.get()
         to_print[rd[0]] = rd[1]
     
-    for r in roachlist:
-        print to_print[r]
+    for k in reg_dicts.keys():
+        print to_print[k]
         
     print "OK"  
 
@@ -150,27 +146,9 @@ if __name__ == "__main__":
     print_arp = False		# Print ARP config (debug only)
     print_ips = True		# Print destination IPs
 
-    reg_dict = roach_config.reg_dict
-    bram_dict = roach_config.bram_dict
-
-    reg_dicts    = []
-    core_configs = []
-    bram_dicts   = []
-
-    # Customize configs for each ROACH board
-    for ii in range(1, 17):
-        reg_dict['tenge_header_fid'] = ii
-
-        reg_dicts.append(reg_dict.copy())
-        bram_dicts.append(bram_dict.copy())
-
-        core_config = [
-            ('tenge_gbe00', arp.mac_base0 + arp.src_ip_base + (ii * 2),     
-              arp.src_ip_base + (ii * 2), arp.src_port0, arp.arp_table),
-            ('tenge_gbe01', arp.mac_base0 + arp.src_ip_base + (ii * 2) + 1, 
-             arp.src_ip_base + (ii * 2) + 1, arp.src_port1, arp.arp_table)
-        ]
-        core_configs.append(core_config)
+    reg_dicts    = roach_config.reg_dicts
+    core_configs = roach_config.core_configs
+    bram_dicts   = roach_config.bram_dicts
 
     init_f_engine_all(reg_dicts, bram_dicts, core_configs)
 
@@ -217,4 +195,5 @@ if __name__ == "__main__":
            print "  %02i |  %s  |" % (ii, dd)
            ii += 1
         print "------------------------"
-
+   
+    print "\n Done. \n"
