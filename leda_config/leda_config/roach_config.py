@@ -20,7 +20,7 @@ bram_dicts   = {...}
 import struct
 import numpy
 
-from leda_config import arp_config as arp
+import arp_config as arp
 
 boffile = 'l512_actual_4t.py'   # Default firmware
 gain    = 8                     # Default gain value
