@@ -120,8 +120,9 @@ def read_10gbe_config(fpga):
     config["gbe1_fid"] = fpga.read_int('tenge_header_fid')
 
     for ii in range(22):
-        reg = 'tenge_ips_ip%i' (ii + 1)
-        config["dest_ip%i" % (ii + 1)] = arp.int_to_ip(fpga.read_int(reg))
+        reg = 'tenge_ips_ip%i'% (ii + 1)
+        config["gbe0_ip_dest%02i" % (ii + 1)] = arp.int_to_ip(fpga.read_int(reg))
+        config["gbe1_ip_dest%02i" % (ii + 1)] = arp.int_to_ip(fpga.read_int(reg))
 
     return config
 
@@ -144,8 +145,10 @@ def print_10gbe_config(fpga):
 
 if __name__ == "__main__":
     
-    roach_array = ['rofl%i'%ii for ii in range(1, 17)]
-
+    roach_array = roach_config.roach_list
+    
+    print_arp = False		# Print ARP config (debug only)
+    print_ips = True		# Print destination IPs
 
     reg_dict = roach_config.reg_dict
     bram_dict = roach_config.bram_dict
@@ -162,8 +165,10 @@ if __name__ == "__main__":
         bram_dicts.append(bram_dict.copy())
 
         core_config = [
-            ('tenge_gbe00', mac_base0 + src_ip_base + (ii * 2),     src_ip_base + (ii * 2),     src_port0, arp_table),
-            ('tenge_gbe01', mac_base0 + src_ip_base + (ii * 2) + 1, src_ip_base + (ii * 2) + 1, src_port1, arp_table)
+            ('tenge_gbe00', arp.mac_base0 + arp.src_ip_base + (ii * 2),     
+              arp.src_ip_base + (ii * 2), arp.src_port0, arp.arp_table),
+            ('tenge_gbe01', arp.mac_base0 + arp.src_ip_base + (ii * 2) + 1, 
+             arp.src_ip_base + (ii * 2) + 1, arp.src_port1, arp.arp_table)
         ]
         core_configs.append(core_config)
 
@@ -182,20 +187,34 @@ if __name__ == "__main__":
         for jj in range(len(cc["gbe0_arp"])):
             try:
                 assert cc["gbe0_arp"][jj] == arp.arp_table_str[jj]
-                assert cc["gbe1_arp"][jviewerj] == arp.arp_table_str[jj]
+                assert cc["gbe1_arp"][jj] == arp.arp_table_str[jj]
             except:
                 print "ERROR: ARP TABLE IS NOT CORRECT ON %s" % fpga.host
                 break
-
         for jj in range(22):
             try:
-                dest_ip = arp.dest_ip_str[ii]
-                assert cc["gbe0_ip_dest%02i" % (ii + 1)] == dest_ip
-                assert cc["gbe1_ip_dest%02i" % (ii + 1)] == dest_ip
+                dest_ip = arp.dest_ips_str[jj]
+                assert cc["gbe0_ip_dest%02i" % (jj + 1)] == dest_ip
+                assert cc["gbe1_ip_dest%02i" % (jj + 1)] == dest_ip
             except:
+                print cc["gbe0_ip_dest%02i" % (jj + 1)], dest_ip 
                 print "ERROR: DEST IPS ARE NOT CORRECT ON %s" % fpga.host
                 break
+                
         fpga.stop()
-
-
+	
+    if print_arp:
+        print "\nARP table:"
+        ii = 0
+        for aa in arp.arp_table_str:
+            print "%03i | %s" % (ii, aa)
+            ii += 1
+    if print_ips:
+        print "\nDestination IP addresses"
+        print "------------------------"
+        ii = 0
+        for dd in arp.dest_ips_str:
+           print "  %02i |  %s  |" % (ii, dd)
+           ii += 1
+        print "------------------------"
 

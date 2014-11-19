@@ -25,6 +25,8 @@ import arp_config as arp
 boffile = 'l512_actual_4t.py'   # Default firmware
 gain    = 8                     # Default gain value
 
+roach_list = ['rofl%i'%ii for ii in range(1, 17)]
+
 bofdict = {
     'rofl1'  : 'l512_actual_4t.bof',
     'rofl2'  : 'l512_actual_4t.bof',
