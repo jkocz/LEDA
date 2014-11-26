@@ -183,7 +183,8 @@ class SaxController(object):
         This will instruct the switching assembly to hold at 17 V (hot/diode)
         """
         #s = self.sendCmd('hold_hot')
-        s = self.sendCmd('hold_b')
+        #s = self.sendCmd('hold_b')
+        s = self.sendCmd('hold_c')
         
         if s == 1:
             print "Switching assembly HOLD on HOT voltage (17 V)."
@@ -196,7 +197,8 @@ class SaxController(object):
         This will instruct the switching assembly to hold at 16 V (cold/load)
         """
         #s = self.sendCmd('hold_cold')
-        s = self.sendCmd('hold_c')
+        #s = self.sendCmd('hold_c')
+        s = self.sendCmd('hold_b')
         
         if s == 1:
             print "Switching assembly HOLD on COLD voltage (16 V)."
@@ -206,13 +208,19 @@ class SaxController(object):
     def status(self):
         """ Return current switching state """
         s = self.sendCmd('state', return_response=True)
-         
+        if s[0] not in ['a', 'b', 'c']:
+            return s
+        # Note: Rotate by -1 necessary to match actual current state
+        s = {'a':'c', 'b':'a', 'c':'b'}[s[0]]
+        
         if s[0] == 'a':
            return 'sky'
         elif s[0] == 'b':
-           return 'diode'
+           #return 'diode'
+            return 'load'
         elif s[0] == 'c':
-           return 'load'
+           #return 'load'
+            return 'diode'
         else:
            return s
     

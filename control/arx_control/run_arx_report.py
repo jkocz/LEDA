@@ -1,14 +1,24 @@
 #!/usr/bin/env python
+
+"""
+run_arx_report.py
+-----------------
+
+Run ARX report to generate the RMS level matrix.
+"""
+
+
+import os, time, subprocess
+from datetime import datetime
 from multiprocessing import Process, Array
-import subprocess
-import time
 import numpy as np
-import ujson as json
-from pywt import dwt, idwt
 from termcolor import colored, cprint
 import matplotlib
 matplotlib.use('PDF')
 import pylab as plt
+import hickle as hkl
+
+from leda_config import arx_config
 
 def plot64(data, offset):
     title = "Antpol %i-%i"%(offset+1, offset+64)
@@ -114,6 +124,13 @@ if __name__ == '__main__':
         rmsvals = np.array(rmsvals).reshape([16,32]) 
         
         im.set_data(rmsvals)
+       
+        fpath = arx_config.arx_report_dir
+        now = datetime.now()
+        hkl_str = now.strftime("arx_report-%Y-%m-%d_%H-%M-%S.hkl")
+        pdf_str = now.strftime("arx_report-%Y-%m-%d_%H-%M-%S.pdf")
         
-        plt.savefig('matrix.pdf')
+        hkl.dump(rmsvals, os.path.join(fpath, hkl_str))
+        plt.savefig(os.path.join(fpath, pdf_str))
+        plt.savefig(os.path.join(fpath, "arx_report.pdf"))
         exit()
