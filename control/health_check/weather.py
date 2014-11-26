@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python
 """
 Regular weather data:
 http://www.aviationweather.gov/dataserver
@@ -52,7 +52,7 @@ class GroundWeather(object):
 		#self.sky_cover     = metar.find("sky_condition").attrib["sky_cover"] # Sometimes causes errors
 		#self.dpressure_mb  = metar.find("three_hr_pressure_tendency_mb").text
 		self.elevation_m   = float(metar.find("elevation_m").text)
-		
+
 class TotalElectronContent(object):
 	"""See here for lots more data files: http://services.swpc.noaa.gov/text/
 	"""
