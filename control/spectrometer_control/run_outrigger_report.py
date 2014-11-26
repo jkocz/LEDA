@@ -26,7 +26,7 @@ from ledaspec import *
 from prog_all_spectrometer import *
 
 cc = [
-    '#1a194f', '#0b566c', '#254094', '#3ab6e4', '#056538', 
+    '#1a194f', '#0b566c', '#254094', '#3ab6e4', '#056538',
     '#4ab348', '#90d28f', '#b81f27', '#e77076', '#fa9f3a', '#f1cf11'
     ]
 
@@ -34,8 +34,8 @@ def db(d):
     return 10*np.log10(d)
 
 def snap_outriggers(r16):
-    """ Snap all outrigger spectra off rofl15 and rofl16 
-    
+    """ Snap all outrigger spectra off rofl15 and rofl16
+
     Returns a python dictionary with outrigger spectra
     """
     outrigs = {}
@@ -50,7 +50,7 @@ def snap_outriggers(r16):
     outrigs["254A"] = xx[2]
     outrigs["255A"] = xx[4]
     outrigs["256A"] = xx[6]
-        
+
     outrigs["252B"] = yy[1]
     outrigs["254B"] = yy[3]
     outrigs["255B"] = yy[5]
@@ -60,19 +60,19 @@ def snap_outriggers(r16):
 
 def plot_outriggers(fmin=0, fmax=100, pmin=40, pmax=100):
         """ Plot outrigger antennas
-        
+
         fmin: min freq (MHz), default 0
         fmax: max freq (MHz), default 100
         pmin: y-axis power min (default 40)
         pmax: y-axis power max (default 100)
-        
+
         """
         try:
             f = np.linspace(0,196.608/2, 4096)
             print "Connecting to SAX..."
             s = sax.SaxController()
             print "OK."
-            
+
             print "Connecting to FPGA...",
             r16 = Ledaspec('rofl16')
             time.sleep(1)
@@ -91,21 +91,21 @@ def plot_outriggers(fmin=0, fmax=100, pmin=40, pmax=100):
             r16.fpga.write_int('rst', 0)
             time.sleep(1)
             print "OK."
-            
+
             now = datetime.now()
             ts  = now.strftime("%Y-%m-%d_%HH%MM%SS")
-            
+
             s.hold_sky()
             sps = snap_outriggers(r16)
-            
+
             s.hold_cold()
             spc = snap_outriggers(r16)
-            
+
             s.hold_hot()
             sph = snap_outriggers(r16)
-            
+
             #tsky = (sps-spc)/(sph-spc)
-            
+
             outrigs = {
               'sky' : sps,
               'load' : spc,
@@ -114,13 +114,13 @@ def plot_outriggers(fmin=0, fmax=100, pmin=40, pmax=100):
 
             s.close()
             now = datetime.now()
-            hkl_str = now.strftime("outrigger-report-%Y-%m-%d_%H-%M-%S.hkl")
+            hkl_str = now.strftime("outrigger_report-%Y-%m-%d_%H-%M-%S.hkl")
             outrig_dir = config.outrigger_report_dir
             hkl.dump(outrigs, os.path.join(outrig_dir, hkl_str))
 
-           
+
             ii = 0
-                   
+
             plt.figure(figsize=(14,20))
             for antid in ['252A','252B','254A','254B','255A','255B','256A','256B']:
                 ii += 1
@@ -132,24 +132,15 @@ def plot_outriggers(fmin=0, fmax=100, pmin=40, pmax=100):
                 plt.ylim(pmin, pmax)
                 plt.title(antid)
                 plt.minorticks_on()
-                plt.legend(frameon=False)    
+                plt.legend(frameon=False)
             #plt.show()
-            pdf_str = now.strftime("outrigger-report-%Y-%m-%d_%H-%M-%S.pdf")
-            plt.savefig(os.path.join(outrig_dir, "outriggers.pdf"))
+            pdf_str = now.strftime("outrigger_report-%Y-%m-%d_%H-%M-%S.pdf")
+            plt.savefig(os.path.join(outrig_dir, "outrigger_report.pdf"))
             plt.savefig(os.path.join(outrig_dir, pdf_str))
         except:
             s.close()
             print "ERROR: Could not plot"
             raise
-          
+
 if __name__ == '__main__':
-    
     plot_outriggers()
-    
-
-    
-    
-
-
-    
-    

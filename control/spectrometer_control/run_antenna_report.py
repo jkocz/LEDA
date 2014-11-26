@@ -21,7 +21,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 
 def ant_report(sp, fpath):
     """ Generate antenna report PDF """
-    
+
     f = np.linspace(0, 196.608/2, 4096)
     font = {'size'   : 12}
     matplotlib.rc('font', **font)
@@ -34,10 +34,10 @@ def ant_report(sp, fpath):
         plt.figure(ii, figsize=(12, 8))
         print "Plotting page %i of 256"%(ii+1)
         ant_id = ii + 1
-    
-        plt.plot(f, sp["%iA"%ant_id], c='#000000', alpha=0.7, label='%iA'%ant_id)       
+
+        plt.plot(f, sp["%iA"%ant_id], c='#000000', alpha=0.7, label='%iA'%ant_id)
         plt.plot(f, sp["%iB"%ant_id], c='#cc0000', alpha=0.7, label='%iB'%ant_id)
-         
+
         plt.ylim(40, 120)
         plt.title("Stand %i"%ant_id)
         plt.xlabel("Frequency [MHz]")
@@ -65,16 +65,17 @@ if __name__ == '__main__':
 
     sp = snap_spec_all()
     now = datetime.now()
-    
+
     ant_dir = config.ant_report_dir
-    hkl_str = now.strftime("ant-report-%Y-%m-%d_%H-%M-%S.hkl")
-    pdf_str = now.strftime("ant-report-%Y-%m-%d_%H-%M-%S.pdf")
-    
+    hkl_str = now.strftime("ant_report-%Y-%m-%d_%H-%M-%S.hkl")
+    pdf_str = now.strftime("ant_report-%Y-%m-%d_%H-%M-%S.pdf")
+
     hkl.dump(sp, os.path.join(ant_dir, hkl_str))
-    hkl.dump(sp, os.path.join(ant_dir, "ant-report.hkl"))
-    
+    hkl.dump(sp, os.path.join(ant_dir, "ant_report.hkl"))
+
     print os.path.join(ant_dir, pdf_str)
     ant_report(sp, os.path.join(ant_dir, pdf_str))
-    
-    shutil.copy2(os.path.join(ant_dir, pdf_str), os.path.join(ant_dir, 'ant-report.pdf'))
+
+    shutil.copy2(os.path.join(ant_dir, pdf_str),
+                 os.path.join(ant_dir, 'ant_report.pdf'))
 
