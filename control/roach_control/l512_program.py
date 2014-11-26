@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 l512_program_4t.py
 ------------------

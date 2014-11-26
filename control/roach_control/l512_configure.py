@@ -1,4 +1,11 @@
 #!/usr/bin/env python
+"""
+l512_configure.py
+-----------------
+
+Configure ROACH f-engines @ LEDA OVRO
+"""
+
 
 from multiprocessing import Process, JoinableQueue
 import subprocess
@@ -17,7 +24,7 @@ from leda_config import roach_config
 def init_f_engine(roach, q, reg_dict, bram_dict, core_config):
     """ Initialize roach registers via register:value dictionary """
     fpga = katcp_wrapper.FpgaClient(roach)
-    
+
     allsystemsgo = True
     ts = time.time()
     time.sleep(0.1)
@@ -27,13 +34,13 @@ def init_f_engine(roach, q, reg_dict, bram_dict, core_config):
         if tn - ts > 5:
             q_output = (roach , "TIMEOUT ERROR: cannot initialize %s"%roach )
             allsystems_go = False
-    
+
     if allsystemsgo:
         for cc in core_config:
             fpga.config_10gbe_core(cc[0], cc[1], cc[2], cc[3], cc[4])
-        
+
         time.sleep(2)
-        
+
         for key in reg_dict:
             try:
                 fpga.write_int(key, reg_dict[key])
@@ -47,7 +54,7 @@ def init_f_engine(roach, q, reg_dict, bram_dict, core_config):
             except RuntimeError:
                 q_output = (roach , "WRITE BRAM ERROR: cannot initialize %s"%roach)
                 allsystemsgo = False
-        
+
     if allsystemsgo:
         fpga.write_int('tenge_enable', 0)
         fpga.write_int('adc_rst', 3)
@@ -59,9 +66,9 @@ def init_f_engine(roach, q, reg_dict, bram_dict, core_config):
 
 def init_f_engine_all(reg_dicts, bram_dicts, core_configs):
     """ Initialize all roaches via register:value dictionary """
-    
+
     print "Please wait, configuring F-engines..."
-    
+
     # Create threads and message queue
     procs = []
     q     = JoinableQueue()
@@ -71,20 +78,20 @@ def init_f_engine_all(reg_dicts, bram_dicts, core_configs):
     # Start threads
     for p in procs:
         p.start()
-    # Join threads      
+    # Join threads
     for p in procs:
         p.join()
-    
+
     # Print messages
     to_print = {}
     while q.empty() is False:
         rd = q.get()
         to_print[rd[0]] = rd[1]
-    
+
     for k in reg_dicts.keys():
         print to_print[k]
-        
-    print "OK"  
+
+    print "OK"
 
 def read_10gbe_config(fpga):
     """ Read 10GbE core config from FPGA
@@ -140,9 +147,9 @@ def print_10gbe_config(fpga):
 ######################
 
 if __name__ == "__main__":
-    
+
     roach_array = roach_config.roach_list
-    
+
     print_arp = False		# Print ARP config (debug only)
     print_ips = True		# Print destination IPs
 
@@ -175,12 +182,12 @@ if __name__ == "__main__":
                 assert cc["gbe0_ip_dest%02i" % (jj + 1)] == dest_ip
                 assert cc["gbe1_ip_dest%02i" % (jj + 1)] == dest_ip
             except:
-                print cc["gbe0_ip_dest%02i" % (jj + 1)], dest_ip 
+                print cc["gbe0_ip_dest%02i" % (jj + 1)], dest_ip
                 print "ERROR: DEST IPS ARE NOT CORRECT ON %s" % fpga.host
                 break
-                
+
         fpga.stop()
-	
+
     if print_arp:
         print "\nARP table:"
         ii = 0
@@ -195,5 +202,5 @@ if __name__ == "__main__":
            print "  %02i |  %s  |" % (ii, dd)
            ii += 1
         print "------------------------"
-   
+
     print "\n Done. \n"
