@@ -116,13 +116,8 @@ for ii in range(1, 17):
 
     reg_dicts["rofl%i" % ii] = reg_dict.copy()
 
-    bd = bram_dict.copy()
-    if ii == 7:
-        bd["port02"] = arp.dest_port0
-        bd["port03"] = arp.dest_port1
-
-    bram_dicts["rofl%i" % ii] = bd
-
+    bd_inst = bram_dict.copy()
+    bram_dicts["rofl%i" % ii] = bd_inst
 
     core_config = [
         ('tenge_gbe00', mac_base0 + src_ip_base + (ii * 2),     src_ip_base + (ii * 2),     src_port0, arp_table),

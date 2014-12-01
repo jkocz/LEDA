@@ -26,8 +26,8 @@ def progdev_all(bofdict, gain, verbose=True):
         roachlist = bofdict.keys()
         boffiles  = [bofdict[k] for k in roachlist]
     else:
-        roachlist =  ['rofl%i'%i for i in range(1, 16 + 1)]
-        boffiles  = [bofdict for i in range(1, 16 + 1)]
+        roachlist = config.roach_list
+        boffiles  = [bofdict for i in config.roach_list]
     n_roach = len(roachlist)
 
     print "Programming all roaches with %s" % boffiles[0]
@@ -58,5 +58,6 @@ if __name__ == '__main__':
     bofdict  = config.bofdict
     gain     = config.gain
 
+    print "Programming %s ROACH boards, please wait..." % len(bofdict.keys())
     progdev_all(bofdict, gain)
 
