@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 move_to_longterm.py
 -------------------
@@ -35,12 +36,16 @@ def bash_to_longterm(filestamp_start, bashfile_out, config=nfs_config):
 
     # Write to file
     bfile = open(bashfile_out, 'w')
+    cfile = open('create_dirs.sh', 'r')
+    for line in cfile.readlines():
+        bfile.write(line)
+
     ii = 0
     for (host, sdir, fname) in to_move:
         ii += 1
-        eline = "echo \"(%i of %i) Moving %s -> /offsite\"  "%(ii, len(to_move), fname)
+        eline = "echo \"(%i of %i) Moving %s -> /longterm\"  "%(ii, len(to_move), fname)
         cur_path = os.path.join(config["zfs_root"], host, sdir, fname)
-        new_path = os.path.join(config["zfs_offsite"], host, sdir, fname)
+        new_path = os.path.join(config["zfs_longterm"], host, sdir, fname)
         line = "mv %s %s"%(cur_path, new_path)
         bfile.write(eline + "\n")
         bfile.write(line + "\n")
@@ -52,14 +57,17 @@ def ssh_zfs(cmd, server=storage_config.hostname):
 
 def scp_zfs(filename, dest_dir='/tmp', server=storage_config.hostname):
     """ SCP a (small_ file over to the /tmp directory """
-    os.system('ssh %s %s' % (server, cmd))
+    dp = os.path.join(dest_dir, filename)
+    scp_cmd =  'scp %s %s:%s' % (filename, server, dp)
+    print scp_cmd
+    os.system(scp_cmd)
 
 def exec_bash_zfs(bashfile):
     """
     Run bash file on ZFS server via ssh / scp
     """
     scp_zfs(bashfile)
-    ssh_zfs('chmod a+x /tmp/%s' % bashfile)
+    #ssh_zfs('chmod a+x /tmp/%s' % bashfile)
     ssh_zfs('bash /tmp/%s' % bashfile)
 
 if __name__ == '__main__':

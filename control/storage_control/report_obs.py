@@ -11,7 +11,8 @@ FILE_SIZE = 1.0728 # Size of a single dada file
 
 if __name__ == '__main__':
 
-    gg = glob(join(nfs_config["zfs_root"] + '/data1/one/????-??-??-*'))
+    print nfs_config["fileroot"]
+    gg = glob(join(nfs_config["fileroot"],'ledaovro1/data1/one/????-??-??-*'))
 
     timestamps = [basename(filename).split('_')[0] for filename in gg]
     total = 0
