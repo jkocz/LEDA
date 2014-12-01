@@ -19,14 +19,14 @@ SPEED_OF_LIGHT = 299792458
 ########
 
 OFFSET_DELTA     = 115187712   # Bytes per dada file 
-INT_TIME         = 8.33333     # Integration time (s)
+INT_TIME         = 9.0         # Integration time (s)
 N_INT_PER_FILE   = 10          # Number integrations (?)
 
 ########
 # Station location - OVRO
 ########
 
-(latitude, longitude, elevation) = ('37.240391', '-118.2', 1184)
+(latitude, longitude, elevation) = ('37.240391', '-118.281667', 1184)
 
 ovro      = ephem.Observer()
 ovro.lon  = longitude
