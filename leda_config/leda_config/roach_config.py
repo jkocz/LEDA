@@ -22,28 +22,28 @@ import numpy
 
 import arp_config as arp
 
-boffile = 'l512_actual_4t.py'   # Default firmware
+boffile = 'l512_devel_spec_2014_Nov_27_0929.bof'   # Default firmware
 gain    = 8                     # Default gain value
 
 roach_list = ['rofl%i'%ii for ii in range(1, 17)]
 
 bofdict = {
-    'rofl1'  : 'l512_actual_4t.bof',
-    'rofl2'  : 'l512_actual_4t.bof',
-    'rofl3'  : 'l512_actual_4t.bof',
-    'rofl4'  : 'l512_actual_4t.bof',
-    'rofl5'  : 'l512_actual_4t.bof',
-    'rofl6'  : 'l512_actual_4t.bof',
-    'rofl7'  : 'l512_p13_4t.bof',
-    'rofl8'  : 'l512_actual_4t.bof',
-    'rofl9'  : 'l512_actual_4t.bof',
-    'rofl10' : 'l512_actual_4t.bof',
-    'rofl11' : 'l512_actual_4t.bof',
-    'rofl12' : 'l512_actual_4t.bof',
-    'rofl13' : 'l512_actual_4t.bof',
-    'rofl14' : 'l512_actual_4t.bof',
-    'rofl15' : 'l512_actual_4t.bof',
-    'rofl16' : 'l512_actual_4t.bof',
+    'rofl1'  : 'l512_devel_spec_2014_Nov_27_0929.bof',
+    'rofl2'  : 'l512_devel_spec_2014_Nov_27_0929.bof',
+    'rofl3'  : 'l512_devel_spec_2014_Nov_27_0929.bof',
+    'rofl4'  : 'l512_devel_spec_2014_Nov_27_0929.bof',
+    'rofl5'  : 'l512_devel_spec_2014_Nov_27_0929.bof',
+    'rofl6'  : 'l512_devel_spec_2014_Nov_27_0929.bof',
+    'rofl7'  : 'l512_devel_spec_2014_Nov_27_0929.bof',
+    'rofl8'  : 'l512_devel_spec_2014_Nov_27_0929.bof',
+    'rofl9'  : 'l512_devel_spec_2014_Nov_27_0929.bof',
+    'rofl10' : 'l512_devel_spec_2014_Nov_27_0929.bof',
+    'rofl11' : 'l512_devel_spec_2014_Nov_27_0929.bof',
+    'rofl12' : 'l512_devel_spec_2014_Nov_27_0929.bof',
+    'rofl13' : 'l512_devel_spec_2014_Nov_27_0929.bof',
+    'rofl14' : 'l512_devel_spec_2014_Nov_27_0929.bof',
+    'rofl15' : 'l512_devel_spec_2014_Nov_27_0929.bof',
+    'rofl16' : 'l512_devel_spec_2014_Nov_27_0929.bof',
 }
 
 # SETUP QUANTIZATION GAIN SETTINGS
@@ -52,45 +52,17 @@ cstr = struct.pack('>4096l', *odata)
 
 # Main BRAM dictionary for quant gains
 bram_dict = {
-    'fft_f1_coeff_eq0_coeffs' : cstr,
-    'fft_f1_coeff_eq1_coeffs' : cstr,
-    'fft_f1_coeff_eq2_coeffs' : cstr,
-    'fft_f1_coeff_eq3_coeffs' : cstr,
-    'fft_f1_coeff_eq4_coeffs' : cstr,
-    'fft_f1_coeff_eq5_coeffs' : cstr,
-    'fft_f1_coeff_eq6_coeffs' : cstr,
-    'fft_f1_coeff_eq7_coeffs' : cstr,
-    'fft_f2_coeff_eq0_coeffs' : cstr,
-    'fft_f2_coeff_eq1_coeffs' : cstr,
-    'fft_f2_coeff_eq2_coeffs' : cstr,
-    'fft_f2_coeff_eq3_coeffs' : cstr,
-    'fft_f2_coeff_eq4_coeffs' : cstr,
-    'fft_f2_coeff_eq5_coeffs' : cstr,
-    'fft_f2_coeff_eq6_coeffs' : cstr,
-    'fft_f2_coeff_eq7_coeffs' : cstr,
-    'fft_f3_coeff_eq0_coeffs' : cstr,
-    'fft_f3_coeff_eq1_coeffs' : cstr,
-    'fft_f3_coeff_eq2_coeffs' : cstr,
-    'fft_f3_coeff_eq3_coeffs' : cstr,
-    'fft_f3_coeff_eq4_coeffs' : cstr,
-    'fft_f3_coeff_eq5_coeffs' : cstr,
-    'fft_f3_coeff_eq6_coeffs' : cstr,
-    'fft_f3_coeff_eq7_coeffs' : cstr,
-    'fft_f4_coeff_eq0_coeffs' : cstr,
-    'fft_f4_coeff_eq1_coeffs' : cstr,
-    'fft_f4_coeff_eq2_coeffs' : cstr,
-    'fft_f4_coeff_eq3_coeffs' : cstr,
-    'fft_f4_coeff_eq4_coeffs' : cstr,
-    'fft_f4_coeff_eq5_coeffs' : cstr,
-    'fft_f4_coeff_eq6_coeffs' : cstr,
-    'fft_f4_coeff_eq7_coeffs' : cstr
+    'fft_f1_cg_bpass_bram' : cstr,
+    'fft_f2_cg_bpass_bram' : cstr,
+    'fft_f3_cg_bpass_bram' : cstr,
+    'fft_f4_cg_bpass_bram' : cstr,
 }
 
 # Register dictionary, mainly 10GbE setup
 # But also FFT shift
 reg_dict = {
-    'tenge_port1'    : arp.dest_port0,
-    'tenge_port2'    : arp.dest_port1,
+    'tenge_port00'    : arp.dest_port0,
+    'tenge_port01'    : arp.dest_port1,
     'tenge_ips_ip1'  : arp.dest_ip0,
     'tenge_ips_ip2'  : arp.dest_ip1,
     'tenge_ips_ip3'  : arp.dest_ip2,
@@ -143,10 +115,18 @@ for ii in range(1, 17):
     reg_dict['tenge_header_fid'] = ii
 
     reg_dicts["rofl%i" % ii] = reg_dict.copy()
-    bram_dicts["rofl%i" % ii] = bram_dict.copy()
+
+    bd = bram_dict.copy()
+    if ii == 7:
+        bd["port02"] = arp.dest_port0
+        bd["port03"] = arp.dest_port1
+
+    bram_dicts["rofl%i" % ii] = bd
+
 
     core_config = [
         ('tenge_gbe00', mac_base0 + src_ip_base + (ii * 2),     src_ip_base + (ii * 2),     src_port0, arp_table),
         ('tenge_gbe01', mac_base0 + src_ip_base + (ii * 2) + 1, src_ip_base + (ii * 2) + 1, src_port1, arp_table)
     ]
     core_configs["rofl%i" % ii] = core_config
+
