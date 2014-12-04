@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-""" arx_cal.py -- Auto-calibrate ARX gain levels 
+""" arx_cal.py -- Auto-calibrate ARX gain levels
 
 Extension of arx.py class for controlling ARX settings, which
 adds methods for calibrating gain levels. When run as an executable,
@@ -20,7 +20,7 @@ from async import AsyncCaller
 import arx
 
 from leda_config import arx_config, roach_config
-    
+
 def get_adc_samples(roach):
     """ Grab ADC values using adc16_dump_chans """
     nstands = 16
@@ -42,8 +42,8 @@ def get_adc_samples(roach):
     return data
 
 class ArxCalOVRO(arx.ArxOVRO):
-    """ ARX Autocalibration class 
-    
+    """ ARX Autocalibration class
+
     This class extends ArxOVRO with methods for autotuning to find the
     best attenuation settings for consistent ADC power across all inputs.
     """
@@ -52,19 +52,19 @@ class ArxCalOVRO(arx.ArxOVRO):
         self.verbose = False
 
         self.bad_thresh = 4.0
-        self.nrepeat    = arx_config.snap_repeat
+        self.nrepeat    = arx_config.snap_iters
         self.sleeptime  = 1.0
         self.roaches    = roach_config.roach_list
 
     def _get_nearest_atten(self, val):
         return int(val / 2. + 0.5) * 2
-        
+
     def _get_residual_atten(self, val):
         return val - self._get_nearest_atten(val)
-    
+
     def computeCalibration(self, target_rms):
         print "Computing updated ARX calibration"
-        
+
         async = AsyncCaller()
         stddevs = []
         for t in xrange(self.nrepeat):
@@ -79,15 +79,15 @@ class ArxCalOVRO(arx.ArxOVRO):
             time.sleep(self.sleeptime)
         stddevs = np.array(stddevs)
         # Note: Shape is (nrepeat,nstands,npols)
-        
+
         # Compute median of repetitions
         stddevs = np.median(stddevs, axis=0)
-        
+
         # Find and deal with bad stands and pols
         self.bad_stands  = [0 for ii in range(256)]
         self.semi_stands = [0 for ii in range(256)]
         self.cal_atten   = [0 for ii in range(256)]
-        
+
         typical = np.median(stddevs) # Median of all inputs
         for i in xrange(stddevs.shape[0]):
             polA_bad = stddevs[i][0] < self.bad_thresh
@@ -101,16 +101,16 @@ class ArxCalOVRO(arx.ArxOVRO):
             elif polB_bad:
                 self.semi_stands[i] = 1
                 stddevs[i][1] = stddevs[i][0]
-                
+
         # Average the two pols (as there is no per-pol ARX gain control)
         stddevs = stddevs.mean(axis=1)
-        
+
         # Update the attenuation values
         for i, x in enumerate(stddevs):
             delta_atten = int(10*math.log10(x / target_rms))
             #self.at2_settings[i+1] += delta_atten
             self.cal_atten[i] = delta_atten
-    
+
     def applyCalibration(self):
         """ Apply computed calibration to stands"""
         for ii in range(len(self.cal_atten)):
@@ -139,7 +139,7 @@ class ArxCalOVRO(arx.ArxOVRO):
                     self.at2_settings[ii] += delt/2
                     self.at1_changed[ii] = 1
                     self.at2_changed[ii] = 1
-        
+
     def listCalibration(self):
         """ List computed calibration values """
         print "Computed attenuation deltas (dB):"
