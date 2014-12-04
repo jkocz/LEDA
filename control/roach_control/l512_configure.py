@@ -102,46 +102,44 @@ def read_10gbe_config(fpga):
     """
 
     config = {}
-    arp_config = fpga.get_10gbe_core_details('tenge_gbe00')
-    arp_tb = [arp.int_to_mac(ss) for ss in  arp_config["arp"]]
-    ip = arp.int_to_ip(arp_config["my_ip"])
-    mac = arp.int_to_mac(arp_config["mymac"])
-    config["gbe0_ip"]  = ip
-    config["gbe0_mac"] = mac
-    config["gbe0_arp"] = arp_tb
-    config["gbe0_port_src"] = arp_config["fabric_port"]
-    config["gbe0_port_dest"] = fpga.read_int("tenge_port00")
-    config["gbe0_fid"] = fpga.read_int('tenge_header_fid')
-
-    arp_config = fpga.get_10gbe_core_details('tenge_gbe01')
-    arp_tb = [arp.int_to_mac(ss) for ss in  arp_config["arp"]]
-    ip = arp.int_to_ip(arp_config["my_ip"])
-    mac = arp.int_to_mac(arp_config["mymac"])
-    config["gbe1_ip"]  = ip
-    config["gbe1_mac"] = mac
-    config["gbe1_arp"] = arp_tb
-    config["gbe1_port_src"] = arp_config["fabric_port"]
-    config["gbe1_port_dest"] = fpga.read_int("tenge_port01")
-    config["gbe1_fid"] = fpga.read_int('tenge_header_fid')
+    for ii in range(0, 4):
+        arp_config = fpga.get_10gbe_core_details('tenge_gbe0%i' % ii)
+        arp_tb = [arp.int_to_mac(ss) for ss in  arp_config["arp"]]
+        ip = arp.int_to_ip(arp_config["my_ip"])
+        mac = arp.int_to_mac(arp_config["mymac"])
+        config["gbe%i_ip" % ii]        = ip
+        config["gbe%i_mac" % ii]       = mac
+        config["gbe%i_arp" % ii]       = arp_tb
+        config["gbe%i_port_src" % ii]  = arp_config["fabric_port"]
+        config["gbe%i_port_dest" % ii] = fpga.read_int("tenge_port0%i" % ii)
+        config["gbe%i_fid" % ii]       = fpga.read_int('tenge_header_fid')
 
     for ii in range(22):
         reg = 'tenge_ips_ip%i'% (ii + 1)
         config["gbe0_ip_dest%02i" % (ii + 1)] = arp.int_to_ip(fpga.read_int(reg))
         config["gbe1_ip_dest%02i" % (ii + 1)] = arp.int_to_ip(fpga.read_int(reg))
+        config["gbe2_ip_dest%02i" % (ii + 1)] = arp.int_to_ip(fpga.read_int(reg))
+        config["gbe3_ip_dest%02i" % (ii + 1)] = arp.int_to_ip(fpga.read_int(reg))
 
     return config
 
-def print_10gbe_config(fpga):
-    """ Read and print 10GbE core config from FPGA """
+def print_10gbe_config(fpga, p1=0, p2=1):
+    """ Read and print 10GbE core config from FPGA
+
+    fpga (corr.katcp_wrapper): fpga object
+    p1 (int): Integer ID of 10 GbE port 1 (default 0)
+    p2 (int): Integer ID of 10 GbE port 2 (default 1)
+    """
     cc = read_10gbe_config(fpga)
+
     print "\n%s: 10GbE core configuration " % fpga.host
     print "------------------------------------------------------"
-    print "           | %18s | %18s |" % ("GBE00", "GBE01")
-    print "%10s | %18s | %18s |" % ("MAC", cc["gbe0_mac"], cc["gbe1_mac"])
-    print "%10s | %18s | %18s |" % ("IP", cc["gbe0_ip"], cc["gbe1_ip"])
-    print "%10s | %18s | %18s |" % ("PORT SRC", cc["gbe0_port_src"], cc["gbe1_port_src"])
-    print "%10s | %18s | %18s |" % ("PORT DEST", cc["gbe0_port_dest"], cc["gbe1_port_dest"])
-    print "%10s | %18s | %18s |" % ("FID", cc["gbe0_fid"], cc["gbe1_fid"])
+    print "           | %18s | %18s |" % ("GBE0%i" % p1, "GBE0%i" % p2)
+    print "%10s | %18s | %18s |" % ("MAC", cc["gbe%i_mac" % p1], cc["gbe%i_mac" %p2])
+    print "%10s | %18s | %18s |" % ("IP", cc["gbe%i_ip" % p1], cc["gbe%i_ip" % p2])
+    print "%10s | %18s | %18s |" % ("PORT SRC", cc["gbe%i_port_src" % p1], cc["gbe%i_port_src" % p2])
+    print "%10s | %18s | %18s |" % ("PORT DEST", cc["gbe%i_port_dest" % p1], cc["gbe%i_port_dest" % p2])
+    print "%10s | %18s | %18s |" % ("FID", cc["gbe%i_fid" % p1], cc["gbe%i_fid" % p2])
     print "------------------------------------------------------"
 
 ######################
@@ -168,23 +166,38 @@ if __name__ == "__main__":
 
     for fpga in fpga_list:
         cc = read_10gbe_config(fpga)
-        print_10gbe_config(fpga)
+        core_id = roach_config.core_ids[fpga.host]
+
+        print_10gbe_config(fpga, p1=core_id[0], p2=core_id[1])
 
         # Explicitly check every entry in ARP table matches arp_config
         for jj in range(len(cc["gbe0_arp"])):
             try:
-                assert cc["gbe0_arp"][jj] == arp.arp_table_str[jj]
-                assert cc["gbe1_arp"][jj] == arp.arp_table_str[jj]
+                if core_id == (0, 1):
+                    assert cc["gbe0_arp"][jj] == arp.arp_table_str[jj]
+                    assert cc["gbe1_arp"][jj] == arp.arp_table_str[jj]
+                elif core_id == (2, 3):
+                    assert cc["gbe2_arp"][jj] == arp.arp_table_str[jj]
+                    assert cc["gbe3_arp"][jj] == arp.arp_table_str[jj]
+                else:
+                    raise Exception('Core ID not understood')
             except:
                 print "ERROR: ARP TABLE IS NOT CORRECT ON %s" % fpga.host
                 break
         for jj in range(22):
             try:
+
                 dest_ip = arp.dest_ips_str[jj]
-                assert cc["gbe0_ip_dest%02i" % (jj + 1)] == dest_ip
-                assert cc["gbe1_ip_dest%02i" % (jj + 1)] == dest_ip
+                if core_id == (0, 1):
+                    assert cc["gbe0_ip_dest%02i" % (jj + 1)] == dest_ip
+                    assert cc["gbe1_ip_dest%02i" % (jj + 1)] == dest_ip
+                elif core_id == (2, 3):
+                    assert cc["gbe2_ip_dest%02i" % (jj + 1)] == dest_ip
+                    assert cc["gbe3_ip_dest%02i" % (jj + 1)] == dest_ip
+                else:
+                    raise Exception('Core ID not understood')
             except:
-                print cc["gbe0_ip_dest%02i" % (jj + 1)], dest_ip
+                #print cc["gbe0_ip_dest%02i" % (jj + 1)], dest_ip
                 print "ERROR: DEST IPS ARE NOT CORRECT ON %s" % fpga.host
                 break
 

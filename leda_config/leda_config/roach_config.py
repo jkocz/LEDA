@@ -112,6 +112,7 @@ mac_base0   = arp.mac_base0
 reg_dicts    = {}
 core_configs = {}
 bram_dicts   = {}
+core_ids     = {}
 
 for ii in range(1, 17):
     reg_dict['tenge_header_fid'] = ii
@@ -126,11 +127,13 @@ for ii in range(1, 17):
             ('tenge_gbe00', mac_base0 + src_ip_base + (ii * 2),     src_ip_base + (ii * 2),     src_port0, arp_table),
             ('tenge_gbe01', mac_base0 + src_ip_base + (ii * 2) + 1, src_ip_base + (ii * 2) + 1, src_port1, arp_table)
         ]
+        core_ids["rofl%i" % ii] = (0, 1)
     else:
         core_config = [
             ('tenge_gbe02', mac_base0 + src_ip_base + (ii * 2),     src_ip_base + (ii * 2),     src_port0, arp_table),
             ('tenge_gbe03', mac_base0 + src_ip_base + (ii * 2) + 1, src_ip_base + (ii * 2) + 1, src_port1, arp_table)
         ]
+        core_ids["rofl%i" % ii] = (2, 3)
 
     core_configs["rofl%i" % ii] = core_config
 
