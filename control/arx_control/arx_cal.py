@@ -19,7 +19,7 @@ import sys
 from async import AsyncCaller
 import arx
 
-from leda_config import arx_config
+from leda_config import arx_config, roach_config
     
 def get_adc_samples(roach):
     """ Grab ADC values using adc16_dump_chans """
@@ -50,15 +50,12 @@ class ArxCalOVRO(arx.ArxOVRO):
     def __init__(self, verbose=False):
         super(ArxCalOVRO, self).__init__()
         self.verbose = False
-        
-        self.ATS = 30
+
         self.bad_thresh = 4.0
-        self.nrepeat    = 10
+        self.nrepeat    = arx_config.snap_repeat
         self.sleeptime  = 1.0
-        nroach          = 16
-        self.roaches    = ['rofl%i' % (i+1) for i in xrange(nroach)]
-        
-        
+        self.roaches    = roach_config.roach_list
+
     def _get_nearest_atten(self, val):
         return int(val / 2. + 0.5) * 2
         
@@ -121,19 +118,27 @@ class ArxCalOVRO(arx.ArxOVRO):
             if delt > 0:
                 if curr2 + delt < 20:
                     self.at2_settings[ii] += delt
+                    self.at2_changed[ii] = 1
                 elif curr1 + delt < 20:
                     self.at1_settings[ii] += delt
+                    self.at1_changed[ii] = 1
                 elif curr1 + delt/2 < 20 and curr2 + delt/2 < 20:
                     self.at1_settings[ii] += delt/2
                     self.at2_settings[ii] += delt/2
+                    self.at1_changed[ii] = 1
+                    self.at2_changed[ii] = 1
             if delt < 0:
                 if curr2 + delt > 0:
                     self.at2_settings[ii] += delt
+                    self.at2_changed[ii] = 1
                 elif curr1 + delt > 0:
                     self.at1_settings[ii] += delt
+                    self.at1_changed[ii] = 1
                 elif curr1 + delt/2 > 0 and curr2 + delt/2 > 0:
                     self.at1_settings[ii] += delt/2
                     self.at2_settings[ii] += delt/2
+                    self.at1_changed[ii] = 1
+                    self.at2_changed[ii] = 1
         
     def listCalibration(self):
         """ List computed calibration values """

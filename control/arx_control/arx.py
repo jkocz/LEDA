@@ -262,6 +262,13 @@ class ArxOVRO(object):
         self.fil_settings  = [0 for ii in range(256)]
         self.bad_stands    = [0 for ii in range(256)]
         self.semi_stands   = [0 for ii in range(256)]
+
+        # Lists to note if something has been changed
+        self.at1_changed   = np.zeros(256, dtype=bool)
+        self.at2_changed   = np.zeros(256, dtype=bool)
+        self.ats_changed   = np.zeros(256, dtype=bool)
+        self.fee_changed   = np.zeros(256, dtype=bool)
+        self.fil_changed   = np.zeros(256, dtype=bool)
         
     
     def __repr__(self):
@@ -292,6 +299,12 @@ class ArxOVRO(object):
             filename (str): name of file to open
         """
         execfile(filename, self.__dict__)
+
+        self.at1_changed   = np.zeros(256, dtype=bool)
+        self.at2_changed   = np.zeros(256, dtype=bool)
+        self.ats_changed   = np.zeros(256, dtype=bool)
+        self.fee_changed   = np.zeros(256, dtype=bool)
+        self.fil_changed   = np.zeros(256, dtype=bool)
         
     def saveSettings(self, filename):
         """ Save ARX settings to file 
@@ -335,7 +348,8 @@ class ArxOVRO(object):
                              self.bad_stands, self.semi_stands))
 
         np.savetxt(filename, d, delimiter='\t',
-                   header='ANT\tAT1\tAT2\t\ATS\tFIL\tFEE\tBAD\tSEMI')
+                   header='ANT\tAT1\tAT2\t\ATS\tFIL\tFEE\tBAD\tSEMI',
+                   fmt="%i")
 
     def loadSettingsCsv(self, filename, path=arx_config.arx_report_dir):
         """
@@ -354,18 +368,17 @@ class ArxOVRO(object):
         self.bad_stands   = d[:, 5]
         self.semi_stands  = d[:, 6]
 
+        self.at1_changed   = np.zeros(256, dtype=bool)
+        self.at2_changed   = np.zeros(256, dtype=bool)
+        self.ats_changed   = np.zeros(256, dtype=bool)
+        self.fee_changed   = np.zeros(256, dtype=bool)
+        self.fil_changed   = np.zeros(256, dtype=bool)
 
-    def applySettings(self, set_at1=True, set_at2=True, set_ats=True, set_fil=True, set_fee=True):
+
+    def applySettings(self):
         """ Apply all settings to all ARX boards.
         
         Applies settings (as stored in self.*_settings lists).
-        
-        Arguments:
-            set_at1 (bool): Set first attenuator. Default True.
-            set_at2 (bool): Set second attenuator. Default True.
-            set_ats (bool): Set split-level attenuator. Default True.
-            set_fil (bool): Set filters. Default True.
-            set_fee (bool): Set fee power. Default True.
         """
         arxlist = self.arxlist
         
@@ -383,19 +396,25 @@ class ArxOVRO(object):
                 bd_stand  = jj + 1
                 at1, at2, ats, fil, fee = self.getStandSettings(stand_idx)
                 print "%5s |%4s |%4s |%4s |%4s | %6s"%(stand_num, at1, at2, ats, fil, fee)
-                if set_at1:
+                if self.at1_changed[stand_idx]:
                     arxlist[ii].setAT1(at1, bd_stand)
-                if set_at2:
+                if self.at2_changed[stand_idx]:
                     arxlist[ii].setAT2(at2, bd_stand)
-                if set_ats:
+                if self.ats_changed[stand_idx]:
                     arxlist[ii].setATS(ats, bd_stand)
-                if set_fil:
+                if self.fil_changed[stand_idx]:
                     arxlist[ii].setFilter(fil, bd_stand)
-                if set_fee:
+                if self.fee_changed[stand_idx]:
                     arxlist[ii].powerFEE(fee[0], fee[1], stand = bd_stand)
             #arxlist[ii].shutdown()
             arxlist[ii].close()
             time.sleep(0.1)
+
+        self.at1_changed[:] = 0
+        self.at2_changed[:] = 0
+        self.ats_changed[:] = 0
+        self.fee_changed[:] = 0
+        self.fil_changed[:] = 0
     
     def applySingle(self, stand, print_header=True):
         """ Apply settings to a single ARX path 
@@ -461,8 +480,10 @@ class ArxOVRO(object):
         """
         if stand == 0:
             self.at1_settings = [dB for ii in range(256)]
+            self.at1_changed[:] = 1
         else:
             self.at1_settings[stand - 1] = dB
+            self.at1_changed[stand - 1]  = 1
     
     def setAT2(self, dB, stand=0):
         """ Set level of second attenuator
@@ -473,8 +494,10 @@ class ArxOVRO(object):
         """
         if stand == 0:
             self.at2_settings = [dB for ii in range(256)]
+            self.at2_changed[:] = 1
         else:
             self.at2_settings[stand - 1] = dB
+            self.at1_changed[stand - 1] = 1
 
     def setATS(self, dB, stand=0):
         """ Set level of split-level attenuator
@@ -485,8 +508,10 @@ class ArxOVRO(object):
         """
         if stand == 0:
             self.ats_settings = [dB for ii in range(256)]
+            self.ats_changed[:] = 1
         else:
             self.ats_settings[stand - 1] = dB
+            self.ats_changed[stand - 1] = 1
         
     def setFilter(self, filterNum, stand = 0):
         """ Configure ARX filters.
@@ -504,8 +529,10 @@ class ArxOVRO(object):
         """
         if stand == 0:
             self.fil_settings = [filterNum for ii in range(256)]
+            self.fil_changed[:] = 1
         else:
             self.fil_settings[stand - 1] = filterNum
+            self.fil_changed[stand - 1] = 1
         
     def powerFEE(self, xpol = True, ypol = None,  stand = 0):
         """ Turn power to antenna FEE on and off.
@@ -519,8 +546,10 @@ class ArxOVRO(object):
         """
         if stand == 0:
             self.fee_settings = [(xpol, ypol) for ii in range(256)]
+            self.fee_changed[:] = 1
         else:
             self.fee_settings[stand - 1] = (xpol, ypol)
+            self.fee_changed[stand - 1] = 1
 
     def setFEE(self, xpol = True, ypol = None,  stand = 0):
         """ Alias for powerFEE() method """

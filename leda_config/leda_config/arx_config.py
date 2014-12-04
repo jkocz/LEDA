@@ -17,6 +17,7 @@ arx_report_dir = '/home/leda/observing_logs/arx_reports'
 default_config  = '/home/leda/leda_dev/control/arx_control/config/config_10db_10db_on'
 
 ## ARX AUTO CALIBRATION DEFAULTS
-target_rms    = 32
-arx_cal_iters = 3
-disable_bad   = False
+target_rms    = 32          # Target RMS
+arx_cal_iters = 3           # NUmber of times to iterate on calibration
+disable_bad   = False       # Disable stands identified as bad
+snap_iters    = 3           # Number of ADC RMS snaps in calibration
