@@ -8,7 +8,7 @@ Move data to longterm storage
 
 import os
 import sys
-
+from datetime import datetime
 from storage import *
 
 def bash_to_longterm(filestamp_start, bashfile_out, config=nfs_config):
@@ -81,5 +81,8 @@ if __name__ == '__main__':
 
     bash_to_longterm(date_to_move, bashfile_out)
 
+    t1 = datetime.now()
     exec_bash_zfs(bashfile_out)
 
+    tt = datetime.now() - t1
+    print "Elapsed time: %s" % tt

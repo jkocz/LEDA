@@ -54,7 +54,9 @@ def init_f_engine(roach, q, reg_dict, bram_dict, core_config):
             except RuntimeError:
                 q_output = (roach , "WRITE BRAM ERROR: cannot initialize %s"%roach)
                 allsystemsgo = False
-
+            except AssertionError:
+                q_output = (roach , "WR BRAM ERR: cannot initialize %s %s"% (roach, key))
+                allsystemsgo = False
     if allsystemsgo:
         fpga.write_int('tenge_enable', 0)
         fpga.write_int('adc_rst', 3)
@@ -108,7 +110,7 @@ def read_10gbe_config(fpga):
     config["gbe0_mac"] = mac
     config["gbe0_arp"] = arp_tb
     config["gbe0_port_src"] = arp_config["fabric_port"]
-    config["gbe0_port_dest"] = fpga.read_int("tenge_port1")
+    config["gbe0_port_dest"] = fpga.read_int("tenge_port00")
     config["gbe0_fid"] = fpga.read_int('tenge_header_fid')
 
     arp_config = fpga.get_10gbe_core_details('tenge_gbe01')
@@ -119,7 +121,7 @@ def read_10gbe_config(fpga):
     config["gbe1_mac"] = mac
     config["gbe1_arp"] = arp_tb
     config["gbe1_port_src"] = arp_config["fabric_port"]
-    config["gbe1_port_dest"] = fpga.read_int("tenge_port2")
+    config["gbe1_port_dest"] = fpga.read_int("tenge_port01")
     config["gbe1_fid"] = fpga.read_int('tenge_header_fid')
 
     for ii in range(22):
