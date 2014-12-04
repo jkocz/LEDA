@@ -18,6 +18,8 @@ import math
 import sys
 from async import AsyncCaller
 import arx
+
+from leda_config import arx_config
     
 def get_adc_samples(roach):
     """ Grab ADC values using adc16_dump_chans """
@@ -85,22 +87,22 @@ class ArxCalOVRO(arx.ArxOVRO):
         stddevs = np.median(stddevs, axis=0)
         
         # Find and deal with bad stands and pols
-        self.bad_stands  = []
-        self.semi_stands = []
-        self.cal_atten = [0 for ii in range(256)]
+        self.bad_stands  = [0 for ii in range(256)]
+        self.semi_stands = [0 for ii in range(256)]
+        self.cal_atten   = [0 for ii in range(256)]
         
         typical = np.median(stddevs) # Median of all inputs
         for i in xrange(stddevs.shape[0]):
             polA_bad = stddevs[i][0] < self.bad_thresh
             polB_bad = stddevs[i][1] < self.bad_thresh
             if polA_bad and polB_bad:
-                self.bad_stands.append(i+1)
+                self.bad_stands[i] = 1
                 stddevs[i][0] = stddevs[i][1] = typical
             elif polA_bad:
-                self.semi_stands.append(i+1)
+                self.semi_stands[i] = 1
                 stddevs[i][0] = stddevs[i][1]
             elif polB_bad:
-                self.semi_stands.append(i+1)
+                self.semi_stands[i] = 1
                 stddevs[i][1] = stddevs[i][0]
                 
         # Average the two pols (as there is no per-pol ARX gain control)
@@ -138,56 +140,35 @@ class ArxCalOVRO(arx.ArxOVRO):
         print "Computed attenuation deltas (dB):"
         print self.cal_atten
         print "Bad stands:"
-        print self.bad_stands
+        for ii in range(256):
+            if self.bad_stands[ii] == 1:
+                print ii+1,
+        print ""
         print "Semi-bad stands (one pol out):"
-        print self.semi_stands
+        for ii in range(256):
+            if self.semi_stands[ii] == 1:
+                print ii+1,
 
 if __name__ == '__main__':
-    yes, no = ["Y", "y", "yes"], ["N", "n", "no"]
+
     print "LEDA-OVRO ARX auto-tuner"
     print "------------------------"
-    try:
-        filename = sys.argv[1]
-    except IndexError:
-        filename = 'config/config_10db_10db_on.py'
-        print "Using default config file %s"%filename
-        
-    a = ArxCalOVRO()
-    try:
-        a.loadSettings(filename)
-    except IOError:
-        print "Error: cannot load configuration file %s"%filename
-        print "Please check file path. Now exiting."
-        exit()
-    
-    target_rms = int(raw_input("Please enter target RMS: "))
-    q = raw_input("Have config settings been applied already? Y/N: ")
-    if q not in yes:
-        a.applySettings()
-        
-    run_another = True
-    while run_another:
-        print "Computing calibration..."
-        
-        try:    
-            a.computeCalibration(target_rms)
-        except ValueError:
-            print "ADC read failed! Retrying..."
-            time.sleep(1)
-            a.computeCalibration(target_rms)
-        
-        a.listCalibration()
-        
-        q = raw_input("Apply settings? Y/N: ")
-        if q in yes:
-            a.applyCalibration()
-            a.applySettings(set_fil=False, set_fee=False, set_ats=False)
-        q = raw_input("Run calibration again? Y/N: ")
-        if q not in yes:
-            run_another = False
-        
-    q = raw_input("Save settings? Y/N: ")
-    if q in yes:
-        filename = raw_input("Filename: ")
-        a.saveSettings('config/' + filename)
-        
+
+    start_config = arx_config.default_config
+    target_rms   = arx_config.target_rms
+    n_iters      = arx_config.arx_cal_iters
+
+    print "Initial config: %s" % start_config
+    print "Target RMS:     %i" % target_rms
+    print "No. iterations: %i" % n_iters
+
+    time.sleep(1)
+
+    cal = ArxCalOVRO()
+    cal.loadSettings(start_config)
+
+    for ii in range(n_iters):
+        print "Iteration %i of %i" % (ii + 1, n_iters)
+        cal.computeCalibration(target_rms)
+        cal.applyCalibration()
+        cal.applySettings()

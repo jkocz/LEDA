@@ -11,7 +11,8 @@ __author__     = "LEDA Collaboration"
 __version__    = "2.0"
 __status__     = "Development"
 
-import socket, time, sys
+import socket, time, sys, os
+import numpy as np
 
 from leda_config import arx_config
 
@@ -259,8 +260,8 @@ class ArxOVRO(object):
         self.ats_settings  = [30 for ii in range(256)]
         self.fee_settings  = [(False, False) for ii in range(256)]
         self.fil_settings  = [0 for ii in range(256)]
-        self.bad_stands    = []
-        self.semi_stands   = []
+        self.bad_stands    = [0 for ii in range(256)]
+        self.semi_stands   = [0 for ii in range(256)]
         
     
     def __repr__(self):
@@ -320,8 +321,40 @@ class ArxOVRO(object):
         f.write("fil_settings = [%s]\n" \
                     % ", ".join([str(x) for x in self.fil_settings]))
         f.write("\n")
-        f.close()    
-    
+        f.close()
+
+    def saveSettingsCsv(self, filename):
+        """ Save ARX settings to tabbed CSV file
+
+        filename (str): name of file
+        """
+
+        ids = range(1, 257)
+        d = np.column_stack((ids, self.at1_settings, self.at2_settings, self.ats_settings,
+                             self.fil_settings, self.fee_settings,
+                             self.bad_stands, self.semi_stands))
+
+        np.savetxt(filename, d, delimiter='\t',
+                   header='ANT\tAT1\tAT2\t\ATS\tFIL\tFEE\tBAD\tSEMI')
+
+    def loadSettingsCsv(self, filename, path=arx_config.arx_report_dir):
+        """
+
+        filename (str): name of file
+        path (str): path to file
+        """
+        fp = os.path.join(path, filename)
+        d = np.genfromtxt(fp, delimiter='\t', skip_header=1)
+
+        self.at1_settings = d[:, 0]
+        self.at2_settings = d[:, 1]
+        self.ats_settings = d[:, 2]
+        self.fil_settings = d[:, 3]
+        self.fee_settings = d[:, 4]
+        self.bad_stands   = d[:, 5]
+        self.semi_stands  = d[:, 6]
+
+
     def applySettings(self, set_at1=True, set_at2=True, set_ats=True, set_fil=True, set_fee=True):
         """ Apply all settings to all ARX boards.
         
@@ -497,7 +530,7 @@ class ArxOVRO(object):
         """ Set bad stands to be turned off """
         print "Disabling stands marked as faulty..."
         for ii in range(len(self.at1_settings)):
-            if ii + 1 in self.bad_stands or ii+1 in self.semi_stands:
+            if self.bad_stands[ii] == 1 or self.semi_stands[ii] == 1:
                 self.setFEE(False, False, ii+1)
                 self.setFilter(3, ii+1)
                 self.applySingle(ii+1, print_header=False)

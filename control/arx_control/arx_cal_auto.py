@@ -9,26 +9,19 @@ import os
 from arx_cal import *
 from adc16_initall import *
 
+from leda_config import arx_config, roach_config
+
 if __name__ == '__main__':
     
     # ARX Settings
-    filename      = 'config/config_10db_10db_on'
-    target_rms    = 50
-    n_iter        = 5
+    filename      = arx_config.default_config
+    target_rms    = arx_config.default_rms
+    n_iter        = arx_config.arx_cal_iters
     reprogram_arx = True
     autocal_arx   = True
     savecal_arx   = True
     disable_bad   = False
-    
-    # ROACH settings
-    boffile         = 'l512_actual.bof'
-    adc_gain        = 6
-    reprogram_fpga  = False
-    
-    # Main calibration routine
-    if reprogram_fpga:
-        progdev_all(boffile, adc_gain)
-    
+
     a = ArxCalOVRO()
     a.loadSettings(filename)
     
