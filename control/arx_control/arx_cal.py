@@ -177,3 +177,5 @@ if __name__ == '__main__':
         cal.computeCalibration(target_rms)
         cal.applyCalibration()
         cal.applySettings()
+
+    cal.saveSettingsCsv(os.path.join(arx_config.arx_config_dir, 'current'))
