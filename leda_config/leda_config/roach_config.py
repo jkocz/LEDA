@@ -63,6 +63,8 @@ bram_dict = {
 reg_dict = {
     'tenge_port00'    : arp.dest_port0,
     'tenge_port01'    : arp.dest_port1,
+    'tenge_port02'    : arp.dest_port0,
+    'tenge_port03'    : arp.dest_port1,
     'tenge_ips_ip1'  : arp.dest_ip0,
     'tenge_ips_ip2'  : arp.dest_ip1,
     'tenge_ips_ip3'  : arp.dest_ip2,

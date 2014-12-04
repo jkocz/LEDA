@@ -13,6 +13,8 @@ __status__     = "Development"
 
 import socket, time, sys
 
+from leda_config import arx_config
+
 class ArxController(object):
     """ Python class for ARX control at LEDA-OVRO (via rabbit boards).
     
@@ -40,8 +42,8 @@ class ArxController(object):
     signalChainOff = 3
     
     def __init__(self,
-                 txAddr  = ('192.168.25.2', 1738),
-                 rxAddr  = ('192.100.16.226', 1739),
+                 txAddr  = arx_config.arx1_txAddr,
+                 rxAddr  = arx_config.rx_addr,
                  nBoards = 8,
                  connect = True,
                  sleep   = 0.03,
@@ -233,11 +235,11 @@ class ArxOVRO(object):
         Essentially a wrapper of four ArxController() instances.
     """
     def __init__(self, verbose=False):
-        arx1_txAddr = ('192.168.25.2', 1738)
-        arx2_txAddr = ('192.168.25.4', 1738)
-        arx3_txAddr = ('192.168.25.5', 1738)
-        arx4_txAddr = ('192.168.25.6', 1738)
-        rxAddr      = ('192.100.16.226', 1739)
+        arx1_txAddr = arx_config.arx1_txAddr
+        arx2_txAddr = arx_config.arx2_txAddr
+        arx3_txAddr = arx_config.arx3_txAddr
+        arx4_txAddr = arx_config.arx4_txAddr
+        rxAddr      = arx_config.rx_addr
         
         nBoards     = 8       # All shelves have 8 boards
         connect     = False   # Only one board can be connected to at once
