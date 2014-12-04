@@ -121,9 +121,16 @@ for ii in range(1, 17):
     bd_inst = bram_dict.copy()
     bram_dicts["rofl%i" % ii] = bd_inst
 
-    core_config = [
-        ('tenge_gbe00', mac_base0 + src_ip_base + (ii * 2),     src_ip_base + (ii * 2),     src_port0, arp_table),
-        ('tenge_gbe01', mac_base0 + src_ip_base + (ii * 2) + 1, src_ip_base + (ii * 2) + 1, src_port1, arp_table)
-    ]
+    if ii != 7:
+        core_config = [
+            ('tenge_gbe00', mac_base0 + src_ip_base + (ii * 2),     src_ip_base + (ii * 2),     src_port0, arp_table),
+            ('tenge_gbe01', mac_base0 + src_ip_base + (ii * 2) + 1, src_ip_base + (ii * 2) + 1, src_port1, arp_table)
+        ]
+    else:
+        core_config = [
+            ('tenge_gbe02', mac_base0 + src_ip_base + (ii * 2),     src_ip_base + (ii * 2),     src_port0, arp_table),
+            ('tenge_gbe03', mac_base0 + src_ip_base + (ii * 2) + 1, src_ip_base + (ii * 2) + 1, src_port1, arp_table)
+        ]
+
     core_configs["rofl%i" % ii] = core_config
 
