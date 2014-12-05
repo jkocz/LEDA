@@ -11,14 +11,15 @@ __version__    = "2.0"
 __status__     = "Development"
 
 
+import sys
+import os
 import subprocess
 import time
 import numpy as np
 import math
-import sys
 from async import AsyncCaller
-import arx
 
+import arx
 from leda_config import arx_config, roach_config
 
 def get_adc_samples(roach):
@@ -176,6 +177,7 @@ if __name__ == '__main__':
         print "Iteration %i of %i" % (ii + 1, n_iters)
         cal.computeCalibration(target_rms)
         cal.applyCalibration()
+        #print cal.at2_changed
         cal.applySettings()
 
-    cal.saveSettingsCsv(os.path.join(arx_config.arx_config_dir, 'current'))
+    cal.saveSettings(os.path.join(arx_config.arx_config_dir, 'config_current'))

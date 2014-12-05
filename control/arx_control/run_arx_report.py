@@ -8,7 +8,7 @@ Run ARX report to generate the RMS level matrix.
 """
 
 
-import os, time, subprocess
+import os, time, subprocess, shutil
 from datetime import datetime
 from multiprocessing import Process, Array
 import numpy as np
@@ -35,7 +35,7 @@ def plot64(data, offset):
         elif rms >= 2**5.5:
             col = 'black' #Over 5 1/2-bit RMS
         else:
-            col = 'green'    
+            col = 'green'
         plt.plot(d, color=col)
     plt.title(title)
     fig.canvas.set_window_title(title)
@@ -60,7 +60,7 @@ def grab_adc16(roach, arr, filter=False):
 if __name__ == '__main__':
     roachlist = ['rofl%i'%i for i in range(1,16+1)]
     n_roach, n_samples = len(roachlist), 512
-    
+
     allsystemsgo = True
     fig = plt.figure(figsize=[12,9])
     ax = plt.subplot(111)
@@ -82,19 +82,19 @@ if __name__ == '__main__':
         # Start threads
         for p in procs:
             p.start()
-        # Join threads      
+        # Join threads
         for p in procs:
             p.join()
-            
+
         data = np.zeros([n_roach*32, n_samples])
         #plt.plot(arrs[0][::32])
         #plt.show()
         #exit()
-        
+
         for i in range(len(arrs)):
             a = np.array(arrs[i][:]).reshape([n_samples, 32]).T
-            data[32*i:32*i+32] = a 
-        
+            data[32*i:32*i+32] = a
+
         i = 1
         squares = []
         for row in data:
@@ -109,28 +109,35 @@ if __name__ == '__main__':
                 #cprint("%03d\t%02.2f\tOK"%(i, rms), 'green')
                 squares.append(3)
             i += 1
-        
-        #squares = np.array(squares).reshape([16,32])  
+
+        #squares = np.array(squares).reshape([16,32])
         #cmap = matplotlib.colors.ListedColormap(['#94e5b7', '#57D68D', '#27AE60'])
-        #ax = plt.subplot(111, aspect='equal')  
+        #ax = plt.subplot(111, aspect='equal')
         #plt.pcolor(squares, edgecolors='k', cmap=cmap)
         #plt.xticks([i for i in range(32)])
         #plt.xlim(0,32)
         #plt.yticks([i for i in range(16)], [32*i for i in range(16)])
-        
+
         rmsvals = []
         for row in data:
             rmsvals.append(np.std(row))
-        rmsvals = np.array(rmsvals).reshape([16,32]) 
-        
+        rmsvals = np.array(rmsvals).reshape([16,32])
+
         im.set_data(rmsvals)
-       
+
         fpath = arx_config.arx_report_dir
         now = datetime.now()
         hkl_str = now.strftime("arx_report-%Y-%m-%d_%H-%M-%S.hkl")
         pdf_str = now.strftime("arx_report-%Y-%m-%d_%H-%M-%S.pdf")
-        
+
         hkl.dump(rmsvals, os.path.join(fpath, hkl_str))
         plt.savefig(os.path.join(fpath, pdf_str))
         plt.savefig(os.path.join(fpath, "arx_report.pdf"))
+
+        # save arx config also
+        cfg_str = now.strftime("arx_config-%Y-%m-%d_%H-%M-%S.txt")
+        shutil.copyfile("config/config_current",
+                        os.path.join(fpath, "arx_config.txt"))
+        shutil.copyfile("config/config_current",
+                        os.path.join(fpath, cfg_str))
         exit()

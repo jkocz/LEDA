@@ -13,35 +13,36 @@ __status__     = "Development"
 
 import socket, time, sys, os
 import numpy as np
+from datetime import datetime
 
 from leda_config import arx_config
 
 class ArxController(object):
     """ Python class for ARX control at LEDA-OVRO (via rabbit boards).
-    
+
     Arguments:
-        txAddr (str, int): Transmit IP address and port. 
+        txAddr (str, int): Transmit IP address and port.
         rxAddr (str, int): Receive IP address and port.
         nBoards (int):     Number of boards per rabbit. Default is 8 for LEDA-OVRO.
-        connect (bool):    Connect to socket on initialization. Defaults to True. 
+        connect (bool):    Connect to socket on initialization. Defaults to True.
         sleep (float):     Time to sleep in seconds between commands. Default 0.03s
         verbose (bool):    Enable or disable verbose output.
-        
+
     Notes:
-        Only rx and tx address and port should require configuration. 
+        Only rx and tx address and port should require configuration.
         A separate ArxController is needed for each ARX shelf.
         Each shelf has eight ARX boards, each board controls 16 signal paths.
         LEDA-OVRO has 4 shelves * 8 boards * 16 paths = 512 inputs.
-        Earlier ARX setups at LEDA-OVRO had one rabbit controlling multiple ARX 
+        Earlier ARX setups at LEDA-OVRO had one rabbit controlling multiple ARX
         shelves. This was really unreliable, so now we have one rabbit for each
-        ARX shelf. 
+        ARX shelf.
     """
-    
+
     splitFilter    = 0
     fullFilter     = 1
     reducedFilter  = 2
     signalChainOff = 3
-    
+
     def __init__(self,
                  txAddr  = arx_config.arx1_txAddr,
                  rxAddr  = arx_config.rx_addr,
@@ -56,11 +57,11 @@ class ArxController(object):
         self.is_connected   = False
         if connect:
             self.connect()
-        
+
         self.sleep = sleep
         self.lastCmdTime = 0
         self.verbose = verbose
-    
+
     def __repr__(self):
         toprint = "### ARX controller\nTX address: "
         toprint += self.txAddr[0]
@@ -71,7 +72,7 @@ class ArxController(object):
         toprint += ":"
         toprint += str(self.rxAddr[1])
         return toprint
-        
+
     def connect(self):
         """ Connect to rabbit board via socket"""
         if not self.is_connected:
@@ -83,21 +84,21 @@ class ArxController(object):
         else:
             if self.verbose:
                 print "Socket already connected."
-    
+
     def close(self):
         """ Close socket connections to rabbit """
-        if self.is_connected: 
+        if self.is_connected:
             self.txSocket.close()
             self.rxSocket.close()
             self.is_connected = False
         else:
             if self.verbose:
                 print "Socket already closed."
-    
+
     def __del(self):
         """ Close socket connections to rabbit. """
         self.close()
-    
+
     def _sendCommand(self, cmd, data):
         """ Send a generic command to the rabbit board """
         if not self.is_connected:
@@ -119,29 +120,29 @@ class ArxController(object):
                 print 'ASP RX timed out!'
         self.lastCmdTime = time.time()
         return response
-    
+
     def initialize(self):
         """ Initialize connection to rabbit """
         if not self.is_connected:
             self.connect()
-        
+
         #self._sendCommand('SHT', '')
         self._sendCommand('INI', '%02d' % self.nBoards)
         #self._sendCommand('FPW', '000111')
         #self._sendCommand('FPW', '000211')
-    
+
     def shutdown(self):
-        """ Send shutdown signal. 
-        
+        """ Send shutdown signal.
+
         Sending the shutdown signal will turn everything off.
         """
         #self._sendCommand('FPW', '000100')
         #self._sendCommand('FPW', '000200')
         self._sendCommand('SHT', '')
-    
+
     def powerFEE(self, xpol = True, ypol = None,  stand = 0):
         """ Turn power to antenna FEE on and off.
-        
+
         Arguments:
             xpol (bool): Turn on Pol X?
             ypol (bool): Turn on Pol Y? If not set, xpol value is used
@@ -158,21 +159,21 @@ class ArxController(object):
         else:
             self._sendCommand('FPW', '%03d1%s' % (stand, xCode))
             self._sendCommand('FPW', '%03d2%s' % (stand, yCode))
-    
+
     def setFilter(self, filterNum, stand = 0):
         """ Configure ARX filters.
-        
+
         Arguments:
             filternum (int): Filter number to enable. See notes for more.
             stand (int): Stand number.  If set to zero, applied to all stands.
-            
+
         Notes:
             The possible filter values are:
             splitFilter    = 0      (Normal operation mode)
-            fullFilter     = 1      
+            fullFilter     = 1
             reducedFilter  = 2      (Narrowband)
             signalChainOff = 3
-        
+
         TODO: Check this does what I think it does.
         """
         if stand == 0:
@@ -180,10 +181,10 @@ class ArxController(object):
                 self._sendCommand('FIL', '%03d%02d' % (stand, filterNum))
         else:
             self._sendCommand('FIL', '%03d%02d' % (stand, filterNum))
-    
+
     def setAT1(self, dB, stand = 0):
-        """ Set level of first attenuator 
-        
+        """ Set level of first attenuator
+
         Arguments:
             dB (int): Attenuation to apply, in decibels.
             stand (int): Stand number. If set to zero, applied to all stands.
@@ -193,10 +194,10 @@ class ArxController(object):
                 self._sendCommand('AT1', '%03d%02d' % (stand, dB / 2))
         else:
             self._sendCommand('AT1', '%03d%02d' % (stand, dB / 2))
-    
+
     def setAT2(self, dB, stand = 0):
         """ Set level of second attenuator
-        
+
         Arguments:
             dB (int): Attenuation to apply, in decibels.
             stand (int): Stand number. If set to zero, applied to all stands.
@@ -206,10 +207,10 @@ class ArxController(object):
                 self._sendCommand('AT2', '%03d%02d' % (stand, dB / 2))
         else:
             self._sendCommand('AT2', '%03d%02d' % (stand, dB / 2))
-    
+
     def setATS(self, dB, stand = 0):
         """ Set attenuator level in split-band filter
-        
+
         Arguments:
             dB (int): Attenuation to apply at each attenuator, in dB.
             stand (int): Stand number. If set to zero, applied to all stands.
@@ -222,16 +223,16 @@ class ArxController(object):
 
 class ArxOVRO(object):
     """ ARX configurer class for LEDA-OVRO.
-    
+
     Manages connection between the four ARX shelves at LEDA-OVRO.
-    
+
     Arguments:
-        txAddr (str, int): Transmit IP address and port. 
+        txAddr (str, int): Transmit IP address and port.
         rxAddr (str, int): Receive IP address and port.
         nBoards (int): Number of boards per rabbit. Default is 8 for LEDA-OVRO.
         sleep (float): Time to sleep in seconds between commands. Default 0.03s
         verbose (bool): Enable or disable verbose output.
-    
+
     Notes:
         Essentially a wrapper of four ArxController() instances.
     """
@@ -241,11 +242,11 @@ class ArxOVRO(object):
         arx3_txAddr = arx_config.arx3_txAddr
         arx4_txAddr = arx_config.arx4_txAddr
         rxAddr      = arx_config.rx_addr
-        
+
         nBoards     = 8       # All shelves have 8 boards
         connect     = False   # Only one board can be connected to at once
         sleep       = 0.03    # Time to sleep in between commands
-        
+
         # Create child ARX Controller instances
         self.current_connection = None
         self.arx1 = ArxController(arx1_txAddr, rxAddr, nBoards, connect, sleep, verbose)
@@ -253,7 +254,7 @@ class ArxOVRO(object):
         self.arx3 = ArxController(arx3_txAddr, rxAddr, nBoards, connect, sleep, verbose)
         self.arx4 = ArxController(arx4_txAddr, rxAddr, nBoards, connect, sleep, verbose)
         self.arxlist = [self.arx1, self.arx2, self.arx3, self.arx4]
-        
+
         # Setup lists for ARX setup storage
         self.at1_settings  = [10 for ii in range(256)]
         self.at2_settings  = [10 for ii in range(256)]
@@ -269,8 +270,8 @@ class ArxOVRO(object):
         self.ats_changed   = np.zeros(256, dtype=bool)
         self.fee_changed   = np.zeros(256, dtype=bool)
         self.fil_changed   = np.zeros(256, dtype=bool)
-        
-    
+
+
     def __repr__(self):
         toprint = "### LEDA-OVRO ARX CONTROLLER\n"
         toprint += "%s \n"%self.arx1.__repr__()
@@ -278,10 +279,10 @@ class ArxOVRO(object):
         toprint += "%s \n"%self.arx3.__repr__()
         toprint += "%s \n"%self.arx4.__repr__()
         return toprint
-    
+
     def getStandSettings(self, stand_idx):
         """ Return a tuple of stand settings.
-        
+
         returns:
             Tuple of (at1, at2, ats, fil, fee)
         """
@@ -291,24 +292,24 @@ class ArxOVRO(object):
         fil  = self.fil_settings[stand_idx]
         fee  = self.fee_settings[stand_idx]
         return at1, at2, ats, fil, fee
-        
+
     def loadSettings(self, filename):
-        """ Load ARXsettings from file 
-        
+        """ Load ARXsettings from file
+
         Arguments:
             filename (str): name of file to open
         """
         execfile(filename, self.__dict__)
 
-        self.at1_changed   = np.zeros(256, dtype=bool)
-        self.at2_changed   = np.zeros(256, dtype=bool)
-        self.ats_changed   = np.zeros(256, dtype=bool)
-        self.fee_changed   = np.zeros(256, dtype=bool)
-        self.fil_changed   = np.zeros(256, dtype=bool)
-        
+        self.at1_changed   = np.ones(256, dtype=bool)
+        self.at2_changed   = np.ones(256, dtype=bool)
+        self.ats_changed   = np.ones(256, dtype=bool)
+        self.fee_changed   = np.ones(256, dtype=bool)
+        self.fil_changed   = np.ones(256, dtype=bool)
+
     def saveSettings(self, filename):
-        """ Save ARX settings to file 
-        
+        """ Save ARX settings to file
+
         Arguments:
             filename (str): name of file to save as
         """
@@ -346,27 +347,26 @@ class ArxOVRO(object):
         d = np.column_stack((ids, self.at1_settings, self.at2_settings, self.ats_settings,
                              self.fil_settings, self.fee_settings,
                              self.bad_stands, self.semi_stands))
-
+        now = datetime.now()
         np.savetxt(filename, d, delimiter='\t',
-                   header='ANT\tAT1\tAT2\t\ATS\tFIL\tFEE\tBAD\tSEMI',
+                   header='%s\nANT\tAT1\tAT2\t\ATS\tFIL\tFEE\tBAD\tSEMI' % now,
                    fmt="%i")
 
-    def loadSettingsCsv(self, filename, path=arx_config.arx_report_dir):
+    def loadSettingsCsv(self, filename):
         """
 
         filename (str): name of file
         path (str): path to file
         """
-        fp = os.path.join(path, filename)
-        d = np.genfromtxt(fp, delimiter='\t', skip_header=1)
+        d = np.genfromtxt(filename, delimiter='\t', skip_header=2)
 
-        self.at1_settings = d[:, 0]
-        self.at2_settings = d[:, 1]
-        self.ats_settings = d[:, 2]
-        self.fil_settings = d[:, 3]
-        self.fee_settings = d[:, 4]
-        self.bad_stands   = d[:, 5]
-        self.semi_stands  = d[:, 6]
+        self.at1_settings = d[:, 1]
+        self.at2_settings = d[:, 2]
+        self.ats_settings = d[:, 3]
+        self.fil_settings = d[:, 4]
+        self.fee_settings = d[:, 5]
+        self.bad_stands   = d[:, 6]
+        self.semi_stands  = d[:, 7]
 
         self.at1_changed   = np.zeros(256, dtype=bool)
         self.at2_changed   = np.zeros(256, dtype=bool)
@@ -377,11 +377,11 @@ class ArxOVRO(object):
 
     def applySettings(self):
         """ Apply all settings to all ARX boards.
-        
+
         Applies settings (as stored in self.*_settings lists).
         """
         arxlist = self.arxlist
-        
+
         for ii in range(len(arxlist)):
             print "Applying to ARX %i..."%(ii+1)
             arxlist[ii].connect()
@@ -389,7 +389,7 @@ class ArxOVRO(object):
             print arxlist[ii]
             time.sleep(0.1)
             self.printHeader()
-            
+
             for jj in range(64):
                 stand_num = ii*64 + jj + 1
                 stand_idx = stand_num - 1
@@ -415,10 +415,10 @@ class ArxOVRO(object):
         self.ats_changed[:] = 0
         self.fee_changed[:] = 0
         self.fil_changed[:] = 0
-    
+
     def applySingle(self, stand, print_header=True):
-        """ Apply settings to a single ARX path 
-        
+        """ Apply settings to a single ARX path
+
         Arguments:
             stand (int): Stand to apply settings to.
             print_header (bool): print table header. Defaults to True.
@@ -429,9 +429,9 @@ class ArxOVRO(object):
             arx_idx = 3
         stand_idx = stand - 1
         bd_stand  = (stand_idx % 64) + 1
-        
+
         at1, at2, ats, fil, fee = self.getStandSettings(stand_idx)
-        
+
         arxlist[arx_idx].connect()
         arxlist[arx_idx].initialize()
         arxlist[arx_idx].setAT1(at1, bd_stand)
@@ -441,22 +441,22 @@ class ArxOVRO(object):
         arxlist[arx_idx].powerFEE(fee[0], fee[1], stand = bd_stand)
         #arxlist[arx_idx].shutdown()
         arxlist[arx_idx].close()
-        
-        if print_header:        
+
+        if print_header:
             self.printHeader()
         print "%5s |%4s |%4s |%4s |%4s | %6s"%(stand, at1, at2, ats, fil, fee)
-        
-    
-        
+
+
+
     def listSettings(self, stand_num = None):
-        """ prints the configured values for each stand 
-        
+        """ prints the configured values for each stand
+
         Arguments:
             stand_num (int): Stand ID to return settings for. If not set,
                              a list of all stand values will be returned.
                              NB: First stand is 1, not 0.
         """
-        
+
         self.printHeader()
         if not stand_num:
             stand_ids = range(1, 256+1)
@@ -465,15 +465,15 @@ class ArxOVRO(object):
         for ii in stand_ids:
             at1, at2, ats, fil, fee = self.getStandSettings(ii - 1)
             print "%5s |%4s |%4s |%4s |%4s | %6s"%(ii, at1, at2, ats, fil, fee)
-    
+
     def printHeader(self):
         """ Print table header to screen """
         print "STAND | AT1 | AT2 | ATS | FIL | FEE "
         print "------|-----|-----|-----|-----|----------"
-    
+
     def setAT1(self, dB, stand=0):
         """ Set level of first attenuator
-        
+
         Arguments:
             dB (int): Attenuation to apply, in decibels.
             stand (int): Stand number (from 1). If set to 0, applied to all stands.
@@ -484,10 +484,10 @@ class ArxOVRO(object):
         else:
             self.at1_settings[stand - 1] = dB
             self.at1_changed[stand - 1]  = 1
-    
+
     def setAT2(self, dB, stand=0):
         """ Set level of second attenuator
-        
+
         Arguments:
             dB (int): Attenuation to apply, in decibels.
             stand (int): Stand number. If set to zero, applied to all stands.
@@ -501,7 +501,7 @@ class ArxOVRO(object):
 
     def setATS(self, dB, stand=0):
         """ Set level of split-level attenuator
-        
+
         Arguments:
             dB (int): Attenuation to apply, in decibels.
             stand (int): Stand number. If set to zero, applied to all stands.
@@ -512,14 +512,14 @@ class ArxOVRO(object):
         else:
             self.ats_settings[stand - 1] = dB
             self.ats_changed[stand - 1] = 1
-        
+
     def setFilter(self, filterNum, stand = 0):
         """ Configure ARX filters.
-        
+
         Arguments:
             filternum (int): Filter number to enable. See notes for more.
             stand (int): Stand number.  If set to zero, applied to all stands.
-            
+
         Notes:
             The possible filter values are:
             splitFilter    = 0   (Normal operating mode)
@@ -533,15 +533,15 @@ class ArxOVRO(object):
         else:
             self.fil_settings[stand - 1] = filterNum
             self.fil_changed[stand - 1] = 1
-        
+
     def powerFEE(self, xpol = True, ypol = None,  stand = 0):
         """ Turn power to antenna FEE on and off.
-        
+
         Arguments:
             xpol (bool): Turn on Pol X?
             ypol (bool): Turn on Pol Y? If not set, xpol value is used
             stand (int): Stand number.  If set to zero, applied to all stands.
-        
+
         TODO: Implement!
         """
         if stand == 0:
@@ -554,7 +554,7 @@ class ArxOVRO(object):
     def setFEE(self, xpol = True, ypol = None,  stand = 0):
         """ Alias for powerFEE() method """
         self.powerFEE(xpol, ypol, stand)
-    
+
     def disableBadStands(self):
         """ Set bad stands to be turned off """
         print "Disabling stands marked as faulty..."
@@ -563,19 +563,19 @@ class ArxOVRO(object):
                 self.setFEE(False, False, ii+1)
                 self.setFilter(3, ii+1)
                 self.applySingle(ii+1, print_header=False)
-    
+
 if __name__ == '__main__':
     # Basic testing and examples
     txAddr = ('192.168.25.2', 1738)
     rxAddr = ('192.100.16.226', 1739)
     sleep = 0.03
     verbose = False
-    
+
     # Create an ARX controller object
     a = ArxController(txAddr, rxAddr, sleep, verbose)
     #a.shutdown()
     a.initialize()
-    
+
     # Configure ARX settings
     a.setAT1(10)      # Set first attenuator to 10  dB for all boards
     a.setAT2(10)      # Set second attenuator to 10 dB for all boards
@@ -583,7 +583,7 @@ if __name__ == '__main__':
     a.powerFEE(True)  # Turn on all FEE boards
     #a.shutdown()
     a.close()
-    
+
     # Test examples for ArxOVRO class
     a = arx.ArxOVRO()
     a.at1_settings = [10 for ii in range(256)]

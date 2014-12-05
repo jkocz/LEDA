@@ -3,3 +3,5 @@
 *~
 old/
 .ropeproject/
+leda_config/build/
+control/storage_control/move_to_longterm.sh
