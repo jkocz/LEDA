@@ -70,7 +70,7 @@ if __name__ == '__main__':
     ax.set_xticklabels([2*i+1 for i in range(8)])
     ax.set_yticks([i for i in range(16)])
     ax.set_yticklabels([16*i for i in range(16)])
-
+    plt.title("ARX RMS grid: " + str(datetime.now()))
     #plt.colorbar(orientation="horizontal")
     while allsystemsgo:
         # Create threads and shared memory

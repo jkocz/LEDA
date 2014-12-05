@@ -395,7 +395,24 @@ class ArxOVRO(object):
                 stand_idx = stand_num - 1
                 bd_stand  = jj + 1
                 at1, at2, ats, fil, fee = self.getStandSettings(stand_idx)
-                print "%5s |%4s |%4s |%4s |%4s | %6s"%(stand_num, at1, at2, ats, fil, fee)
+                is_changed = False
+                ast = ""
+
+                if self.at1_changed[stand_idx]:
+                    is_changed = True
+                if self.at2_changed[stand_idx]:
+                    is_changed = True
+                if self.fee_changed[stand_idx]:
+                    is_changed = True
+                if self.ats_changed[stand_idx]:
+                    is_changed = True
+                if self.fil_changed[stand_idx]:
+                    is_changed = True
+                if is_changed:
+                    ast = "*"
+
+                print "%5s |%4s |%4s |%4s |%4s | %6s | %s" \
+                    % (stand_num, at1, at2, ats, fil, fee, ast)
                 if self.at1_changed[stand_idx]:
                     arxlist[ii].setAT1(at1, bd_stand)
                 if self.at2_changed[stand_idx]:

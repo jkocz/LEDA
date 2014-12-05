@@ -17,8 +17,9 @@ import subprocess
 import time
 import numpy as np
 import math
-from async import AsyncCaller
+from optparse import OptionParser
 
+from async import AsyncCaller
 import arx
 from leda_config import arx_config, roach_config
 
@@ -117,29 +118,27 @@ class ArxCalOVRO(arx.ArxOVRO):
         for ii in range(len(self.cal_atten)):
             curr1, curr2, delt = self.at1_settings[ii], self.at2_settings[ii], self.cal_atten[ii]
             if delt > 0:
-                if curr2 + delt < 20:
+                self.at1_changed[ii] = 1
+                self.at2_changed[ii] = 1
+                if curr2 + delt <= 20:
                     self.at2_settings[ii] += delt
-                    self.at2_changed[ii] = 1
-                elif curr1 + delt < 20:
+                elif curr1 + delt <= 20:
                     self.at1_settings[ii] += delt
-                    self.at1_changed[ii] = 1
-                elif curr1 + delt/2 < 20 and curr2 + delt/2 < 20:
+                elif curr1 + delt/2 <= 20 and curr2 + delt/2 <= 20:
                     self.at1_settings[ii] += delt/2
                     self.at2_settings[ii] += delt/2
-                    self.at1_changed[ii] = 1
-                    self.at2_changed[ii] = 1
+                else:
+                    self.at2_settings[ii] = 20
             if delt < 0:
+                self.at1_changed[ii] = 1
+                self.at2_changed[ii] = 1
                 if curr2 + delt > 0:
                     self.at2_settings[ii] += delt
-                    self.at2_changed[ii] = 1
                 elif curr1 + delt > 0:
                     self.at1_settings[ii] += delt
-                    self.at1_changed[ii] = 1
                 elif curr1 + delt/2 > 0 and curr2 + delt/2 > 0:
                     self.at1_settings[ii] += delt/2
                     self.at2_settings[ii] += delt/2
-                    self.at1_changed[ii] = 1
-                    self.at2_changed[ii] = 1
 
     def listCalibration(self):
         """ List computed calibration values """
@@ -156,13 +155,23 @@ class ArxCalOVRO(arx.ArxOVRO):
                 print ii+1,
 
 if __name__ == '__main__':
+    parser = OptionParser()
+    parser.add_option("-r", "--rms", dest="rms", default=arx_config.target_rms,
+                      help="Target RMS value", type="int")
+    parser.add_option("-c", "--config", dest="start_config", type="string",
+                      default=arx_config.default_config,
+                      help="Initial config file to load.")
+    parser.add_option("-n", "--niter", dest="n_iters", type="int",
+                      default=arx_config.arx_cal_iters,
+                      help="Number of iterations")
+    (options, args) = parser.parse_args()
 
     print "LEDA-OVRO ARX auto-tuner"
     print "------------------------"
 
-    start_config = arx_config.default_config
-    target_rms   = arx_config.target_rms
-    n_iters      = arx_config.arx_cal_iters
+    start_config = options.start_config
+    target_rms   = options.rms
+    n_iters      = options.n_iters
 
     print "Initial config: %s" % start_config
     print "Target RMS:     %i" % target_rms
@@ -172,6 +181,7 @@ if __name__ == '__main__':
 
     cal = ArxCalOVRO()
     cal.loadSettings(start_config)
+    cal.applySettings()
 
     for ii in range(n_iters):
         print "Iteration %i of %i" % (ii + 1, n_iters)
