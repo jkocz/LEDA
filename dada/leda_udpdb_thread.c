@@ -547,7 +547,7 @@ void * leda_udpdb_receive_obs (void * arg)
             if (temp_idx < temp_max)
             {
               // save packet to temp buffer
-              memcpy (temp_buffers[temp_idx], ctx->sock->buf, UDP_DATA);
+              memcpy (temp_buffers[temp_idx], ctx->sock->buf + UDP_HEADER, UDP_DATA);
               temp_seq_byte[temp_idx] = seq_byte;
               temp_idx++;
             }
